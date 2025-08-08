@@ -1,14 +1,13 @@
 import asyncio
 import logging
+import logging.config
 import os
 import sys
 
 from app.bot import main
-from config.config import settings
+from app.services.logger.logging_settings import logging_config
 
-logging.basicConfig(
-    level=logging.getLevelName(settings.logs.level_name), format=settings.logs.format
-)
+logging.config.dictConfig(logging_config)
 
 if sys.platform.startswith("win") or os.name == "nt":
     asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy())

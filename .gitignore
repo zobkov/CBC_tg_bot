@@ -166,3 +166,4 @@ poetry.lock
 /pgadmin-data/
 
 test_*.py
+edu_project/

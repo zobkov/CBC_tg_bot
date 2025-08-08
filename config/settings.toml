@@ -16,10 +16,21 @@
         PARSE_MODE = 'HTML'
 
     [development.postgres]
-        NAME = 'postgres'
-        HOST = 'localhost'
-        PORT = 5432
-        USER = 'postgres'
+        # База данных для пользователей
+        [development.postgres.users]
+            NAME = 'cbc_crew_selection_db'
+            HOST = '185.58.204.176'
+            PORT = 5434
+            USER = 'cbc_bot'
+            PASSWORD = 'cbc1337'
+        
+        # База данных для заявок
+        [development.postgres.applications]
+            NAME = 'cbc_crew_selection_db_applications'
+            HOST = '185.58.204.176'
+            PORT = 5435
+            USER = 'cbc_bot'
+            PASSWORD = 'cbc1337'
     
     [development.redis]
         HOST = 'localhost'
