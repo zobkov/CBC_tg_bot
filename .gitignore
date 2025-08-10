@@ -167,3 +167,6 @@ poetry.lock
 
 test_*.py
 edu_project/
+
+app/storage/resumes/
+app/storage/backups/
