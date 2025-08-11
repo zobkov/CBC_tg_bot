@@ -92,6 +92,7 @@ async def get_current_stage_info(dialog_manager: DialogManager, **kwargs) -> Dic
             deadline_info = f"⏰ <b>Дедлайн:</b> {end_date.strftime('%d.%m.%Y %H:%M')}"
             
             # Рассчитываем оставшееся время
+            """ Убрал "Осталоь ... дн" так как динамическая информация в статическом сообщении
             time_left = end_date - now
             if time_left.days > 7:
                 deadline_info += f"\n⏳ Осталось: {time_left.days} дн."
@@ -104,6 +105,7 @@ async def get_current_stage_info(dialog_manager: DialogManager, **kwargs) -> Dic
                 deadline_info += f"\n🚨 <b>Осталось: менее часа!</b>"
             else:
                 deadline_info += f"\n❌ <b>Дедлайн истек</b>"
+            """
     
     # Добавляем информацию о следующем этапе
     next_stage_text = ""

@@ -42,7 +42,7 @@ class _ApplicationsDB:
             SELECT id, user_id, status, created, updated,
                    full_name, university, course, phone, email, telegram_username,
                    how_found_kbk, department, position, experience, motivation,
-                   resume_local_path, resume_google_drive_url
+                   resume_local_path, resume_google_drive_url, previous_department
             FROM applications
             WHERE user_id = %s
         """,
@@ -86,6 +86,7 @@ class _ApplicationsDB:
         motivation: str,
         resume_local_path: Optional[str] = None,
         resume_google_drive_url: Optional[str] = None,
+        previous_department: Optional[str] = None,
     ) -> None:
         await self.connection.execute(
             """
@@ -93,13 +94,13 @@ class _ApplicationsDB:
             SET full_name = %s, university = %s, course = %s, phone = %s, email = %s,
                 telegram_username = %s, how_found_kbk = %s, department = %s, position = %s,
                 experience = %s, motivation = %s, resume_local_path = %s, 
-                resume_google_drive_url = %s, updated = %s
+                resume_google_drive_url = %s, previous_department = %s, updated = %s
             WHERE user_id = %s
         """,
             (
                 full_name, university, course, phone, email, telegram_username,
                 how_found_kbk, department, position, experience, motivation,
-                resume_local_path, resume_google_drive_url, 
+                resume_local_path, resume_google_drive_url, previous_department,
                 datetime.now(timezone.utc), user_id
             ),
         )

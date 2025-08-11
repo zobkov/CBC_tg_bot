@@ -12,12 +12,29 @@ class FirstStageSG(StatesGroup):
     phone = State()
     email = State()
     how_found_kbk = State()
-    department = State()
-    position = State()
+    previous_department = State()  # Новое состояние для отдела предыдущего участия в КБК
     experience = State()
     motivation = State()
     resume_upload = State()
+    department = State()  # Перенесено в конец
+    position = State()    # Перенесено в конец
     
     # Подтверждение
     confirmation = State()
+    
+    # Меню редактирования
+    edit_menu = State()
+    edit_full_name = State()
+    edit_university = State()
+    edit_course = State()
+    edit_phone = State()
+    edit_email = State()
+    edit_how_found_kbk = State()
+    edit_previous_department = State()
+    edit_experience = State()
+    edit_motivation = State()
+    edit_resume_upload = State()
+    edit_department = State()
+    edit_position = State()
+    
     success = State()

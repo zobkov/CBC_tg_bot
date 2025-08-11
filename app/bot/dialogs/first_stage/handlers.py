@@ -1,5 +1,6 @@
 import os
 import csv
+import re
 import logging
 from datetime import datetime
 from typing import Any
@@ -12,6 +13,7 @@ from aiogram_dialog.widgets.input import MessageInput
 from config.config import Config
 from app.infrastructure.database.database.db import DB
 from app.bot.enums.application_status import ApplicationStatus
+from app.bot.states.first_stage import FirstStageSG
 from app.services.error_monitoring import error_monitor
 
 logger = logging.getLogger(__name__)
@@ -141,11 +143,11 @@ async def process_resume_file(message: Message, widget, dialog_manager: DialogMa
     logger.info(f"   - Размер: {document.file_size} байт ({document.file_size / 1024 / 1024:.2f} МБ)")
     logger.info(f"   - MIME-тип: {document.mime_type}")
 
-    # Проверяем размер файла (максимум 20 МБ)
-    max_size = 20 * 1024 * 1024
+    # Проверяем размер файла (максимум 10 МБ)
+    max_size = 10 * 1024 * 1024
     if document.file_size > max_size:
         logger.warning(f"⚠️ Файл пользователя {user.id} слишком большой: {document.file_size} байт")
-        await message.answer("Файл слишком большой. Максимальный размер: 20 МБ")
+        await message.answer("❌ Файл слишком большой. Максимальный размер: 10 МБ.\nПожалуйста, загрузите файл меньшего размера.")
         return
 
     # Получаем данные пользователя из диалога
@@ -304,7 +306,7 @@ async def process_resume_file(message: Message, widget, dialog_manager: DialogMa
 async def on_confirm_application(callback: CallbackQuery, button, dialog_manager: DialogManager):
     """Обработчик подтверждения заявки"""
     await save_application(dialog_manager)
-    await dialog_manager.next()
+    await dialog_manager.switch_to(FirstStageSG.success)
 
 
 async def save_application(dialog_manager: DialogManager):
@@ -348,12 +350,40 @@ async def save_application(dialog_manager: DialogManager):
     
     # Парсим текстовые данные с защитой от ошибок
     try:
-        how_found_idx = int(dialog_data.get("how_found_kbk", "0"))
-        how_found_text = config.selection.how_found_options[how_found_idx] if how_found_idx < len(config.selection.how_found_options) else ""
+        # Обрабатываем множественный выбор "Откуда узнали о КБК" из Multiselect
+        multiselect = dialog_manager.find("how_found_multiselect")
+        how_found_selections = set()
+        
+        if multiselect:
+            how_found_selections = set(multiselect.get_checked())
+        else:
+            # Fallback к dialog_data если Multiselect не найден
+            how_found_selections = dialog_data.get("how_found_selections", set())
+        
+        how_found_texts = []
+        for selection in how_found_selections:
+            try:
+                idx = int(selection)
+                if idx < len(config.selection.how_found_options):
+                    how_found_texts.append(config.selection.how_found_options[idx])
+            except (ValueError, IndexError):
+                continue
+        
+        how_found_text = ", ".join(how_found_texts) if how_found_texts else ""
         logger.info(f"🔍 Как узнал о КБК: {how_found_text}")
-    except (ValueError, IndexError) as e:
+        
+        # Обрабатываем предыдущий отдел если участвовал в КБК
+        previous_department_text = ""
+        if "6" in how_found_selections:  # "Ранее участвовал в КБК"
+            previous_dept_key = dialog_data.get("previous_department", "")
+            if previous_dept_key and previous_dept_key in config.selection.departments:
+                previous_department_text = config.selection.departments[previous_dept_key]['name']
+                logger.info(f"🏢 Предыдущий отдел в КБК: {previous_department_text}")
+        
+    except Exception as e:
         logger.error(f"❌ Ошибка обработки 'how_found_kbk': {e}")
         how_found_text = ""
+        previous_department_text = ""
     
     try:
         department_key = dialog_data.get("selected_department", "")
@@ -399,7 +429,8 @@ async def save_application(dialog_manager: DialogManager):
             experience=dialog_data.get("experience", ""),
             motivation=dialog_data.get("motivation", ""),
             resume_local_path=resume_local_path,
-            resume_google_drive_url=resume_google_drive_url
+            resume_google_drive_url=resume_google_drive_url,
+            previous_department=previous_department_text
         )
         
         logger.info(f"✅ Данные заявки сохранены в БД")
@@ -431,6 +462,7 @@ async def save_application(dialog_manager: DialogManager):
         'phone': dialog_data.get("phone", ""),
         'email': dialog_data.get("email", ""),
         'how_found_kbk': how_found_text,
+        'previous_department': previous_department_text,
         'department': department_name,
         'position': position_text,
         'experience': dialog_data.get("experience", ""),
@@ -502,8 +534,8 @@ async def save_to_csv(application_data: dict):
         with open(csv_path, 'a', newline='', encoding='utf-8') as csvfile:
             fieldnames = [
                 'timestamp', 'user_id', 'username', 'full_name', 'university', 
-                'course', 'phone', 'email', 'how_found_kbk', 'department', 
-                'position', 'experience', 'motivation', 'status', 
+                'course', 'phone', 'email', 'how_found_kbk', 'previous_department',
+                'department', 'position', 'experience', 'motivation', 'status', 
                 'resume_local_path', 'resume_google_drive_url'
             ]
             writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
@@ -639,3 +671,280 @@ async def on_resume_uploaded(message: Message, widget, dialog_manager: DialogMan
     """Обработка загрузки резюме"""
     logger.info(f"📎 Начинаем обработку резюме от пользователя {message.from_user.id}")
     await process_resume_file(message, widget, dialog_manager, **kwargs)
+
+
+# Новые обработчики для множественного выбора "Откуда узнали о КБК"
+async def on_how_found_state_changed(callback: CallbackQuery, widget, dialog_manager: DialogManager, *args, **kwargs):
+    """Обработчик изменения состояния в Multiselect"""
+    logger.info(f"📢 Пользователь {callback.from_user.id} изменил выбор источников информации о КБК")
+    
+    # Получаем текущие выбранные элементы из Multiselect
+    multiselect = dialog_manager.find("how_found_multiselect")
+    if multiselect:
+        checked_items = multiselect.get_checked()
+        logger.info(f"📢 Текущие выборы: {checked_items}")
+        
+        # Сохраняем в dialog_data для совместимости с остальным кодом
+        dialog_manager.dialog_data["how_found_selections"] = set(checked_items)
+
+
+async def on_how_found_toggled(callback: CallbackQuery, widget, dialog_manager: DialogManager, item_id, **kwargs):
+    """Обработчик изменения состояния в Multiselect (устаревший)"""
+    logger.info(f"📢 Пользователь {callback.from_user.id} изменил выбор опции: {item_id}")
+    
+    # Получаем текущие выбранные элементы из Multiselect
+    multiselect = dialog_manager.find("how_found_multiselect")
+    if multiselect:
+        checked_items = multiselect.get_checked()
+        logger.info(f"📢 Текущие выборы: {checked_items}")
+        
+        # Сохраняем в dialog_data для совместимости с остальным кодом
+        dialog_manager.dialog_data["how_found_selections"] = set(checked_items)
+
+
+async def on_how_found_continue(callback: CallbackQuery, widget, dialog_manager: DialogManager, **kwargs):
+    """Обработчик кнопки 'Далее' после выбора источников информации о КБК"""
+    # Получаем выбранные опции из Multiselect виджета
+    multiselect = dialog_manager.find("how_found_multiselect")
+    
+    if multiselect:
+        checked_items = multiselect.get_checked()
+        logger.info(f"📢 Пользователь {callback.from_user.id} завершил выбор источников: {checked_items}")
+        
+        # Проверяем, есть ли хотя бы один выбор
+        if not checked_items:
+            await callback.answer("❌ Пожалуйста, выберите хотя бы один вариант", show_alert=True)
+            return
+        
+        # Сохраняем выбранные варианты в dialog_data для использования в других частях кода
+        dialog_manager.dialog_data["how_found_selections"] = set(checked_items)
+        
+        # Если пользователь НЕ выбрал "Ранее участвовал в КБК" (индекс 6), пропускаем окно previous_department
+        if "6" not in checked_items:
+            logger.info(f"⏭️ Пользователь не участвовал в КБК, пропускаем выбор предыдущего отдела")
+            await dialog_manager.next()  # К окну previous_department
+            await dialog_manager.next()  # Пропускаем его и идем к experience
+            return
+    
+    # Переходим к следующему окну (previous_department)
+    await dialog_manager.next()
+
+
+async def on_previous_department_selected(callback: CallbackQuery, widget, dialog_manager: DialogManager, item_id, **kwargs):
+    """Обработчик выбора отдела предыдущего участия в КБК"""
+    logger.info(f"🏢 Пользователь {callback.from_user.id} выбрал предыдущий отдел: {item_id}")
+    dialog_manager.dialog_data["previous_department"] = item_id
+    await dialog_manager.next()
+
+
+# ======================
+# ОБРАБОТЧИКИ РЕДАКТИРОВАНИЯ
+# ======================
+
+async def on_edit_clicked(callback: CallbackQuery, button, dialog_manager: DialogManager):
+    """Обработчик кнопки 'Изменить' на окне подтверждения"""
+    logger.info(f"✏️ Пользователь {callback.from_user.id} запросил редактирование заявки")
+    await dialog_manager.switch_to(FirstStageSG.edit_menu)
+
+
+async def on_edit_field_clicked(callback: CallbackQuery, button, dialog_manager: DialogManager):
+    """Универсальный обработчик кнопок редактирования полей"""
+    button_id = button.widget_id
+    user_id = callback.from_user.id
+    
+    logger.info(f"✏️ Пользователь {user_id} выбрал редактирование поля: {button_id}")
+    
+    # Определяем состояние для редактирования на основе ID кнопки
+    field_to_state = {
+        "edit_full_name": FirstStageSG.edit_full_name,
+        "edit_university": FirstStageSG.edit_university,
+        "edit_course": FirstStageSG.edit_course,
+        "edit_phone": FirstStageSG.edit_phone,
+        "edit_email": FirstStageSG.edit_email,
+        "edit_how_found": FirstStageSG.edit_how_found_kbk,
+        "edit_experience": FirstStageSG.edit_experience,
+        "edit_motivation": FirstStageSG.edit_motivation,
+        "edit_resume": FirstStageSG.edit_resume_upload,
+        "edit_department": FirstStageSG.edit_department,
+    }
+    
+    target_state = field_to_state.get(button_id)
+    if target_state:
+        await dialog_manager.switch_to(target_state)
+    else:
+        logger.error(f"❌ Неизвестная кнопка редактирования: {button_id}")
+
+
+async def on_edit_full_name_input(message: Message, widget, dialog_manager: DialogManager, value, **kwargs):
+    """Обработка изменения ФИО"""
+    full_name = value.strip()
+    logger.info(f"✏️👤 Пользователь {message.from_user.id} изменил ФИО: {full_name}")
+    
+    # Обновляем данные (аналогично основной логике)
+    name_parts = full_name.split()
+    
+    if len(name_parts) >= 1:
+        dialog_manager.dialog_data["surname"] = name_parts[0]
+    else:
+        dialog_manager.dialog_data["surname"] = "User"
+    
+    if len(name_parts) >= 2:
+        dialog_manager.dialog_data["name"] = name_parts[1]
+    else:
+        dialog_manager.dialog_data["name"] = "Unknown"
+    
+    if len(name_parts) >= 3:
+        dialog_manager.dialog_data["patronymic"] = name_parts[2]
+    else:
+        dialog_manager.dialog_data["patronymic"] = ""
+    
+    dialog_manager.dialog_data["full_name"] = full_name
+    
+    await message.answer("✅ ФИО успешно изменено!")
+    await dialog_manager.switch_to(FirstStageSG.confirmation)
+
+
+async def on_edit_university_input(message: Message, widget, dialog_manager: DialogManager, value, **kwargs):
+    """Обработка изменения университета"""
+    university = value.strip()
+    logger.info(f"✏️🏫 Пользователь {message.from_user.id} изменил университет: {university}")
+    dialog_manager.dialog_data["university"] = university
+    await message.answer("✅ Учебное заведение успешно изменено!")
+    await dialog_manager.switch_to(FirstStageSG.confirmation)
+
+
+async def on_edit_course_selected(callback: CallbackQuery, widget, dialog_manager: DialogManager, item_id, **kwargs):
+    """Обработка изменения курса"""
+    logger.info(f"✏️📚 Пользователь {callback.from_user.id} изменил курс: {item_id}")
+    dialog_manager.dialog_data["course"] = item_id
+    await callback.answer("✅ Курс успешно изменен!")
+    await dialog_manager.switch_to(FirstStageSG.confirmation)
+
+
+async def on_edit_phone_input(message: Message, widget, dialog_manager: DialogManager, value, **kwargs):
+    """Обработка изменения телефона"""
+    phone = value.strip()
+    logger.info(f"✏️📞 Пользователь {message.from_user.id} изменил телефон: {phone}")
+    
+    if len(phone) >= 10:
+        dialog_manager.dialog_data["phone"] = phone
+        await message.answer("✅ Номер телефона успешно изменен!")
+        await dialog_manager.switch_to(FirstStageSG.confirmation)
+    else:
+        logger.warning(f"⚠️ Некорректный телефон от пользователя {message.from_user.id}: {phone}")
+        await message.answer("❌ Пожалуйста, введите корректный номер телефона (минимум 10 цифр)")
+
+
+async def on_edit_email_input(message: Message, widget, dialog_manager: DialogManager, value, **kwargs):
+    """Обработка изменения email"""
+    email = value.strip()
+    logger.info(f"✏️📧 Пользователь {message.from_user.id} изменил email: {email}")
+    
+    if "@" in email and "." in email:
+        dialog_manager.dialog_data["email"] = email
+        await message.answer("✅ Email успешно изменен!")
+        await dialog_manager.switch_to(FirstStageSG.confirmation)
+    else:
+        logger.warning(f"⚠️ Некорректный email от пользователя {message.from_user.id}: {email}")
+        await message.answer("❌ Пожалуйста, введите корректный email адрес")
+
+
+async def on_edit_how_found_state_changed(callback: CallbackQuery, widget, dialog_manager: DialogManager, *args, **kwargs):
+    """Обработчик изменения множественного выбора при редактировании"""
+    logger.info(f"✏️📢 Пользователь {callback.from_user.id} изменил выбор источников информации о КБК")
+    
+    # Получаем текущие выбранные элементы из Multiselect
+    multiselect = dialog_manager.find("edit_how_found_multi")
+    if multiselect:
+        checked_items = multiselect.get_checked()
+        logger.info(f"📢 Обновленный выбор: {checked_items}")
+        
+        # Сохраняем в dialog_data
+        dialog_manager.dialog_data["how_found_selections"] = set(checked_items)
+
+
+async def on_edit_how_found_continue(callback: CallbackQuery, widget, dialog_manager: DialogManager, **kwargs):
+    """Обработчик завершения редактирования источников информации"""
+    multiselect = dialog_manager.find("edit_how_found_multi")
+    
+    if multiselect:
+        checked_items = multiselect.get_checked()
+        
+        if not checked_items:
+            await callback.answer("❌ Пожалуйста, выберите хотя бы один вариант", show_alert=True)
+            return
+        
+        dialog_manager.dialog_data["how_found_selections"] = set(checked_items)
+        await callback.answer("✅ Источники информации о КБК успешно изменены!")
+        await dialog_manager.switch_to(FirstStageSG.confirmation)
+
+
+async def on_edit_previous_department_selected(callback: CallbackQuery, widget, dialog_manager: DialogManager, item_id, **kwargs):
+    """Обработка изменения предыдущего отдела"""
+    logger.info(f"✏️🏢 Пользователь {callback.from_user.id} изменил предыдущий отдел: {item_id}")
+    dialog_manager.dialog_data["previous_department"] = item_id
+    await callback.answer("✅ Предыдущий отдел успешно изменен!")
+    await dialog_manager.switch_to(FirstStageSG.confirmation)
+
+
+async def on_edit_experience_input(message: Message, widget, dialog_manager: DialogManager, value, **kwargs):
+    """Обработка изменения опыта"""
+    experience = value.strip()
+    logger.info(f"✏️💼 Пользователь {message.from_user.id} изменил опыт: {len(experience)} символов")
+    dialog_manager.dialog_data["experience"] = experience
+    await message.answer("✅ Опыт успешно изменен!")
+    await dialog_manager.switch_to(FirstStageSG.confirmation)
+
+
+async def on_edit_motivation_input(message: Message, widget, dialog_manager: DialogManager, value, **kwargs):
+    """Обработка изменения мотивации"""
+    motivation = value.strip()
+    logger.info(f"✏️💭 Пользователь {message.from_user.id} изменил мотивацию: {len(motivation)} символов")
+    dialog_manager.dialog_data["motivation"] = motivation
+    await message.answer("✅ Мотивация успешно изменена!")
+    await dialog_manager.switch_to(FirstStageSG.confirmation)
+
+
+async def on_edit_resume_uploaded(message: Message, widget, dialog_manager: DialogManager, **kwargs):
+    """Обработка изменения резюме"""
+    logger.info(f"✏️📎 Пользователь {message.from_user.id} загружает новое резюме")
+    # Используем существующую логику обработки резюме
+    await process_resume_file(message, widget, dialog_manager, **kwargs)
+    await message.answer("✅ Резюме успешно изменено!")
+    await dialog_manager.switch_to(FirstStageSG.confirmation)
+
+
+async def on_edit_department_selected(callback: CallbackQuery, widget, dialog_manager: DialogManager, item_id, **kwargs):
+    """Обработка изменения отдела"""
+    logger.info(f"✏️🏢 Пользователь {callback.from_user.id} изменил отдел: {item_id}")
+    dialog_manager.dialog_data["selected_department"] = item_id
+    await callback.answer("✅ Отдел успешно изменен!")
+    # Переходим к выбору должности в новом отделе
+    await dialog_manager.switch_to(FirstStageSG.edit_position)
+
+
+async def on_edit_position_selected(callback: CallbackQuery, widget, dialog_manager: DialogManager, item_id, **kwargs):
+    """Обработка изменения должности"""
+    logger.info(f"✏️💼 Пользователь {callback.from_user.id} изменил должность: {item_id}")
+    dialog_manager.dialog_data["selected_position"] = item_id
+    await callback.answer("✅ Должность успешно изменена!")
+    await dialog_manager.switch_to(FirstStageSG.confirmation)
+
+
+async def on_back_to_confirmation(callback: CallbackQuery, button, dialog_manager: DialogManager):
+    """Возврат к окну подтверждения без изменений"""
+    logger.info(f"🔙 Пользователь {callback.from_user.id} вернулся к подтверждению")
+    await dialog_manager.switch_to(FirstStageSG.confirmation)
+
+
+async def check_previous_participation_and_skip(dialog_manager: DialogManager):
+    """Проверяет, участвовал ли пользователь в КБК ранее, и пропускает окно если нет"""
+    selections = dialog_manager.dialog_data.get("how_found_selections", set())
+    
+    # Если не выбрал "Ранее участвовал в КБК" (индекс 6), пропускаем окно
+    if "6" not in selections:
+        logger.info(f"⏭️ Пользователь не участвовал в КБК ранее, пропускаем окно выбора предыдущего отдела")
+        await dialog_manager.next()  # Пропускаем окно предыдущего отдела
+        return True
+    
+    return False

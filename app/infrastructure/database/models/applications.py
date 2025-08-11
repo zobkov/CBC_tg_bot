@@ -28,6 +28,7 @@ class ApplicationsModel(BaseModel):
     motivation: Optional[str] = None
     resume_local_path: Optional[str] = None
     resume_google_drive_url: Optional[str] = None
+    previous_department: Optional[str] = None
 
     def __post_init__(self):
         if isinstance(self.status, str):
