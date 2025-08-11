@@ -14,6 +14,7 @@ from config.config import Config
 from app.infrastructure.database.database.db import DB
 from app.bot.enums.application_status import ApplicationStatus
 from app.bot.states.first_stage import FirstStageSG
+from app.bot.states.job_selection import JobSelectionSG
 from app.services.error_monitoring import error_monitor
 
 logger = logging.getLogger(__name__)
@@ -293,9 +294,9 @@ async def process_resume_file(message: Message, widget, dialog_manager: DialogMa
         
         await message.answer(message_text)
         
-        # ВАЖНО: Переходим к следующему окну диалога
-        logger.info(f"➡️ Переходим к следующему окну диалога для пользователя {user.id}")
-        await dialog_manager.next()
+        # ВАЖНО: Переходим к диалогу выбора вакансий
+        logger.info(f"➡️ Переходим к диалогу выбора вакансий для пользователя {user.id}")
+        await dialog_manager.start(JobSelectionSG.select_department)
         
     except Exception as e:
         logger.error(f"❌ Ошибка при обработке файла резюме: {e}")
@@ -386,24 +387,50 @@ async def save_application(dialog_manager: DialogManager):
         previous_department_text = ""
     
     try:
-        department_key = dialog_data.get("selected_department", "")
-        department_name = config.selection.departments.get(department_key, {}).get("name", "")
-        logger.info(f"🏢 Выбранный департамент: {department_name} ({department_key})")
-    except Exception as e:
-        logger.error(f"❌ Ошибка обработки департамента: {e}")
-        department_name = ""
-    
-    try:
-        position_idx = int(dialog_data.get("selected_position", "0"))
-        if department_key in config.selection.departments:
-            positions = config.selection.departments[department_key]["positions"]
-            position_text = positions[position_idx] if position_idx < len(positions) else ""
+        # Обрабатываем приоритеты вакансий
+        priorities_data = {}
+        priorities_text = ""
+        
+        # Для обратной совместимости используем первый приоритет как основной department/position
+        main_department_name = ""
+        main_position_text = ""
+        
+        for i in range(1, 4):
+            dept_key = dialog_data.get(f"priority_{i}_department")
+            pos_index = dialog_data.get(f"priority_{i}_position")
+            
+            if dept_key and pos_index is not None:
+                dept_name = config.selection.departments.get(dept_key, {}).get("name", dept_key)
+                
+                # Получаем позицию по индексу из массива
+                positions_list = config.selection.departments.get(dept_key, {}).get("positions", [])
+                try:
+                    pos_name = positions_list[int(pos_index)]
+                except (IndexError, ValueError):
+                    pos_name = "Неизвестная позиция"
+                
+                priorities_data[f"priority_{i}"] = f"{dept_name} - {pos_name}"
+                priorities_text += f"{i}: {dept_name} - {pos_name}; "
+                
+                # Используем первый приоритет как основной
+                if i == 1:
+                    main_department_name = dept_name
+                    main_position_text = pos_name
+                
+                logger.info(f"🎯 Приоритет {i}: {dept_name} - {pos_name}")
+            else:
+                priorities_data[f"priority_{i}"] = "Не выбрано"
+        
+        if not priorities_text:
+            priorities_text = "Приоритеты не заданы"
         else:
-            position_text = ""
-        logger.info(f"💼 Выбранная позиция: {position_text}")
-    except (ValueError, IndexError, KeyError) as e:
-        logger.error(f"❌ Ошибка обработки позиции: {e}")
-        position_text = ""
+            priorities_text = priorities_text.rstrip("; ")
+            
+    except Exception as e:
+        logger.error(f"❌ Ошибка обработки приоритетов: {e}")
+        priorities_text = "Ошибка обработки приоритетов"
+        main_department_name = ""
+        main_position_text = ""
     
     # Логируем все собранные данные
     logger.info(f"👤 ФИО: {dialog_data.get('full_name', 'не указано')}")
@@ -424,8 +451,8 @@ async def save_application(dialog_manager: DialogManager):
             email=dialog_data.get("email", ""),
             telegram_username=event_from_user.username or "",
             how_found_kbk=how_found_text,
-            department=department_name,
-            position=position_text,
+            department=main_department_name,
+            position=main_position_text,
             experience=dialog_data.get("experience", ""),
             motivation=dialog_data.get("motivation", ""),
             resume_local_path=resume_local_path,
@@ -463,8 +490,9 @@ async def save_application(dialog_manager: DialogManager):
         'email': dialog_data.get("email", ""),
         'how_found_kbk': how_found_text,
         'previous_department': previous_department_text,
-        'department': department_name,
-        'position': position_text,
+        'department': main_department_name,
+        'position': main_position_text,
+        'priorities': priorities_text,
         'experience': dialog_data.get("experience", ""),
         'motivation': dialog_data.get("motivation", ""),
         'status': 'submitted',
@@ -754,6 +782,14 @@ async def on_edit_field_clicked(callback: CallbackQuery, button, dialog_manager:
     
     logger.info(f"✏️ Пользователь {user_id} выбрал редактирование поля: {button_id}")
     
+    # Специальная обработка для выбора вакансий
+    if button_id == "edit_department":
+        # Переходим к новой системе выбора вакансий в режиме редактирования
+        from app.bot.states.job_selection import JobSelectionSG
+        logger.info(f"🎯 Пользователь {user_id} переходит к редактированию выбора вакансий")
+        await dialog_manager.start(JobSelectionSG.priorities_overview, mode="reset_stack")
+        return
+    
     # Определяем состояние для редактирования на основе ID кнопки
     field_to_state = {
         "edit_full_name": FirstStageSG.edit_full_name,
@@ -765,7 +801,6 @@ async def on_edit_field_clicked(callback: CallbackQuery, button, dialog_manager:
         "edit_experience": FirstStageSG.edit_experience,
         "edit_motivation": FirstStageSG.edit_motivation,
         "edit_resume": FirstStageSG.edit_resume_upload,
-        "edit_department": FirstStageSG.edit_department,
     }
     
     target_state = field_to_state.get(button_id)

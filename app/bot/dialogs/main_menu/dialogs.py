@@ -9,7 +9,7 @@ from .handlers import on_current_stage_clicked, on_support_clicked
 
 main_menu_dialog = Dialog(
     Window(
-        Format("🏠 <b>Главное меню отбора в команду КБК 2026</b>\n\n"
+        Format("🏠 <b>Личный кабинет кандидата в команду КБК 2026</b>\n\n"
                "📅 <b>Текущий этап:</b> {stage_name}\n"
                "📝 <b>Статус заявки:</b> {status_text}\n\n"
                "{deadline_info}\n\n"

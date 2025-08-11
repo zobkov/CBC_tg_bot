@@ -76,15 +76,22 @@ async def get_departments_for_previous(dialog_manager: DialogManager, **kwargs) 
     config: Config = dialog_manager.middleware_data.get("config")
     
     if not config:
-        return {"departments": [], "was_in_kbk": False}
+        return {"departments": [], "was_in_kbk": False, "departments_description": ""}
     
     departments = []
+    descriptions = []
+    
     for key, dept_info in config.selection.departments.items():
         departments.append({
             "id": key, 
             "text": dept_info["name"],
             "description": dept_info.get("description", "")
         })
+        
+        # Формируем описание для текста
+        descriptions.append(f"<b>{dept_info['name']}</b>\n{dept_info.get('description', '')}")
+    
+    departments_description = "\n\n".join(descriptions)
     
     # Проверяем, выбрал ли пользователь "Ранее участвовал в КБК" через Multiselect
     multiselect = dialog_manager.find("how_found_multiselect")
@@ -96,7 +103,8 @@ async def get_departments_for_previous(dialog_manager: DialogManager, **kwargs) 
     
     return {
         "departments": departments,
-        "was_in_kbk": was_in_kbk
+        "was_in_kbk": was_in_kbk,
+        "departments_description": departments_description
     }
 
 
@@ -105,17 +113,27 @@ async def get_departments(dialog_manager: DialogManager, **kwargs) -> Dict[str, 
     config: Config = dialog_manager.middleware_data.get("config")
     
     if not config:
-        return {"departments": []}
+        return {"departments": [], "departments_description": ""}
     
     departments = []
+    descriptions = []
+    
     for key, dept_info in config.selection.departments.items():
         departments.append({
             "id": key, 
             "text": dept_info["name"],
             "description": dept_info.get("description", "")
         })
+        
+        # Формируем описание для текста
+        descriptions.append(f"<b>{dept_info['name']}</b>\n{dept_info.get('description', '')}")
     
-    return {"departments": departments}
+    departments_description = "\n\n".join(descriptions)
+    
+    return {
+        "departments": departments,
+        "departments_description": departments_description
+    }
 
 
 async def get_positions_for_department(dialog_manager: DialogManager, **kwargs) -> Dict[str, Any]:
@@ -191,20 +209,31 @@ async def get_form_summary(dialog_manager: DialogManager, **kwargs) -> Dict[str,
         if previous_dept_key and previous_dept_key in config.selection.departments:
             previous_dept_text = f"\n🏢 <b>Предыдущий отдел в КБК:</b> {config.selection.departments[previous_dept_key]['name']}"
     
-    department_key = dialog_data.get("selected_department", "")
-    department_name = ""
-    position_text = ""
+    # Формируем информацию о приоритетах вакансий
+    priorities_summary = ""
+    priorities_exist = False
     
-    if department_key in config.selection.departments:
-        dept_info = config.selection.departments[department_key]
-        department_name = dept_info.get("name", "")
+    for i in range(1, 4):
+        dept_key = dialog_data.get(f"priority_{i}_department")
+        pos_index = dialog_data.get(f"priority_{i}_position")
         
-        position_idx = dialog_data.get("selected_position", "0")
-        positions = dept_info.get("positions", [])
-        try:
-            position_text = positions[int(position_idx)]
-        except (IndexError, ValueError):
-            position_text = "Не указано"
+        if dept_key and pos_index is not None:
+            priorities_exist = True
+            dept_name = config.selection.departments.get(dept_key, {}).get("name", dept_key)
+            
+            # Получаем позицию по индексу из массива
+            positions_list = config.selection.departments.get(dept_key, {}).get("positions", [])
+            try:
+                pos_name = positions_list[int(pos_index)]
+            except (IndexError, ValueError):
+                pos_name = "Неизвестная позиция"
+                
+            priorities_summary += f"  {i}. {dept_name} - {pos_name}\n"
+        else:
+            priorities_summary += f"  {i}. Не выбрано\n"
+    
+    if not priorities_exist:
+        priorities_summary = "❌ Вакансии не выбраны"
     
     course = dialog_data.get("course", "1")
     
@@ -223,8 +252,7 @@ async def get_form_summary(dialog_manager: DialogManager, **kwargs) -> Dict[str,
         "email": dialog_data.get("email", ""),
         "how_found_text": how_found_text,
         "previous_dept_text": previous_dept_text,
-        "department_name": department_name,
-        "position_text": position_text,
+        "priorities_summary": priorities_summary,
         "experience": dialog_data.get("experience", ""),
         "motivation": dialog_data.get("motivation", ""),
         "resume_status": resume_status

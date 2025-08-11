@@ -22,6 +22,8 @@ async def get_user_info(dialog_manager: DialogManager, event_from_user: User, **
 async def get_current_stage_info(dialog_manager: DialogManager, **kwargs) -> Dict[str, Any]:
     """Получаем информацию о текущем этапе отбора"""
     config: Config = dialog_manager.middleware_data.get("config")
+    db: DB = dialog_manager.middleware_data.get("db")
+    event_from_user: User = dialog_manager.event.from_user
     
     if not config:
         return {
@@ -29,6 +31,15 @@ async def get_current_stage_info(dialog_manager: DialogManager, **kwargs) -> Dic
             "current_stage_description": "Информация недоступна",
             "is_active": False
         }
+    
+    # Получаем статус заявки пользователя
+    application_submitted = False
+    try:
+        if db:
+            application = await db.applications.get_application(user_id=event_from_user.id)
+            application_submitted = application and application.status.value == "submitted"
+    except Exception:
+        application_submitted = False
     
     now = datetime.now()
     current_stage = None
@@ -87,9 +98,16 @@ async def get_current_stage_info(dialog_manager: DialogManager, **kwargs) -> Dic
                 hours_until = time_until.seconds // 3600
                 deadline_info += f"\n⏳ До начала: {hours_until} ч."
         elif "end_date" in current_stage_info:
-            # Для текущих этапов показываем дедлайн
+            # Для текущих этапов показываем дедлайн или результаты в зависимости от статуса заявки
             end_date = datetime.fromisoformat(current_stage_info["end_date"])
-            deadline_info = f"⏰ <b>Дедлайн:</b> {end_date.strftime('%d.%m.%Y %H:%M')}"
+            
+            if application_submitted and "results_date" in current_stage_info:
+                # Если заявка подана, показываем когда придут результаты
+                results_date = datetime.fromisoformat(current_stage_info["results_date"])
+                deadline_info = f"📊 <b>Результаты придут:</b> {results_date.strftime('%d.%m.%Y %H:%M')}"
+            else:
+                # Если заявка не подана, показываем дедлайн
+                deadline_info = f"⏰ <b>Дедлайн:</b> {end_date.strftime('%d.%m.%Y %H:%M')}"
             
             # Рассчитываем оставшееся время
             """ Убрал "Осталоь ... дн" так как динамическая информация в статическом сообщении

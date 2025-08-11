@@ -197,41 +197,6 @@ first_stage_dialog = Dialog(
     ),
     
     # Выбор отдела
-    Window(
-        Const("🏢 <b>Выберите отдел</b>"),
-        Column(
-            Radio(
-                Format("🔘 {item[text]}\n📝 {item[description]}"),
-                Format("⚪ {item[text]}\n📝 {item[description]}"),
-                id="department_radio",
-                item_id_getter=lambda item: item["id"],
-                items="departments",
-                on_click=on_department_selected
-            ),
-        ),
-        Cancel(Const("❌ Отменить")),
-        state=FirstStageSG.department,
-        getter=get_departments
-    ),
-    
-    # Выбор должности
-    Window(
-        Format("💼 <b>Выберите должность в отделе: {department_name}</b>"),
-        Column(
-            Radio(
-                Format("🔘 {item[text]}"),
-                Format("⚪ {item[text]}"),
-                id="position_radio",
-                item_id_getter=lambda item: item["id"],
-                items="positions",
-                on_click=on_position_selected
-            ),
-        ),
-        Cancel(Const("❌ Отменить")),
-        state=FirstStageSG.position,
-        getter=get_positions_for_department
-    ),
-    
     # Подтверждение
     Window(
         Format("✅ <b>Проверьте данные заявки</b>\n\n"
@@ -242,10 +207,9 @@ first_stage_dialog = Dialog(
                "📧 <b>Email:</b> {email}\n"
                "📢 <b>Откуда узнали:</b> {how_found_text}{previous_dept_text}\n"
                "💼 <b>Опыт:</b> {experience}\n"
-               "� <b>Мотивация:</b> {motivation}\n"
-               "� <b>Резюме:</b> {resume_status}\n"
-               "🏢 <b>Отдел:</b> {department_name}\n"
-               "� <b>Должность:</b> {position_text}"),
+               "💭 <b>Мотивация:</b> {motivation}\n"
+               "📄 <b>Резюме:</b> {resume_status}\n"
+               "\n� <b>Приоритеты вакансий:</b>\n{priorities_summary}"),
         Row(
             Button(
                 Const("📝 Изменить"),
@@ -313,7 +277,7 @@ first_stage_dialog = Dialog(
                 on_click=on_edit_field_clicked
             ),
             Button(
-                Format("🏢 Изменить отдел"),
+                Format("� Изменить выбор вакансий"),
                 id="edit_department",
                 on_click=on_edit_field_clicked
             )
@@ -486,49 +450,6 @@ first_stage_dialog = Dialog(
             on_click=on_back_to_confirmation
         ),
         state=FirstStageSG.edit_resume_upload
-    ),
-    
-    Window(
-        Const("🏢 Выберите новый отдел:"),
-        Column(
-            Radio(
-                Format("• {item[text]}\n📝 {item[description]}"),
-                Format("🔘 {item[text]}\n📝 {item[description]}"),
-                id="edit_department_radio",
-                item_id_getter=lambda item: item["id"],
-                items="departments",
-                on_click=on_edit_department_selected
-            ),
-        ),
-
-        Button(
-            Const("⬅️ Назад к меню"),
-            id="back_to_edit_menu",
-            on_click=on_back_to_confirmation
-        ),
-        getter=get_departments,
-        state=FirstStageSG.edit_department
-    ),
-    
-    Window(
-        Const("👔 Выберите новую должность:"),
-        Column(
-            Radio(
-                Format("• {item[text]}"),
-                Format("🔘 {item[text]}"),
-                id="edit_position_radio",
-                item_id_getter=lambda item: item["id"],
-                items="positions",
-                on_click=on_edit_position_selected
-            ),
-        ),
-        Button(
-            Const("⬅️ Назад к меню"),
-            id="back_to_edit_menu",
-            on_click=on_back_to_confirmation
-        ),
-        getter=get_positions_for_department,
-        state=FirstStageSG.edit_position
     ),
     
     # Успешная отправка

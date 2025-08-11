@@ -17,11 +17,13 @@ from app.bot.middlewares.database import DatabaseMiddleware
 
 from app.bot.handlers.commands import router as commands_router 
 
+from app.bot.keyboards.command_menu import set_main_menu
 
 from app.bot.dialogs.test.dialogs import test_dialog
 from app.bot.dialogs.start.dialogs import start_dialog
 from app.bot.dialogs.main_menu.dialogs import main_menu_dialog
 from app.bot.dialogs.first_stage.dialogs import first_stage_dialog
+from app.bot.dialogs.job_selection.dialogs import job_selection_dialog
 
 logger = logging.getLogger(__name__)
 
@@ -72,7 +74,8 @@ async def main():
         test_dialog,
         start_dialog,
         main_menu_dialog,
-        first_stage_dialog
+        first_stage_dialog,
+        job_selection_dialog
                        )
 
     logger.info("Including middlewares")
@@ -80,6 +83,8 @@ async def main():
 
     logger.info("Setting up dialogs")
     bg_factory = setup_dialogs(dp)
+
+    await set_main_menu(bot)
 
     # Launch polling and delayed message consumer
     try:
