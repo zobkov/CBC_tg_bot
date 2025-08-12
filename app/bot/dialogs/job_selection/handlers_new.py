@@ -1,6 +1,6 @@
 from typing import Any
 from aiogram.types import CallbackQuery
-from aiogram_dialog import DialogManager
+from aiogram_dialog import DialogManager, StartMode
 from aiogram_dialog.widgets.kbd import Button
 
 from app.bot.states.job_selection import JobSelectionSG
@@ -99,7 +99,7 @@ async def on_priority_confirmed(
     print(f"DEBUG: dialog_data after update = {dialog_manager.dialog_data}")
     
     # Возвращаемся к подтверждению заявки первого этапа
-    await dialog_manager.start(FirstStageSG.confirmation, mode="reset_stack")
+    await dialog_manager.start(FirstStageSG.confirmation, mode=StartMode.NORMAL)
 
 
 async def on_edit_priority_1(

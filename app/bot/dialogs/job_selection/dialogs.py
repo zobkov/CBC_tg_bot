@@ -13,7 +13,8 @@ from .handlers import (
     on_department_selected, on_position_selected, on_priority_confirmed,
     on_edit_priority_1, on_edit_priority_2, on_edit_priority_3,
     on_swap_priorities, on_edit_department_selected, on_edit_position_selected,
-    on_save_edited_priority, on_start_over, on_add_priority_2, on_add_priority_3
+    on_save_edited_priority, on_start_over, on_add_priority_2, on_add_priority_3,
+    on_swap_1_2, on_swap_1_3, on_swap_2_3, on_back_to_priorities_overview
 )
 
 job_selection_dialog = Dialog(
@@ -145,12 +146,12 @@ job_selection_dialog = Dialog(
                    on_click=on_priority_confirmed),
         ),
         Group(
-            Button(Const("➕ 2-й приоритет"), 
-                   id="add_2", 
+            Button(Const("➕ Продолжить выбор"), 
+                   id="add_2",
                    on_click=on_add_priority_2,
                    when="can_add_2"),
-            Button(Const("➕ 3-й приоритет"), 
-                   id="add_3", 
+            Button(Const("➕ Продолжить выбор"), 
+                   id="add_3",
                    on_click=on_add_priority_3,
                    when="can_add_3"),
             width=2,
@@ -192,7 +193,9 @@ job_selection_dialog = Dialog(
             ),
         ),
         Row(
-            Back(Const("⬅️ Назад к обзору")),
+            Button(Const("⬅️ Назад к обзору"), 
+                   id="back_to_overview", 
+                   on_click=on_back_to_priorities_overview),
             Cancel(Const("❌ Отмена"), result="cancel"),
         ),
         state=JobSelectionSG.edit_priority_1,
@@ -232,7 +235,9 @@ job_selection_dialog = Dialog(
             ),
         ),
         Row(
-            Back(Const("⬅️ Назад к обзору")),
+            Button(Const("⬅️ Назад к обзору"), 
+                   id="back_to_overview_2", 
+                   on_click=on_back_to_priorities_overview),
             Cancel(Const("❌ Отмена"), result="cancel"),
         ),
         state=JobSelectionSG.edit_priority_2,
@@ -272,7 +277,9 @@ job_selection_dialog = Dialog(
             ),
         ),
         Row(
-            Back(Const("⬅️ Назад к обзору")),
+            Button(Const("⬅️ Назад к обзору"), 
+                   id="back_to_overview_3", 
+                   on_click=on_back_to_priorities_overview),
             Cancel(Const("❌ Отмена"), result="cancel"),
         ),
         state=JobSelectionSG.edit_priority_3,
@@ -297,5 +304,31 @@ job_selection_dialog = Dialog(
         ),
         state=JobSelectionSG.edit_priority_3_position,
         getter=get_edit_positions_for_department,
+    ),
+    
+    # Окно выбора типа обмена приоритетов
+    Window(
+        Const("🔄 <b>Выберите какие приоритеты поменять местами:</b>\n"),
+        Const("💡 <i>Выберите пару приоритетов для обмена</i>"),
+        Row(
+            Button(Const("1️⃣↔️2️⃣ 1-й ↔ 2-й"), 
+                   id="swap_1_2", 
+                   on_click=on_swap_1_2),
+            Button(Const("1️⃣↔️3️⃣ 1-й ↔ 3-й"), 
+                   id="swap_1_3", 
+                   on_click=on_swap_1_3),
+        ),
+        Row(
+            Button(Const("2️⃣↔️3️⃣ 2-й ↔ 3-й"), 
+                   id="swap_2_3", 
+                   on_click=on_swap_2_3),
+        ),
+        Row(
+            Button(Const("⬅️ Назад к обзору"), 
+                   id="back_to_overview", 
+                   on_click=on_back_to_priorities_overview),
+            Cancel(Const("❌ Отмена"), result="cancel"),
+        ),
+        state=JobSelectionSG.swap_priorities_menu,
     ),
 )

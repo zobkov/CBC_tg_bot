@@ -30,10 +30,15 @@ from .getters import (
 from .handlers import (
     on_apply_clicked, on_full_name_input, on_university_input,
     on_phone_input, on_email_input, on_course_selected, 
-    on_how_found_toggled, on_how_found_continue, on_previous_department_selected,
+    on_how_found_state_changed, on_how_found_continue, on_previous_department_selected,
     on_department_selected, on_position_selected,
     on_experience_input, on_motivation_input, on_resume_uploaded,
-    on_confirm_application
+    on_confirm_application, on_edit_clicked, on_edit_field_clicked, on_back_to_confirmation,
+    on_edit_full_name_input, on_edit_university_input, on_edit_course_selected,
+    on_edit_phone_input, on_edit_email_input, on_edit_how_found_state_changed,
+    on_edit_experience_input, on_edit_motivation_input, on_edit_resume_uploaded,
+    on_experience_input, on_motivation_input, on_resume_uploaded,
+    on_confirm_application, go_to_menu, on_job_selection_result
 )
 
 first_stage_dialog = Dialog(
@@ -457,7 +462,8 @@ first_stage_dialog = Dialog(
         Const("🎉 <b>Заявка успешно отправлена!</b>\n\n"
               "Спасибо за интерес к КБК! Мы рассмотрим вашу заявку и свяжемся с вами в ближайшее время.\n\n"
               "Следите за обновлениями в нашем телеграм-канале!"),
-        Cancel(Const("🏠 В главное меню")),
+        Button(Const("🏠 В главное меню"), id="go_to_menu", on_click=go_to_menu),
         state=FirstStageSG.success
-    )
+    ),
+    on_process_result=on_job_selection_result
 )

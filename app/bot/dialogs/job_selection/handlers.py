@@ -1,6 +1,6 @@
 from typing import Any
 from aiogram.types import CallbackQuery
-from aiogram_dialog import DialogManager
+from aiogram_dialog import DialogManager, StartMode
 from aiogram_dialog.widgets.kbd import Button
 
 from app.bot.states.job_selection import JobSelectionSG
@@ -77,6 +77,9 @@ async def on_priority_confirmed(
     print(f"DEBUG: on_priority_confirmed called")
     print(f"DEBUG: dialog_data before processing = {dialog_manager.dialog_data}")
     
+    # Получаем исходные данные формы переданные при запуске диалога
+    original_form_data = dict(dialog_manager.start_data or {})
+    
     # Сохраняем данные приоритетов в основные данные заявки
     priority_data = {}
     
@@ -93,13 +96,18 @@ async def on_priority_confirmed(
     
     print(f"DEBUG: priority_data to save = {priority_data}")
     
-    # Сохраняем приоритеты в основном dialog_data
+    # Объединяем исходные данные формы с новыми данными приоритетов
+    combined_data = {**original_form_data, **priority_data}
+    
+    print(f"DEBUG: combined_data to pass = {combined_data}")
+    print(f"DEBUG: original_form_data keys = {list(original_form_data.keys())}")
+    print(f"DEBUG: priority_data keys = {list(priority_data.keys())}")
+    
+    # Сохраняем приоритеты в родительском диалоге
     dialog_manager.dialog_data.update(priority_data)
     
-    print(f"DEBUG: dialog_data after update = {dialog_manager.dialog_data}")
-    
-    # Возвращаемся к подтверждению заявки первого этапа
-    await dialog_manager.start(FirstStageSG.confirmation, mode="reset_stack")
+    # Закрываем диалог выбора вакансий и возвращаемся к первому этапу
+    await dialog_manager.done(result=priority_data)
 
 
 async def on_edit_priority_1(
@@ -173,26 +181,8 @@ async def on_save_edited_priority(
 async def on_swap_priorities(
     callback: CallbackQuery, button: Button, dialog_manager: DialogManager
 ):
-    """Обработчик смены приоритетов местами"""
-    # Создаем простую логику обмена: 1->2, 2->3, 3->1
-    data = dialog_manager.dialog_data
-    
-    # Сохраняем текущие значения
-    temp_dept = data.get("priority_1_department")
-    temp_pos = data.get("priority_1_position")
-    
-    # Циклический сдвиг: 1->2, 2->3, 3->1
-    data["priority_1_department"] = data.get("priority_2_department")
-    data["priority_1_position"] = data.get("priority_2_position")
-    
-    data["priority_2_department"] = data.get("priority_3_department")
-    data["priority_2_position"] = data.get("priority_3_position")
-    
-    data["priority_3_department"] = temp_dept
-    data["priority_3_position"] = temp_pos
-    
-    # Остаемся на том же экране для просмотра изменений
-    await dialog_manager.update({})
+    """Обработчик перехода к меню выбора приоритетов для обмена"""
+    await dialog_manager.switch_to(JobSelectionSG.swap_priorities_menu)
 
 
 async def on_start_over(
@@ -226,3 +216,70 @@ async def on_add_priority_3(
 ):
     """Обработчик добавления третьего приоритета"""
     await dialog_manager.switch_to(JobSelectionSG.select_department_3)
+
+
+async def on_swap_1_2(
+    callback: CallbackQuery, button: Button, dialog_manager: DialogManager
+):
+    """Обработчик обмена 1-го и 2-го приоритетов"""
+    data = dialog_manager.dialog_data
+    
+    # Обмениваем местами 1-й и 2-й приоритеты
+    temp_dept = data.get("priority_1_department")
+    temp_pos = data.get("priority_1_position")
+    
+    data["priority_1_department"] = data.get("priority_2_department")
+    data["priority_1_position"] = data.get("priority_2_position")
+    
+    data["priority_2_department"] = temp_dept
+    data["priority_2_position"] = temp_pos
+    
+    # Возвращаемся к обзору приоритетов
+    await dialog_manager.switch_to(JobSelectionSG.priorities_overview)
+
+
+async def on_swap_1_3(
+    callback: CallbackQuery, button: Button, dialog_manager: DialogManager
+):
+    """Обработчик обмена 1-го и 3-го приоритетов"""
+    data = dialog_manager.dialog_data
+    
+    # Обмениваем местами 1-й и 3-й приоритеты
+    temp_dept = data.get("priority_1_department")
+    temp_pos = data.get("priority_1_position")
+    
+    data["priority_1_department"] = data.get("priority_3_department")
+    data["priority_1_position"] = data.get("priority_3_position")
+    
+    data["priority_3_department"] = temp_dept
+    data["priority_3_position"] = temp_pos
+    
+    # Возвращаемся к обзору приоритетов
+    await dialog_manager.switch_to(JobSelectionSG.priorities_overview)
+
+
+async def on_swap_2_3(
+    callback: CallbackQuery, button: Button, dialog_manager: DialogManager
+):
+    """Обработчик обмена 2-го и 3-го приоритетов"""
+    data = dialog_manager.dialog_data
+    
+    # Обмениваем местами 2-й и 3-й приоритеты
+    temp_dept = data.get("priority_2_department")
+    temp_pos = data.get("priority_2_position")
+    
+    data["priority_2_department"] = data.get("priority_3_department")
+    data["priority_2_position"] = data.get("priority_3_position")
+    
+    data["priority_3_department"] = temp_dept
+    data["priority_3_position"] = temp_pos
+    
+    # Возвращаемся к обзору приоритетов
+    await dialog_manager.switch_to(JobSelectionSG.priorities_overview)
+
+
+async def on_back_to_priorities_overview(
+    callback: CallbackQuery, button: Button, dialog_manager: DialogManager
+):
+    """Обработчик возврата к обзору приоритетов"""
+    await dialog_manager.switch_to(JobSelectionSG.priorities_overview)

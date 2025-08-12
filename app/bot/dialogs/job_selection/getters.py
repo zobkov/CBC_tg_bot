@@ -15,6 +15,26 @@ async def get_departments_list(dialog_manager: DialogManager, **kwargs):
     }
 
 
+def _is_vacancy_already_selected(dialog_data, dept_key, pos_index, exclude_priority=None):
+    """Проверить, выбрана ли уже данная вакансия"""
+    current_vacancy = (dept_key, pos_index)
+    
+    # Проверяем все приоритеты
+    for i in range(1, 4):
+        # Пропускаем проверку для редактируемого приоритета
+        if exclude_priority and i == exclude_priority:
+            continue
+            
+        dept = dialog_data.get(f"priority_{i}_department")
+        pos = dialog_data.get(f"priority_{i}_position")
+        
+        if dept and pos is not None:
+            if (dept, str(pos)) == current_vacancy:
+                return True
+    
+    return False
+
+
 async def get_positions_for_department(dialog_manager: DialogManager, **kwargs):
     """Получить список позиций для выбранного департамента"""
     config = load_config()
@@ -30,8 +50,22 @@ async def get_positions_for_department(dialog_manager: DialogManager, **kwargs):
     
     # Позиции теперь хранятся как массив, а не объект
     positions_list = dept_data.get("positions", [])
+    dialog_data = dialog_manager.dialog_data
+    
+    # Определяем, какой приоритет мы сейчас выбираем, чтобы исключить его из проверки
+    current_state = dialog_manager.current_context().state.state
+    exclude_priority = None
+    if current_state == "JobSelectionSG:select_position":
+        exclude_priority = 1
+    elif current_state == "JobSelectionSG:select_position_2":
+        exclude_priority = 2
+    elif current_state == "JobSelectionSG:select_position_3":
+        exclude_priority = 3
+    
     for i, pos_name in enumerate(positions_list):
-        positions.append((str(i), pos_name))  # используем индекс как ID
+        # Проверяем, не выбрана ли уже эта позиция в этом департаменте
+        if not _is_vacancy_already_selected(dialog_data, selected_dept, str(i), exclude_priority):
+            positions.append((str(i), pos_name))  # используем индекс как ID
     
     # Получаем название департамента
     dept_name = dept_data.get("name", selected_dept)
@@ -102,8 +136,14 @@ async def get_edit_positions_for_department(dialog_manager: DialogManager, **kwa
     
     # Позиции хранятся как массив
     positions_list = dept_data.get("positions", [])
+    dialog_data = dialog_manager.dialog_data
+    editing_priority = dialog_data.get("editing_priority", 1)
+    
     for i, pos_name in enumerate(positions_list):
-        positions.append((str(i), pos_name))  # используем индекс как ID
+        # Проверяем, не выбрана ли уже эта позиция в этом департаменте
+        # (исключая редактируемый приоритет)
+        if not _is_vacancy_already_selected(dialog_data, selected_dept, str(i), exclude_priority=editing_priority):
+            positions.append((str(i), pos_name))  # используем индекс как ID
     
     # Получаем название департамента
     dept_name = dept_data.get("name", selected_dept)

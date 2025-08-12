@@ -41,7 +41,8 @@ class _ApplicationsDB:
             """
             SELECT id, user_id, status, created, updated,
                    full_name, university, course, phone, email, telegram_username,
-                   how_found_kbk, department, position, experience, motivation,
+                   how_found_kbk, department_1, position_1, department_2, position_2,
+                   department_3, position_3, experience, motivation,
                    resume_local_path, resume_google_drive_url, previous_department
             FROM applications
             WHERE user_id = %s
@@ -80,8 +81,12 @@ class _ApplicationsDB:
         email: str,
         telegram_username: str,
         how_found_kbk: str,
-        department: str,
-        position: str,
+        department_1: Optional[str] = None,
+        position_1: Optional[str] = None,
+        department_2: Optional[str] = None,
+        position_2: Optional[str] = None,
+        department_3: Optional[str] = None,
+        position_3: Optional[str] = None,
         experience: str,
         motivation: str,
         resume_local_path: Optional[str] = None,
@@ -92,14 +97,21 @@ class _ApplicationsDB:
             """
             UPDATE applications
             SET full_name = %s, university = %s, course = %s, phone = %s, email = %s,
-                telegram_username = %s, how_found_kbk = %s, department = %s, position = %s,
+                telegram_username = %s, how_found_kbk = %s, 
+                department_1 = %s, position_1 = %s,
+                department_2 = %s, position_2 = %s,
+                department_3 = %s, position_3 = %s,
                 experience = %s, motivation = %s, resume_local_path = %s, 
                 resume_google_drive_url = %s, previous_department = %s, updated = %s
             WHERE user_id = %s
         """,
             (
                 full_name, university, course, phone, email, telegram_username,
-                how_found_kbk, department, position, experience, motivation,
+                how_found_kbk, 
+                department_1, position_1,
+                department_2, position_2,
+                department_3, position_3,
+                experience, motivation,
                 resume_local_path, resume_google_drive_url, previous_department,
                 datetime.now(timezone.utc), user_id
             ),

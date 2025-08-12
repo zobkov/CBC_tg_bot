@@ -22,8 +22,13 @@ class ApplicationsModel(BaseModel):
     email: Optional[str] = None
     telegram_username: Optional[str] = None
     how_found_kbk: Optional[str] = None
-    department: Optional[str] = None
-    position: Optional[str] = None
+    # Система приоритетов (заменяет старые department/position)
+    department_1: Optional[str] = None
+    position_1: Optional[str] = None
+    department_2: Optional[str] = None
+    position_2: Optional[str] = None
+    department_3: Optional[str] = None
+    position_3: Optional[str] = None
     experience: Optional[str] = None
     motivation: Optional[str] = None
     resume_local_path: Optional[str] = None

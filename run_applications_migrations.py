@@ -47,7 +47,8 @@ async def run_applications_migrations():
             # Список миграций для заявок (в порядке применения)
             application_migrations = [
                 "002_create_applications_table.sql",
-                "003_update_applications_table.sql"
+                "003_update_applications_table.sql",
+                "005_add_priority_system.sql"
             ]
             
             for migration_file in application_migrations:

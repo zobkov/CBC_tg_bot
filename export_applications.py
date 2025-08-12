@@ -57,8 +57,8 @@ async def export_applications():
             # Подготавливаем данные для экспорта
             fieldnames = [
                 'timestamp', 'user_id', 'username', 'full_name', 'university', 
-                'course', 'phone', 'email', 'how_found_kbk', 'department', 
-                'position', 'experience', 'motivation', 'status', 
+                'course', 'phone', 'email', 'how_found_kbk', 'previous_department',
+                'department', 'position', 'priorities', 'experience', 'motivation', 'status', 
                 'resume_local_path', 'resume_google_drive_url', 'created', 'updated'
             ]
             
@@ -78,8 +78,10 @@ async def export_applications():
                     'phone': phone or "",
                     'email': email or "",
                     'how_found_kbk': how_found_kbk or "",
+                    'previous_department': "",  # Добавить когда будет в БД
                     'department': department or "",
                     'position': position or "",
+                    'priorities': "",  # Добавить когда будет в БД
                     'experience': experience or "",
                     'motivation': motivation or "",
                     'status': status,
@@ -157,8 +159,8 @@ async def export_to_google_sheets(data: List[Dict[str, Any]], config):
         # Подготавливаем данные для записи
         headers = [
             'Timestamp', 'User ID', 'Username', 'Full Name', 'University', 
-            'Course', 'Phone', 'Email', 'How Found KBK', 'Department', 
-            'Position', 'Experience', 'Motivation', 'Status',
+            'Course', 'Phone', 'Email', 'How Found KBK', 'Previous Department',
+            'Department', 'Position', 'Priorities', 'Experience', 'Motivation', 'Status',
             'Resume Local Path', 'Resume Google Drive URL', 'Created', 'Updated'
         ]
         
@@ -177,8 +179,10 @@ async def export_to_google_sheets(data: List[Dict[str, Any]], config):
                 item.get('phone', ''),
                 item.get('email', ''),
                 item.get('how_found_kbk', ''),
+                item.get('previous_department', ''),
                 item.get('department', ''),
                 item.get('position', ''),
+                item.get('priorities', ''),
                 item.get('experience', ''),
                 item.get('motivation', ''),
                 item.get('status', ''),

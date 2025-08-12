@@ -7,17 +7,31 @@ from typing import Any
 
 from aiogram import Bot
 from aiogram.types import Message, CallbackQuery, Document, User
-from aiogram_dialog import DialogManager
+from aiogram_dialog import DialogManager, StartMode
 from aiogram_dialog.widgets.input import MessageInput
 
 from config.config import Config
 from app.infrastructure.database.database.db import DB
 from app.bot.enums.application_status import ApplicationStatus
 from app.bot.states.first_stage import FirstStageSG
+from app.bot.states.main_menu import MainMenuSG
 from app.bot.states.job_selection import JobSelectionSG
 from app.services.error_monitoring import error_monitor
 
 logger = logging.getLogger(__name__)
+
+
+async def on_job_selection_result(start_data: Any, result: Any, dialog_manager: DialogManager):
+    """Обработчик результата диалога выбора вакансий"""
+    logger.info(f"🎯 Получен результат от диалога выбора вакансий: {result}")
+    
+    if result:
+        # Обновляем данные диалога результатами выбора вакансий
+        dialog_manager.dialog_data.update(result)
+        logger.info(f"✅ Данные приоритетов сохранены в основном диалоге: {list(result.keys())}")
+    
+    # Возвращаемся к экрану подтверждения
+    await dialog_manager.switch_to(FirstStageSG.confirmation)
 
 
 async def process_name(message: Message, widget, dialog_manager: DialogManager, **kwargs):
@@ -309,6 +323,9 @@ async def on_confirm_application(callback: CallbackQuery, button, dialog_manager
     await save_application(dialog_manager)
     await dialog_manager.switch_to(FirstStageSG.success)
 
+async def go_to_menu(callback: CallbackQuery, button, dialog_manager: DialogManager):
+    await dialog_manager.start(MainMenuSG.main_menu, mode=StartMode.RESET_STACK)
+
 
 async def save_application(dialog_manager: DialogManager):
     """Сохранение заявки в БД и экспорт"""
@@ -441,6 +458,48 @@ async def save_application(dialog_manager: DialogManager):
     
     # Сохраняем в БД и меняем статус на submitted
     logger.info(f"💾 Сохраняем заявку в базу данных...")
+    
+    # Подготавливаем данные приоритетов для БД
+    dept_1 = dialog_data.get("priority_1_department")
+    pos_1 = dialog_data.get("priority_1_position")
+    dept_2 = dialog_data.get("priority_2_department")
+    pos_2 = dialog_data.get("priority_2_position")
+    dept_3 = dialog_data.get("priority_3_department")
+    pos_3 = dialog_data.get("priority_3_position")
+    
+    # Преобразуем ключи департаментов в названия и индексы позиций в названия
+    db_department_1 = None
+    db_position_1 = None
+    if dept_1 and pos_1 is not None:
+        db_department_1 = config.selection.departments.get(dept_1, {}).get("name", dept_1)
+        positions_list = config.selection.departments.get(dept_1, {}).get("positions", [])
+        try:
+            db_position_1 = positions_list[int(pos_1)]
+        except (IndexError, ValueError):
+            db_position_1 = "Неизвестная позиция"
+    
+    db_department_2 = None
+    db_position_2 = None
+    if dept_2 and pos_2 is not None:
+        db_department_2 = config.selection.departments.get(dept_2, {}).get("name", dept_2)
+        positions_list = config.selection.departments.get(dept_2, {}).get("positions", [])
+        try:
+            db_position_2 = positions_list[int(pos_2)]
+        except (IndexError, ValueError):
+            db_position_2 = "Неизвестная позиция"
+    
+    db_department_3 = None
+    db_position_3 = None
+    if dept_3 and pos_3 is not None:
+        db_department_3 = config.selection.departments.get(dept_3, {}).get("name", dept_3)
+        positions_list = config.selection.departments.get(dept_3, {}).get("positions", [])
+        try:
+            db_position_3 = positions_list[int(pos_3)]
+        except (IndexError, ValueError):
+            db_position_3 = "Неизвестная позиция"
+    
+    logger.info(f"🎯 Сохраняем приоритеты: 1) {db_department_1} - {db_position_1}, 2) {db_department_2} - {db_position_2}, 3) {db_department_3} - {db_position_3}")
+    
     try:
         await db.applications.update_first_stage_form(
             user_id=event_from_user.id,
@@ -451,8 +510,12 @@ async def save_application(dialog_manager: DialogManager):
             email=dialog_data.get("email", ""),
             telegram_username=event_from_user.username or "",
             how_found_kbk=how_found_text,
-            department=main_department_name,
-            position=main_position_text,
+            department_1=db_department_1,
+            position_1=db_position_1,
+            department_2=db_department_2,
+            position_2=db_position_2,
+            department_3=db_department_3,
+            position_3=db_position_3,
             experience=dialog_data.get("experience", ""),
             motivation=dialog_data.get("motivation", ""),
             resume_local_path=resume_local_path,
@@ -490,8 +553,13 @@ async def save_application(dialog_manager: DialogManager):
         'email': dialog_data.get("email", ""),
         'how_found_kbk': how_found_text,
         'previous_department': previous_department_text,
-        'department': main_department_name,
-        'position': main_position_text,
+        # Новая система приоритетов
+        'department_1': db_department_1 or "",
+        'position_1': db_position_1 or "",
+        'department_2': db_department_2 or "",
+        'position_2': db_position_2 or "",
+        'department_3': db_department_3 or "",
+        'position_3': db_position_3 or "",
         'priorities': priorities_text,
         'experience': dialog_data.get("experience", ""),
         'motivation': dialog_data.get("motivation", ""),
@@ -563,8 +631,9 @@ async def save_to_csv(application_data: dict):
             fieldnames = [
                 'timestamp', 'user_id', 'username', 'full_name', 'university', 
                 'course', 'phone', 'email', 'how_found_kbk', 'previous_department',
-                'department', 'position', 'experience', 'motivation', 'status', 
-                'resume_local_path', 'resume_google_drive_url'
+                'department_1', 'position_1', 'department_2', 'position_2', 
+                'department_3', 'position_3', 'priorities', 'experience', 
+                'motivation', 'status', 'resume_local_path', 'resume_google_drive_url'
             ]
             writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
             
@@ -787,7 +856,16 @@ async def on_edit_field_clicked(callback: CallbackQuery, button, dialog_manager:
         # Переходим к новой системе выбора вакансий в режиме редактирования
         from app.bot.states.job_selection import JobSelectionSG
         logger.info(f"🎯 Пользователь {user_id} переходит к редактированию выбора вакансий")
-        await dialog_manager.start(JobSelectionSG.priorities_overview, mode="reset_stack")
+        
+        # Передаем ВСЕ текущие данные формы в диалог выбора вакансий
+        current_data = dict(dialog_manager.dialog_data)
+        
+        # Добавляем также данные из start_data если они есть
+        if dialog_manager.start_data:
+            current_data.update(dialog_manager.start_data)
+        
+        logger.info(f"🔄 Передаем данные в диалог выбора вакансий: {list(current_data.keys())}")
+        await dialog_manager.start(JobSelectionSG.priorities_overview, data=current_data)
         return
     
     # Определяем состояние для редактирования на основе ID кнопки

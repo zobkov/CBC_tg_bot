@@ -148,8 +148,9 @@ class GoogleServicesManager:
                 # Добавляем заголовки
                 headers = [
                     'Timestamp', 'User ID', 'Username', 'Full Name', 'University', 
-                    'Course', 'Phone', 'Email', 'How Found KBK', 'Department', 
-                    'Position', 'Experience', 'Motivation', 'Status', 
+                    'Course', 'Phone', 'Email', 'How Found KBK', 'Previous Department',
+                    'Department 1', 'Position 1', 'Department 2', 'Position 2', 
+                    'Department 3', 'Position 3', 'Priorities', 'Experience', 'Motivation', 'Status', 
                     'Resume Local Path', 'Resume Google Drive URL'
                 ]
                 worksheet.append_row(headers)
@@ -167,8 +168,14 @@ class GoogleServicesManager:
                 application_data.get('phone', ''),
                 application_data.get('email', ''),
                 application_data.get('how_found_kbk', ''),
-                application_data.get('department', ''),
-                application_data.get('position', ''),
+                application_data.get('previous_department', ''),
+                application_data.get('department_1', ''),
+                application_data.get('position_1', ''),
+                application_data.get('department_2', ''),
+                application_data.get('position_2', ''),
+                application_data.get('department_3', ''),
+                application_data.get('position_3', ''),
+                application_data.get('priorities', ''),
                 application_data.get('experience', ''),
                 application_data.get('motivation', ''),
                 application_data.get('status', ''),

@@ -213,9 +213,24 @@ async def get_form_summary(dialog_manager: DialogManager, **kwargs) -> Dict[str,
     priorities_summary = ""
     priorities_exist = False
     
+    # Получаем данные переданные через start_data (например, от диалога выбора вакансий)
+    start_data = dialog_manager.start_data or {}
+    
+    # Объединяем данные: приоритет у dialog_data, но start_data может дополнить
+    combined_data = {**start_data, **dialog_data}
+    
+    # Добавим отладочную информацию
+    print(f"DEBUG: get_form_summary - dialog_data keys = {list(dialog_data.keys())}")
+    print(f"DEBUG: get_form_summary - start_data keys = {list(start_data.keys())}")
+    print(f"DEBUG: get_form_summary - combined_data keys = {list(combined_data.keys())}")
+    print(f"DEBUG: get_form_summary - checking priorities...")
+    
     for i in range(1, 4):
-        dept_key = dialog_data.get(f"priority_{i}_department")
-        pos_index = dialog_data.get(f"priority_{i}_position")
+        # Используем combined_data для получения приоритетов
+        dept_key = combined_data.get(f"priority_{i}_department")
+        pos_index = combined_data.get(f"priority_{i}_position")
+        
+        print(f"DEBUG: get_form_summary - priority_{i}: dept='{dept_key}', pos='{pos_index}'")
         
         if dept_key and pos_index is not None:
             priorities_exist = True
@@ -234,6 +249,8 @@ async def get_form_summary(dialog_manager: DialogManager, **kwargs) -> Dict[str,
     
     if not priorities_exist:
         priorities_summary = "❌ Вакансии не выбраны"
+    
+    print(f"DEBUG: get_form_summary - final priorities_summary = '{priorities_summary}'")
     
     course = dialog_data.get("course", "1")
     

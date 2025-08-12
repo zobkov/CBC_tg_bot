@@ -29,5 +29,8 @@ class JobSelectionSG(StatesGroup):
     edit_priority_3 = State()
     edit_priority_3_position = State()
     
+    # Обмен приоритетов
+    swap_priorities_menu = State()
+    
     # Завершение выбора
     complete_selection = State()
