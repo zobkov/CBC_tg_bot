@@ -1,5 +1,5 @@
 from aiogram_dialog import Dialog, Window
-from aiogram_dialog.widgets.kbd import Button, Radio, Column, Next, Back, Cancel, Multiselect, Row
+from aiogram_dialog.widgets.kbd import Button, Radio, Column, Next, Back, Multiselect, Row
 from aiogram_dialog.widgets.text import Format, Const
 from aiogram_dialog.widgets.input import MessageInput, TextInput
 from aiogram.enums import ContentType
@@ -52,11 +52,10 @@ first_stage_dialog = Dialog(
             on_click=on_apply_clicked,
             when="can_apply"
         ),
-        Cancel(Const("◀️ Назад в меню")),
         state=FirstStageSG.stage_info,
         getter=get_stage_info
     ),
-    
+
     # ФИО
     Window(
         Const("👤 <b>Введите ваше ФИО</b>\n\nПример: Иванов Иван Иванович"),
@@ -64,39 +63,19 @@ first_stage_dialog = Dialog(
             func=on_full_name_input,
             content_types=[ContentType.TEXT]
         ),
-        Cancel(Const("❌ Отменить")),
         state=FirstStageSG.full_name
     ),
     
     # Учебное заведение
     Window(
-        Const("🏫 <b>Введите ваше учебное заведение</b>\n\nПример: СПбГУ"),
+        Const("🏫 <b>Введите ваше место учебы: название учебного заведения, факультет, курс и год выпуска</b>\n\nПример: СПбГУ, ВШМ, 2 курс, 2027"),
         MessageInput(
             func=on_university_input,
             content_types=[ContentType.TEXT]
         ),
-        Cancel(Const("❌ Отменить")),
         state=FirstStageSG.university
     ),
-    
-    # Курс
-    Window(
-        Const("📚 <b>Выберите ваш курс</b>"),
-        Column(
-            Radio(
-                Format("🔘 {item[text]}"),
-                Format("⚪ {item[text]}"),
-                id="course_radio",
-                item_id_getter=lambda item: item["id"],
-                items="courses",
-                on_click=on_course_selected
-            ),
-        ),
-        Cancel(Const("❌ Отменить")),
-        state=FirstStageSG.course,
-        getter=get_course_options
-    ),
-    
+
     # Телефон
     Window(
         Const("📱 <b>Введите ваш номер телефона</b>\n\nПример: +7 (012) 345-67-89"),
@@ -104,7 +83,6 @@ first_stage_dialog = Dialog(
             func=on_phone_input,
             content_types=[ContentType.TEXT]
         ),
-        Cancel(Const("❌ Отменить")),
         state=FirstStageSG.phone
     ),
     
@@ -115,7 +93,6 @@ first_stage_dialog = Dialog(
             func=on_email_input,
             content_types=[ContentType.TEXT]
         ),
-        Cancel(Const("❌ Отменить")),
         state=FirstStageSG.email
     ),
     
@@ -136,10 +113,9 @@ first_stage_dialog = Dialog(
         Button(
             Const("➡️ Далее"),
             id="continue_how_found",
-            on_click=on_how_found_continue,
+            on_click=on_how_found_continue, # TODO тут переход в выбор ваканссии
             when="has_selections"
         ),
-        Cancel(Const("❌ Отменить")),
         state=FirstStageSG.how_found_kbk,
         getter=get_how_found_options
     ),
@@ -154,14 +130,17 @@ first_stage_dialog = Dialog(
                 id="previous_dept_radio",
                 item_id_getter=lambda item: item["id"],
                 items="departments",
-                on_click=on_previous_department_selected
+                on_click=on_previous_department_selected # TODO тут переход в выбор ваканссии
             ),
         ),
-        Cancel(Const("❌ Отменить")),
         state=FirstStageSG.previous_department,
         getter=get_departments_for_previous
     ),
     
+
+    # Выбор отдела
+
+
     # Опыт
     Window(
         Const("💼 <b>Расскажите о своем опыте</b>\n\n"
@@ -171,7 +150,6 @@ first_stage_dialog = Dialog(
             func=on_experience_input,
             content_types=[ContentType.TEXT]
         ),
-        Cancel(Const("❌ Отменить")),
         state=FirstStageSG.experience
     ),
     
@@ -184,7 +162,6 @@ first_stage_dialog = Dialog(
             func=on_motivation_input,
             content_types=[ContentType.TEXT]
         ),
-        Cancel(Const("❌ Отменить")),
         state=FirstStageSG.motivation
     ),
     
@@ -197,11 +174,9 @@ first_stage_dialog = Dialog(
             func=on_resume_uploaded,
             content_types=[ContentType.DOCUMENT]
         ),
-        Cancel(Const("❌ Отменить")),
         state=FirstStageSG.resume_upload
     ),
-    
-    # Выбор отдела
+
     # Подтверждение
     Window(
         Format("✅ <b>Проверьте данные заявки</b>\n\n"
@@ -227,7 +202,6 @@ first_stage_dialog = Dialog(
                 on_click=on_confirm_application
             )
         ),
-        Cancel(Const("❌ Отменить")),
         state=FirstStageSG.confirmation,
         getter=get_form_summary
     ),

@@ -1,3 +1,22 @@
+    # Курс
+    Window(
+        Const("📚 <b>Выберите ваш курс</b>"),
+        Column(
+            Radio(
+                Format("🔘 {item[text]}"),
+                Format("⚪ {item[text]}"),
+                id="course_radio",
+                item_id_getter=lambda item: item["id"],
+                items="courses",
+                on_click=on_course_selected
+            ),
+        ),
+        state=FirstStageSG.course,
+        getter=get_course_options
+    ),
+    
+
+
 import os
 import csv
 import logging

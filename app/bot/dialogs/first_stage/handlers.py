@@ -7,7 +7,7 @@ from typing import Any
 
 from aiogram import Bot
 from aiogram.types import Message, CallbackQuery, Document, User
-from aiogram_dialog import DialogManager, StartMode
+from aiogram_dialog import DialogManager, StartMode, ShowMode
 from aiogram_dialog.widgets.input import MessageInput
 
 from config.config import Config
@@ -30,8 +30,8 @@ async def on_job_selection_result(start_data: Any, result: Any, dialog_manager: 
         dialog_manager.dialog_data.update(result)
         logger.info(f"✅ Данные приоритетов сохранены в основном диалоге: {list(result.keys())}")
     
-    # Возвращаемся к экрану подтверждения
-    await dialog_manager.switch_to(FirstStageSG.confirmation)
+    # Возвращаемся к состоянию experience вместо confirmation
+    await dialog_manager.switch_to(FirstStageSG.experience)
 
 
 async def process_name(message: Message, widget, dialog_manager: DialogManager, **kwargs):
@@ -310,7 +310,7 @@ async def process_resume_file(message: Message, widget, dialog_manager: DialogMa
         
         # ВАЖНО: Переходим к диалогу выбора вакансий
         logger.info(f"➡️ Переходим к диалогу выбора вакансий для пользователя {user.id}")
-        await dialog_manager.start(JobSelectionSG.select_department)
+        await dialog_manager.switch_to(FirstStageSG.confirmation)
         
     except Exception as e:
         logger.error(f"❌ Ошибка при обработке файла резюме: {e}")
@@ -654,7 +654,9 @@ async def save_to_csv(application_data: dict):
 async def on_apply_clicked(callback: CallbackQuery, button, dialog_manager: DialogManager):
     """Начало заполнения заявки"""
     logger.info(f"🚀 Пользователь {callback.from_user.id} начал заполнение заявки")
-    await dialog_manager.next()
+    await callback.message.edit_text("<b>Краткая справка по заполнению анкеты</b>\n\nИспользуй /menu, что отменить заполнение анкеты и вернуться в Личный Кабинет"
+                                     "\n\nПеред отправкой у тебя будет возможность изменить данные, которые были введены.")
+    await dialog_manager.next(show_mode=ShowMode.SEND)
 
 async def on_full_name_input(message: Message, widget, dialog_manager: DialogManager, **kwargs):
     """Обработка ввода полного имени"""
@@ -820,7 +822,7 @@ async def on_how_found_continue(callback: CallbackQuery, widget, dialog_manager:
         if "6" not in checked_items:
             logger.info(f"⏭️ Пользователь не участвовал в КБК, пропускаем выбор предыдущего отдела")
             await dialog_manager.next()  # К окну previous_department
-            await dialog_manager.next()  # Пропускаем его и идем к experience
+            await dialog_manager.start(JobSelectionSG.select_department)  # Пропускаем его и идем к experience
             return
     
     # Переходим к следующему окну (previous_department)
@@ -831,7 +833,7 @@ async def on_previous_department_selected(callback: CallbackQuery, widget, dialo
     """Обработчик выбора отдела предыдущего участия в КБК"""
     logger.info(f"🏢 Пользователь {callback.from_user.id} выбрал предыдущий отдел: {item_id}")
     dialog_manager.dialog_data["previous_department"] = item_id
-    await dialog_manager.next()
+    await dialog_manager.start(JobSelectionSG.select_department)
 
 
 # ======================
