@@ -173,3 +173,4 @@ app/storage/backups/
 applications.csv 
 google_credentials.jsonconfig/google_credentials.json
 google_credentials.json
+test_unit
