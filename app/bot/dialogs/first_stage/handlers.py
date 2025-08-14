@@ -394,8 +394,9 @@ async def save_application(dialog_manager: DialogManager):
         previous_department_text = ""
         if "6" in how_found_selections:  # "Ранее участвовал в КБК"
             previous_dept_key = dialog_data.get("previous_department", "")
-            if previous_dept_key and previous_dept_key in config.selection.departments:
-                previous_department_text = config.selection.departments[previous_dept_key]['name']
+            previous_dept_name = dialog_data.get("previous_department_name")
+            if previous_dept_key or previous_dept_name:
+                previous_department_text = previous_dept_name or config.selection.departments.get(previous_dept_key, {}).get('name', previous_dept_key)
                 logger.info(f"🏢 Предыдущий отдел в КБК: {previous_department_text}")
 
     except Exception as e:
@@ -860,7 +861,31 @@ async def on_how_found_continue(callback: CallbackQuery, widget, dialog_manager:
 async def on_previous_department_selected(callback: CallbackQuery, widget, dialog_manager: DialogManager, item_id, **kwargs):
     """Обработчик выбора отдела предыдущего участия в КБК"""
     logger.info(f"🏢 Пользователь {callback.from_user.id} выбрал предыдущий отдел: {item_id}")
+    # Сохраняем и ключ, и отображаемое имя (для legacy списков)
     dialog_manager.dialog_data["previous_department"] = item_id
+    try:
+        # widget should be Radio; get item text
+        item = widget.get_checked() if hasattr(widget, "get_checked") else None
+    except Exception:
+        item = None
+    # Надежнее получить текст через data из getter'а, но проще — взять его из callback.data недоступно, поэтому используем find
+    # aiogram-dialog предоставляет метод find для Radio, но здесь мы просто попробуем взять текст из текущих items
+    try:
+        dm = dialog_manager
+        data = await dm.middleware_data.get("dialog_data", {})  # may be empty
+    except Exception:
+        data = {}
+    # Установим имя через mapping из нашего legacy getter: повторно построим карту
+    legacy_map = {
+        "legacy_program": "Отдел программы",
+        "legacy_creative": "Творческий отдел",
+        "legacy_partners": "Отдел партнёров",
+        "legacy_smm_pr": "SMM&PR",
+        "legacy_design": "Отдел дизайна",
+        "legacy_logistics_it": "Логистика и ИТ",
+        "legacy_cultural": "Культурно-экспертный отдел",
+    }
+    dialog_manager.dialog_data["previous_department_name"] = legacy_map.get(item_id, item_id)
     await dialog_manager.start(JobSelectionSG.select_department)
 
 
@@ -1023,6 +1048,16 @@ async def on_edit_previous_department_selected(callback: CallbackQuery, widget, 
     """Обработка изменения предыдущего отдела"""
     logger.info(f"✏️🏢 Пользователь {callback.from_user.id} изменил предыдущий отдел: {item_id}")
     dialog_manager.dialog_data["previous_department"] = item_id
+    legacy_map = {
+        "legacy_program": "Отдел программы",
+        "legacy_creative": "Творческий отдел",
+        "legacy_partners": "Отдел партнёров",
+        "legacy_smm_pr": "SMM&PR",
+        "legacy_design": "Отдел дизайна",
+        "legacy_logistics_it": "Логистика и ИТ",
+        "legacy_cultural": "Культурно-экспертный отдел",
+    }
+    dialog_manager.dialog_data["previous_department_name"] = legacy_map.get(item_id, item_id)
     await callback.answer("✅ Предыдущий отдел успешно изменен!")
     await dialog_manager.switch_to(FirstStageSG.confirmation)
 

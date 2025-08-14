@@ -90,20 +90,22 @@ async def get_how_found_options(dialog_manager: DialogManager, **kwargs) -> Dict
 
 async def get_departments_for_previous(dialog_manager: DialogManager, **kwargs) -> Dict[str, Any]:
     """Получаем список департаментов для выбора предыдущего участия (legacy-список)."""
-    # Legacy список отделов (для предыдущего участия)
-    legacy_departments = [
-        "Отдел программы",
-        "Творческий отдел",
-        "Отдел партнёров",
-        "SMM&PR",
-        "Отдел дизайна",
-        "Логистика и ИТ",
-        "Культурно-экспертный отдел",
-    ]
+    # Legacy список отделов (id -> display text). Используем короткие ASCII id, чтобы не превысить лимит Telegram callback_data
+    legacy_departments_map = {
+        "legacy_program": "Отдел программы",
+        "legacy_creative": "Творческий отдел",
+        "legacy_partners": "Отдел партнёров",
+        "legacy_smm_pr": "SMM&PR",
+        "legacy_design": "Отдел дизайна",
+        "legacy_logistics_it": "Логистика и ИТ",
+        "legacy_cultural": "Культурно-экспертный отдел",
+    }
 
-    # Формируем элементы для Radio: используем сам текст как id, чтобы дальше можно было
-    # без маппинга получить название отдела из сохраненного значения
-    departments = [{"id": name, "text": name, "description": ""} for name in legacy_departments]
+    # Формируем элементы для Radio
+    departments = [
+        {"id": key, "text": title, "description": ""}
+        for key, title in legacy_departments_map.items()
+    ]
 
     # Проверяем, выбрал ли пользователь "Ранее участвовал в КБК" через Multiselect
     multiselect = dialog_manager.find("how_found_multiselect")
@@ -218,9 +220,10 @@ async def get_form_summary(dialog_manager: DialogManager, **kwargs) -> Dict[str,
     previous_dept_text = ""
     if "6" in how_found_selections:  # "Ранее участвовал в КБК"
         previous_dept_key = dialog_data.get("previous_department", "")
-        if previous_dept_key:
-            # Если ключ не найден в актуальной конфигурации, используем сохраненное значение как имя (legacy)
-            dept_name = config.selection.departments.get(previous_dept_key, {}).get("name", previous_dept_key)
+        previous_dept_name = dialog_data.get("previous_department_name")
+        if previous_dept_key or previous_dept_name:
+            # Приоритетно используем сохраненное имя (для legacy)
+            dept_name = previous_dept_name or config.selection.departments.get(previous_dept_key, {}).get("name", previous_dept_key)
             previous_dept_text = f"\n🏢 <b>Предыдущий отдел в КБК:</b> {dept_name}"
     
     # Формируем информацию о приоритетах вакансий
