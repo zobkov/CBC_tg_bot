@@ -9,8 +9,6 @@ logger = logging.getLogger(__name__)
 
 from dataclasses import dataclass, field
 
-
-
 @dataclass
 class DatabaseConfig:
     user: str
@@ -26,6 +24,12 @@ class ApplicationsDatabaseConfig:
     database: str
     host: str
     port: int = 5432
+
+@dataclass
+class RedisConfig:
+    password: str
+    host: str = "0.0.0.0"
+    port: str = 6379
 
 @dataclass
 class TgBot:
@@ -52,6 +56,7 @@ class Config:
     tg_bot: TgBot
     db: DatabaseConfig
     db_applications: ApplicationsDatabaseConfig
+    redis: RedisConfig
     selection: SelectionConfig
     google: Optional[GoogleConfig] = None
 
@@ -81,6 +86,12 @@ def load_config(path: str = None) -> Config:
         database=env.str("DB_APPLICATIONS_NAME"),
         host=env.str("DB_APPLICATIONS_HOST"),
         port=env.int("DB_APPLICATIONS_PORT", 5432)
+    )
+
+    redis = RedisConfig(
+        host=env.str("REDIS_HOST"),
+        port=env.int("REDIS_PORT", 6379),
+        password=env.str("REDIS_PASSWORD")
     )
     
     # Настройки Google (опциональные)
@@ -116,6 +127,7 @@ def load_config(path: str = None) -> Config:
         tg_bot=tg_bot,
         db=db_config,
         db_applications=db_applications_config,
+        redis=redis,
         selection=selection_config,
         google=google_config
     )

@@ -1,3 +1,4 @@
+import logging
 from typing import Dict, Any
 
 from aiogram.types import User
@@ -5,6 +6,8 @@ from aiogram_dialog import DialogManager
 
 from config.config import Config
 from app.infrastructure.database.database.db import DB
+
+logger = logging.getLogger(__name__)
 
 
 async def get_stage_info(dialog_manager: DialogManager, **kwargs) -> Dict[str, Any]:
@@ -58,11 +61,25 @@ async def get_how_found_options(dialog_manager: DialogManager, **kwargs) -> Dict
     multiselect = dialog_manager.find("how_found_multiselect")
     has_selections = False
     was_in_kbk = False
+    checked_items = []
     
     if multiselect:
         checked_items = multiselect.get_checked()
         has_selections = len(checked_items) > 0
         was_in_kbk = "6" in checked_items  # Индекс опции "Ранее участвовал в КБК (2024-2025)"
+        logger.info(f"📢 get_how_found_options: multiselect found, checked_items: {checked_items}")
+    else:
+        # Попробуем получить из dialog_data (для Redis)
+        saved_selections = dialog_manager.dialog_data.get("how_found_selections", [])
+        if saved_selections:
+            checked_items = list(saved_selections)
+            has_selections = len(checked_items) > 0
+            was_in_kbk = "6" in checked_items
+            logger.info(f"📢 get_how_found_options: используем сохраненные выборы: {checked_items}")
+        else:
+            logger.info(f"📢 get_how_found_options: multiselect не найден и нет сохраненных выборов")
+    
+    logger.info(f"📢 get_how_found_options результат: has_selections={has_selections}, was_in_kbk={was_in_kbk}")
     
     return {
         "how_found_options": options,
@@ -72,39 +89,34 @@ async def get_how_found_options(dialog_manager: DialogManager, **kwargs) -> Dict
 
 
 async def get_departments_for_previous(dialog_manager: DialogManager, **kwargs) -> Dict[str, Any]:
-    """Получаем список департаментов для выбора предыдущего участия"""
-    config: Config = dialog_manager.middleware_data.get("config")
-    
-    if not config:
-        return {"departments": [], "was_in_kbk": False, "departments_description": ""}
-    
-    departments = []
-    descriptions = []
-    
-    for key, dept_info in config.selection.departments.items():
-        departments.append({
-            "id": key, 
-            "text": dept_info["name"],
-            "description": dept_info.get("description", "")
-        })
-        
-        # Формируем описание для текста
-        descriptions.append(f"<b>{dept_info['name']}</b>\n{dept_info.get('description', '')}")
-    
-    departments_description = "\n\n".join(descriptions)
-    
+    """Получаем список департаментов для выбора предыдущего участия (legacy-список)."""
+    # Legacy список отделов (для предыдущего участия)
+    legacy_departments = [
+        "Отдел программы",
+        "Творческий отдел",
+        "Отдел партнёров",
+        "SMM&PR",
+        "Отдел дизайна",
+        "Логистика и ИТ",
+        "Культурно-экспертный отдел",
+    ]
+
+    # Формируем элементы для Radio: используем сам текст как id, чтобы дальше можно было
+    # без маппинга получить название отдела из сохраненного значения
+    departments = [{"id": name, "text": name, "description": ""} for name in legacy_departments]
+
     # Проверяем, выбрал ли пользователь "Ранее участвовал в КБК" через Multiselect
     multiselect = dialog_manager.find("how_found_multiselect")
     was_in_kbk = False
-    
+
     if multiselect:
         checked_items = multiselect.get_checked()
         was_in_kbk = "6" in checked_items  # Индекс опции "Ранее участвовал в КБК (2024-2025)"
-    
+
     return {
         "departments": departments,
         "was_in_kbk": was_in_kbk,
-        "departments_description": departments_description
+        "departments_description": ""
     }
 
 
@@ -183,13 +195,13 @@ async def get_form_summary(dialog_manager: DialogManager, **kwargs) -> Dict[str,
     
     # Получаем множественные варианты "Откуда узнали" из Multiselect
     multiselect = dialog_manager.find("how_found_multiselect")
-    how_found_selections = set()
+    how_found_selections: list[str] = []
     
     if multiselect:
-        how_found_selections = set(multiselect.get_checked())
+        how_found_selections = list(multiselect.get_checked())
     else:
         # Fallback к dialog_data если Multiselect не найден
-        how_found_selections = dialog_data.get("how_found_selections", set())
+        how_found_selections = dialog_data.get("how_found_selections", [])
     
     how_found_texts = []
     for selection in how_found_selections:
@@ -206,8 +218,10 @@ async def get_form_summary(dialog_manager: DialogManager, **kwargs) -> Dict[str,
     previous_dept_text = ""
     if "6" in how_found_selections:  # "Ранее участвовал в КБК"
         previous_dept_key = dialog_data.get("previous_department", "")
-        if previous_dept_key and previous_dept_key in config.selection.departments:
-            previous_dept_text = f"\n🏢 <b>Предыдущий отдел в КБК:</b> {config.selection.departments[previous_dept_key]['name']}"
+        if previous_dept_key:
+            # Если ключ не найден в актуальной конфигурации, используем сохраненное значение как имя (legacy)
+            dept_name = config.selection.departments.get(previous_dept_key, {}).get("name", previous_dept_key)
+            previous_dept_text = f"\n🏢 <b>Предыдущий отдел в КБК:</b> {dept_name}"
     
     # Формируем информацию о приоритетах вакансий
     priorities_summary = ""
@@ -281,7 +295,7 @@ async def get_edit_menu_data(dialog_manager: DialogManager, **kwargs) -> Dict[st
     dialog_data = dialog_manager.dialog_data
     
     # Проверяем, участвовал ли пользователь в КБК (для показа кнопки редактирования предыдущего отдела)
-    selected_options = dialog_data.get("how_found_selections", set())
+    selected_options = dialog_data.get("how_found_selections", [])
     was_in_kbk = "6" in selected_options
     
     return {
@@ -309,7 +323,7 @@ async def get_edit_how_found_options(dialog_manager: DialogManager, **kwargs) ->
     
     # Проверяем текущие выборы для предустановки
     dialog_data = dialog_manager.dialog_data
-    selected_options = dialog_data.get("how_found_selections", set())
+    selected_options = dialog_data.get("how_found_selections", [])
     has_selections = len(selected_options) > 0
     
     return {

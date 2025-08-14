@@ -370,14 +370,14 @@ async def save_application(dialog_manager: DialogManager):
     try:
         # Обрабатываем множественный выбор "Откуда узнали о КБК" из Multiselect
         multiselect = dialog_manager.find("how_found_multiselect")
-        how_found_selections = set()
-        
+        how_found_selections: list[str] = []
+
         if multiselect:
-            how_found_selections = set(multiselect.get_checked())
+            how_found_selections = list(multiselect.get_checked())
         else:
             # Fallback к dialog_data если Multiselect не найден
-            how_found_selections = dialog_data.get("how_found_selections", set())
-        
+            how_found_selections = dialog_data.get("how_found_selections", [])
+
         how_found_texts = []
         for selection in how_found_selections:
             try:
@@ -386,10 +386,10 @@ async def save_application(dialog_manager: DialogManager):
                     how_found_texts.append(config.selection.how_found_options[idx])
             except (ValueError, IndexError):
                 continue
-        
+
         how_found_text = ", ".join(how_found_texts) if how_found_texts else ""
         logger.info(f"🔍 Как узнал о КБК: {how_found_text}")
-        
+
         # Обрабатываем предыдущий отдел если участвовал в КБК
         previous_department_text = ""
         if "6" in how_found_selections:  # "Ранее участвовал в КБК"
@@ -397,7 +397,7 @@ async def save_application(dialog_manager: DialogManager):
             if previous_dept_key and previous_dept_key in config.selection.departments:
                 previous_department_text = config.selection.departments[previous_dept_key]['name']
                 logger.info(f"🏢 Предыдущий отдел в КБК: {previous_department_text}")
-        
+
     except Exception as e:
         logger.error(f"❌ Ошибка обработки 'how_found_kbk': {e}")
         how_found_text = ""
@@ -656,7 +656,7 @@ async def on_apply_clicked(callback: CallbackQuery, button, dialog_manager: Dial
     logger.info(f"🚀 Пользователь {callback.from_user.id} начал заполнение заявки")
     await callback.message.edit_text("<b>Краткая справка по заполнению анкеты</b>\n\nИспользуй /menu, что отменить заполнение анкеты и вернуться в Личный Кабинет"
                                      "\n\nПеред отправкой у тебя будет возможность изменить данные, которые были введены.")
-    await dialog_manager.next(show_mode=ShowMode.SEND)
+    await dialog_manager.switch_to(state=FirstStageSG.full_name, show_mode=ShowMode.SEND)
 
 async def on_full_name_input(message: Message, widget, dialog_manager: DialogManager, **kwargs):
     """Обработка ввода полного имени"""
@@ -782,9 +782,22 @@ async def on_how_found_state_changed(callback: CallbackQuery, widget, dialog_man
     if multiselect:
         checked_items = multiselect.get_checked()
         logger.info(f"📢 Текущие выборы: {checked_items}")
+        logger.info(f"📢 Тип checked_items: {type(checked_items)}")
         
-        # Сохраняем в dialog_data для совместимости с остальным кодом
-        dialog_manager.dialog_data["how_found_selections"] = set(checked_items)
+        # Сохраняем в dialog_data для совместимости с остальным кодом (как список)
+        dialog_manager.dialog_data["how_found_selections"] = list(checked_items)
+        logger.info(f"📢 Сохранено в dialog_data: {dialog_manager.dialog_data.get('how_found_selections')}")
+        
+        # Дополнительно сохраним в middleware_data для Redis
+        if "dialog_data" not in dialog_manager.middleware_data:
+            dialog_manager.middleware_data["dialog_data"] = {}
+        dialog_manager.middleware_data["dialog_data"]["how_found_selections"] = list(checked_items)
+        logger.info(f"📢 Также сохранено в middleware_data для Redis")
+    else:
+        logger.error(f"❌ Multiselect widget 'how_found_multiselect' не найден!")
+    
+    # Отвечаем на callback чтобы убрать "loading"
+    await callback.answer()
 
 
 async def on_how_found_toggled(callback: CallbackQuery, widget, dialog_manager: DialogManager, item_id, **kwargs):
@@ -797,33 +810,48 @@ async def on_how_found_toggled(callback: CallbackQuery, widget, dialog_manager: 
         checked_items = multiselect.get_checked()
         logger.info(f"📢 Текущие выборы: {checked_items}")
         
-        # Сохраняем в dialog_data для совместимости с остальным кодом
-        dialog_manager.dialog_data["how_found_selections"] = set(checked_items)
+    # Сохраняем в dialog_data для совместимости с остальным кодом (как список)
+    dialog_manager.dialog_data["how_found_selections"] = list(checked_items)
 
 
 async def on_how_found_continue(callback: CallbackQuery, widget, dialog_manager: DialogManager, **kwargs):
     """Обработчик кнопки 'Далее' после выбора источников информации о КБК"""
+    logger.info(f"🔄 Пользователь {callback.from_user.id} нажал 'Далее' для источников информации")
+    
     # Получаем выбранные опции из Multiselect виджета
     multiselect = dialog_manager.find("how_found_multiselect")
+    checked_items = []
     
     if multiselect:
         checked_items = multiselect.get_checked()
-        logger.info(f"📢 Пользователь {callback.from_user.id} завершил выбор источников: {checked_items}")
+        logger.info(f"📢 Найден multiselect, checked_items: {checked_items}")
+    else:
+        logger.warning(f"❌ Multiselect not found!")
         
-        # Проверяем, есть ли хотя бы один выбор
-        if not checked_items:
-            await callback.answer("❌ Пожалуйста, выберите хотя бы один вариант", show_alert=True)
-            return
-        
-        # Сохраняем выбранные варианты в dialog_data для использования в других частях кода
-        dialog_manager.dialog_data["how_found_selections"] = set(checked_items)
-        
-        # Если пользователь НЕ выбрал "Ранее участвовал в КБК" (индекс 6), пропускаем окно previous_department
-        if "6" not in checked_items:
-            logger.info(f"⏭️ Пользователь не участвовал в КБК, пропускаем выбор предыдущего отдела")
-            await dialog_manager.next()  # К окну previous_department
-            await dialog_manager.start(JobSelectionSG.select_department)  # Пропускаем его и идем к experience
-            return
+    # Также попробуем получить из dialog_data (для Redis)
+    saved_selections = dialog_manager.dialog_data.get("how_found_selections", [])
+    logger.info(f"📢 Из dialog_data: {saved_selections}")
+    
+    # Используем тот список, который не пустой
+    if not checked_items and saved_selections:
+        checked_items = list(saved_selections)
+        logger.info(f"📢 Используем сохраненные выборы: {checked_items}")
+    
+    logger.info(f"📢 Пользователь {callback.from_user.id} завершил выбор источников: {checked_items}")
+    
+    # Проверяем, есть ли хотя бы один выбор
+    if not checked_items:
+        await callback.answer("❌ Пожалуйста, выберите хотя бы один вариант", show_alert=True)
+        return
+    
+    # Сохраняем выбранные варианты в dialog_data для использования в других частях кода (как список)
+    dialog_manager.dialog_data["how_found_selections"] = list(checked_items)
+    
+    # Если пользователь НЕ выбрал "Ранее участвовал в КБК" (индекс 6), пропускаем окно previous_department
+    if "6" not in checked_items:
+        logger.info(f"⏭️ Пользователь не участвовал в КБК, пропускаем выбор предыдущего отдела")
+        await dialog_manager.start(JobSelectionSG.select_department)  # Пропускаем его и идем к experience
+        return
     
     # Переходим к следующему окну (previous_department)
     await dialog_manager.next()
@@ -973,9 +1001,8 @@ async def on_edit_how_found_state_changed(callback: CallbackQuery, widget, dialo
     if multiselect:
         checked_items = multiselect.get_checked()
         logger.info(f"📢 Обновленный выбор: {checked_items}")
-        
-        # Сохраняем в dialog_data
-        dialog_manager.dialog_data["how_found_selections"] = set(checked_items)
+        # Сохраняем в dialog_data как список (JSON-совместимый)
+        dialog_manager.dialog_data["how_found_selections"] = list(checked_items)
 
 
 async def on_edit_how_found_continue(callback: CallbackQuery, widget, dialog_manager: DialogManager, **kwargs):
@@ -984,12 +1011,10 @@ async def on_edit_how_found_continue(callback: CallbackQuery, widget, dialog_man
     
     if multiselect:
         checked_items = multiselect.get_checked()
-        
         if not checked_items:
             await callback.answer("❌ Пожалуйста, выберите хотя бы один вариант", show_alert=True)
             return
-        
-        dialog_manager.dialog_data["how_found_selections"] = set(checked_items)
+        dialog_manager.dialog_data["how_found_selections"] = list(checked_items)
         await callback.answer("✅ Источники информации о КБК успешно изменены!")
         await dialog_manager.switch_to(FirstStageSG.confirmation)
 
@@ -1054,7 +1079,7 @@ async def on_back_to_confirmation(callback: CallbackQuery, button, dialog_manage
 
 async def check_previous_participation_and_skip(dialog_manager: DialogManager):
     """Проверяет, участвовал ли пользователь в КБК ранее, и пропускает окно если нет"""
-    selections = dialog_manager.dialog_data.get("how_found_selections", set())
+    selections = dialog_manager.dialog_data.get("how_found_selections", [])
     
     # Если не выбрал "Ранее участвовал в КБК" (индекс 6), пропускаем окно
     if "6" not in selections:

@@ -2,12 +2,15 @@ import asyncio
 import logging
 
 import psycopg_pool
-import redis
+
+from redis.asyncio import Redis
+
 from aiogram import Bot, Dispatcher
 from aiogram.client.default import DefaultBotProperties
 from aiogram.enums import ParseMode
 from aiogram.filters import ExceptionTypeFilter
 from aiogram.fsm.storage.base import DefaultKeyBuilder
+from aiogram.fsm.storage.redis import RedisStorage, DefaultKeyBuilder
 from aiogram_dialog import setup_dialogs
 from aiogram_dialog.api.exceptions import UnknownIntent, UnknownState
 
@@ -39,7 +42,19 @@ async def main():
         default=DefaultBotProperties(parse_mode=ParseMode.HTML),
     )
     
-    dp = Dispatcher()
+    # Иннициализируем redis
+    if config.redis.password:
+        redis_client = Redis.from_url(f"redis://:{config.redis.password}@{config.redis.host}:{config.redis.port}/0")
+    else:
+        redis_client = Redis.from_url(f"redis://{config.redis.host}:{config.redis.port}/0")
+    storage = RedisStorage(
+        redis=redis_client,
+        key_builder=DefaultKeyBuilder(with_bot_id=True, with_destiny=True),
+        state_ttl=86400,  # время жизни состояния в секунду (например, 1 день)
+        data_ttl=86400   # время жизни данных
+    )
+
+    dp = Dispatcher(storage=storage)
     
     # Добавляем конфигурацию в диспетчер
     dp["config"] = config
