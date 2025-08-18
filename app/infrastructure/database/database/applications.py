@@ -4,7 +4,6 @@ from typing import Optional
 
 from psycopg import AsyncConnection, AsyncCursor
 
-from app.bot.enums.application_status import ApplicationStatus
 from app.infrastructure.database.models.applications import ApplicationsModel
 
 logger = logging.getLogger(__name__)
@@ -20,26 +19,24 @@ class _ApplicationsDB:
         self,
         *,
         user_id: int,
-        status: ApplicationStatus = ApplicationStatus.NOT_SUBMITTED,
     ) -> None:
         await self.connection.execute(
             """
-            INSERT INTO applications(user_id, status, created, updated)
-            VALUES(%s, %s, %s, %s) ON CONFLICT (user_id) DO NOTHING;
+            INSERT INTO applications(user_id, created, updated)
+            VALUES(%s, %s, %s) ON CONFLICT (user_id) DO NOTHING;
         """,
-            (user_id, status.value, datetime.now(timezone.utc), datetime.now(timezone.utc)),
+            (user_id, datetime.now(timezone.utc), datetime.now(timezone.utc)),
         )
         logger.info(
-            "Application created. db='%s', user_id=%d, status=%s",
+            "Application created. db='%s', user_id=%d",
             self.__tablename__,
             user_id,
-            status.value,
         )
 
     async def get_application(self, *, user_id: int) -> ApplicationsModel | None:
         cursor: AsyncCursor = await self.connection.execute(
             """
-            SELECT id, user_id, status, created, updated,
+            SELECT id, user_id, created, updated,
                    full_name, university, course, phone, email, telegram_username,
                    how_found_kbk, department_1, position_1, department_2, position_2,
                    department_3, position_3, experience, motivation,
@@ -51,24 +48,6 @@ class _ApplicationsDB:
         )
         data = await cursor.fetchone()
         return ApplicationsModel(*data) if data else None
-
-    async def update_application_status(
-        self, *, user_id: int, status: ApplicationStatus
-    ) -> None:
-        await self.connection.execute(
-            """
-            UPDATE applications
-            SET status = %s, updated = %s
-            WHERE user_id = %s
-        """,
-            (status.value, datetime.now(timezone.utc), user_id),
-        )
-        logger.info(
-            "Application status updated. db='%s', user_id=%d, status=%s",
-            self.__tablename__,
-            user_id,
-            status.value,
-        )
 
     async def update_first_stage_form(
         self,

@@ -43,10 +43,13 @@ async def check_applications_db():
             for col in columns:
                 logger.info(f"  {col[0]} | {col[1]} | nullable: {col[2]} | default: {col[3]}")
             
-            # Проверяем данные в таблице
+            # Проверяем данные в таблице (основные поля, без статуса)
             cursor = await conn.execute("""
-                SELECT user_id, status, full_name, university, course, phone, email, 
-                       telegram_username, how_found_kbk, department, position,
+                SELECT user_id, full_name, university, course, phone, email, 
+                       telegram_username, how_found_kbk,
+                       department_1, position_1,
+                       department_2, position_2,
+                       department_3, position_3,
                        created, updated
                 FROM applications
                 ORDER BY created DESC;
@@ -58,32 +61,30 @@ async def check_applications_db():
             for i, app in enumerate(applications, 1):
                 logger.info(f"\nЗаявка {i}:")
                 logger.info(f"  User ID: {app[0]}")
-                logger.info(f"  Status: {app[1]}")
-                logger.info(f"  Full Name: {app[2]}")
-                logger.info(f"  University: {app[3]}")
-                logger.info(f"  Course: {app[4]}")
-                logger.info(f"  Phone: {app[5]}")
-                logger.info(f"  Email: {app[6]}")
-                logger.info(f"  Telegram Username: {app[7]}")
-                logger.info(f"  How Found KBK: {app[8]}")
-                logger.info(f"  Department: {app[9]}")
-                logger.info(f"  Position: {app[10]}")
-                logger.info(f"  Created: {app[11]}")
-                logger.info(f"  Updated: {app[12]}")
-            
-            # Проверяем enum типы
+                logger.info(f"  Full Name: {app[1]}")
+                logger.info(f"  University: {app[2]}")
+                logger.info(f"  Course: {app[3]}")
+                logger.info(f"  Phone: {app[4]}")
+                logger.info(f"  Email: {app[5]}")
+                logger.info(f"  Telegram Username: {app[6]}")
+                logger.info(f"  How Found KBK: {app[7]}")
+                logger.info(f"  Priority 1: {app[8]} / {app[9]}")
+                logger.info(f"  Priority 2: {app[10]} / {app[11]}")
+                logger.info(f"  Priority 3: {app[12]} / {app[13]}")
+                logger.info(f"  Created: {app[14]}")
+                logger.info(f"  Updated: {app[15]}")
+
+            # Дополнительно: обзор по таблице users
             cursor = await conn.execute("""
-                SELECT enumlabel 
-                FROM pg_enum e
-                JOIN pg_type t ON e.enumtypid = t.oid
-                WHERE t.typname = 'application_status'
-                ORDER BY e.enumsortorder;
+                SELECT submission_status, COUNT(*)
+                FROM users
+                GROUP BY submission_status
+                ORDER BY submission_status;
             """)
-            
-            enum_values = await cursor.fetchall()
-            logger.info(f"\nДоступные статусы в enum application_status:")
-            for val in enum_values:
-                logger.info(f"  - {val[0]}")
+            groups = await cursor.fetchall()
+            logger.info("\nПользователи по статусам отправки заявки:")
+            for status, cnt in groups:
+                logger.info(f"  {status}: {cnt}")
             
     except Exception as e:
         logger.error(f"Ошибка при проверке БД заявок: {e}")

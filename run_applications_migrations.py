@@ -48,7 +48,9 @@ async def run_applications_migrations():
             application_migrations = [
                 "002_create_applications_table.sql",
                 "003_update_applications_table.sql",
-                "005_add_priority_system.sql"
+                "005_add_priority_system.sql",
+                "006_create_users_in_app_db.sql",
+                "007_update_applications_fk_and_drop_status.sql",
             ]
             
             for migration_file in application_migrations:

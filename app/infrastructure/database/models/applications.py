@@ -2,7 +2,6 @@ from dataclasses import dataclass
 from datetime import datetime
 from typing import Optional
 
-from app.bot.enums.application_status import ApplicationStatus
 from app.infrastructure.database.models.base import BaseModel
 
 
@@ -10,7 +9,6 @@ from app.infrastructure.database.models.base import BaseModel
 class ApplicationsModel(BaseModel):
     id: int
     user_id: int
-    status: ApplicationStatus
     created: datetime
     updated: datetime
     
@@ -36,5 +34,4 @@ class ApplicationsModel(BaseModel):
     previous_department: Optional[str] = None
 
     def __post_init__(self):
-        if isinstance(self.status, str):
-            self.status = ApplicationStatus(self.status)
+        pass

@@ -4,7 +4,6 @@ from aiogram.types import TelegramObject, User
 import logging
 
 from app.infrastructure.database.database.db import DB
-from app.bot.enums.roles import UserRole
 
 logger = logging.getLogger(__name__)
 
@@ -57,8 +56,8 @@ class DatabaseMiddleware(BaseMiddleware):
         if not config:
             config = data.get("config")
         
-        if not db_pool or not db_applications_pool:
-            logger.warning("Пулы соединений с БД не найдены в middleware")
+        if not db_applications_pool:
+            logger.warning("Пул соединений с БД заявок не найден в middleware")
             return await handler(event, data)
         
         # Получаем пользователя из события
@@ -68,11 +67,10 @@ class DatabaseMiddleware(BaseMiddleware):
             logger.debug(f"🔍 DatabaseMiddleware: обрабатываем пользователя {user.id} (@{user.username})")
             try:
                 # Создаем соединения с БД
-                async with db_pool.connection() as users_connection, \
-                          db_applications_pool.connection() as applications_connection:
+                async with db_applications_pool.connection() as applications_connection:
                     
                     logger.debug(f"💾 Соединения с БД установлены")
-                    database = DB(users_connection, applications_connection)
+                    database = DB(applications_connection, applications_connection)
                     
                     # Проверяем существование пользователя
                     logger.debug(f"🔍 Проверяем существование пользователя {user.id}")
@@ -84,7 +82,6 @@ class DatabaseMiddleware(BaseMiddleware):
                         await database.users.add(
                             user_id=user.id,
                             language=user.language_code or "ru",
-                            role=UserRole.USER
                         )
                         logger.info(f"✅ Новый пользователь создан: {user.id}")
                     else:
@@ -111,7 +108,6 @@ class DatabaseMiddleware(BaseMiddleware):
                     
                     # Коммитим изменения в обеих БД
                     logger.debug(f"💾 Коммитим изменения в БД для пользователя {user.id}")
-                    await users_connection.commit()
                     await applications_connection.commit()
                     
                     logger.debug(f"✅ DatabaseMiddleware: обработка пользователя {user.id} завершена")

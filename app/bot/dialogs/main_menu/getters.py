@@ -32,12 +32,12 @@ async def get_current_stage_info(dialog_manager: DialogManager, **kwargs) -> Dic
             "is_active": False
         }
     
-    # Получаем статус заявки пользователя
+    # Получаем статус заявки пользователя из таблицы users (submission_status)
     application_submitted = False
     try:
         if db:
-            application = await db.applications.get_application(user_id=event_from_user.id)
-            application_submitted = application and application.status.value == "submitted"
+            user_record = await db.users.get_user_record(user_id=event_from_user.id)
+            application_submitted = bool(user_record and user_record.submission_status == "submitted")
     except Exception:
         application_submitted = False
     
@@ -155,27 +155,14 @@ async def get_application_status(dialog_manager: DialogManager, **kwargs) -> Dic
         }
     
     try:
-        application = await db.applications.get_application(user_id=event_from_user.id)
-        
-        if not application:
-            # Создаем заявку если её нет
-            await db.applications.create_application(user_id=event_from_user.id)
-            application_status = "not_submitted"
-            status_text = "Заявка не подана"
-        else:
-            application_status = application.status.value
-            status_text = {
-                "not_submitted": "Заявка не подана",
-                "submitted": "Заявка подана",
-                "canceled": "Заявка отменена",
-                "rejected": "Заявка отклонена",
-                "accepted": "Заявка принята",
-                # Старые статусы для совместимости
-                "stage_1": "Заявка подана - Этап 1",
-                "stage_2": "Заявка на рассмотрении - Этап 2", 
-                "stage_3": "Заявка на финальном этапе",
-                "approved": "Заявка одобрена"
-            }.get(application_status, "Неизвестный статус")
+        # Ensure application row exists for form fields (no status stored here)
+        await db.applications.create_application(user_id=event_from_user.id)
+        user_record = await db.users.get_user_record(user_id=event_from_user.id)
+        application_status = (user_record.submission_status if user_record else "not_submitted")
+        status_text = {
+            "not_submitted": "Заявка не подана",
+            "submitted": "Заявка подана"
+        }.get(application_status, "Неизвестный статус")
     except Exception as e:
         # В случае ошибки возвращаем значения по умолчанию
         application_status = "not_submitted"

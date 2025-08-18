@@ -32,9 +32,17 @@ async def get_stage_info(dialog_manager: DialogManager, **kwargs) -> Dict[str, A
     application_status_text = ""
     
     try:
-        if db:
-            # TODO: Здесь будет проверка статуса заявки
-            pass
+        if db and event_from_user:
+            # Убедимся, что строка application существует
+            await db.applications.create_application(user_id=event_from_user.id)
+            # Читаем статус из users
+            user_rec = await db.users.get_user_record(user_id=event_from_user.id)
+            if user_rec and getattr(user_rec, 'submission_status', 'not_submitted') == 'submitted':
+                can_apply = False
+                application_status_text = "✅ Заявка отправлена"
+            else:
+                can_apply = True
+                application_status_text = "⏳ Заявка не отправлена"
     except Exception as e:
         print(f"Ошибка при проверке статуса заявки: {e}")
     

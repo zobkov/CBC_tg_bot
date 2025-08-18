@@ -12,7 +12,6 @@ from aiogram_dialog.widgets.input import MessageInput
 
 from config.config import Config
 from app.infrastructure.database.database.db import DB
-from app.bot.enums.application_status import ApplicationStatus
 from app.bot.states.first_stage import FirstStageSG
 from app.bot.states.main_menu import MainMenuSG
 from app.bot.states.job_selection import JobSelectionSG
@@ -505,6 +504,8 @@ async def save_application(dialog_manager: DialogManager):
     logger.info(f"🎯 Сохраняем приоритеты: 1) {db_department_1} - {db_position_1}, 2) {db_department_2} - {db_position_2}, 3) {db_department_3} - {db_position_3}")
     
     try:
+        # Ensure application row exists
+        await db.applications.create_application(user_id=event_from_user.id)
         await db.applications.update_first_stage_form(
             user_id=event_from_user.id,
             full_name=dialog_data.get("full_name", ""),
@@ -526,17 +527,12 @@ async def save_application(dialog_manager: DialogManager):
             resume_google_drive_url=resume_google_drive_url,
             previous_department=previous_department_text
         )
-        
         logger.info(f"✅ Данные заявки сохранены в БД")
         
-        # Обновляем статус на SUBMITTED
-        logger.info(f"🔄 Обновляем статус заявки на SUBMITTED...")
-        await db.applications.update_application_status(
-            user_id=event_from_user.id,
-            status=ApplicationStatus.SUBMITTED
-        )
-        
-        logger.info(f"✅ Статус заявки обновлен на SUBMITTED")
+        # Обновляем статус пользователя на submitted
+        logger.info(f"🔄 Обновляем статус пользователя на SUBMITTED...")
+        await db.users.set_submission_status(user_id=event_from_user.id, status="submitted")
+        logger.info(f"✅ Статус пользователя обновлен на SUBMITTED")
         
     except Exception as e:
         logger.error(f"❌ Критическая ошибка при сохранении в БД: {e}")

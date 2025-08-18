@@ -53,26 +53,13 @@ async def run_users_migrations():
                     
                     with open(migration_path, 'r', encoding='utf-8') as f:
                         migration_sql = f.read()
-                    
-                    try:
-                        await cur.execute(migration_sql)
-                        # Записываем что миграция применена
-                        await cur.execute(
-                            "INSERT INTO migrations (filename) VALUES (%s)",
-                            (migration_file,)
-                        )
-                        await conn.commit()
-                        logger.info(f"Миграция {migration_file} успешно применена")
-                    except Exception as e:
-                        await conn.rollback()
-                        logger.error(f"Ошибка при применении миграции {migration_file}: {e}")
-                        raise
-                else:
-                    logger.info(f"Миграция {migration_file} уже применена")
-            else:
-                logger.warning(f"Файл миграции {migration_path} не найден")
-    
-    logger.info("Миграции для пользователей применены")
+                    #!/usr/bin/env python3
+                    """
+                    DEPRECATED: Users migrations are now part of the applications database.
 
-if __name__ == "__main__":
-    asyncio.run(run_users_migrations())
+                    Use run_applications_migrations.py instead. This script is kept for
+                    backward compatibility but does nothing.
+                    """
+                    if __name__ == "__main__":
+                        print("run_users_migrations.py is deprecated. Use run_applications_migrations.py instead.")
+                        await conn.rollback()

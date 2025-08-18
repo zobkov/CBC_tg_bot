@@ -3,7 +3,6 @@ from datetime import datetime, timezone
 
 from psycopg import AsyncConnection, AsyncCursor
 
-from app.bot.enums.roles import UserRole
 from app.infrastructure.database.models.users import UsersModel
 
 logger = logging.getLogger(__name__)
@@ -20,25 +19,23 @@ class _UsersDB:
         *,
         user_id: int,
         language: str,
-        role: UserRole,
         is_alive: bool = True,
         is_blocked: bool = False,
     ) -> None:
         await self.connection.execute(
             """
-            INSERT INTO users(user_id, language, role, is_alive, is_blocked)
-            VALUES(%s, %s, %s, %s, %s) ON CONFLICT DO NOTHING;
+            INSERT INTO users(user_id, language, is_alive, is_blocked)
+            VALUES(%s, %s, %s, %s) ON CONFLICT DO NOTHING;
         """,
-            (user_id, language, role.value, is_alive, is_blocked),
+            (user_id, language, is_alive, is_blocked),
         )
         logger.info(
             "User added. db='%s', user_id=%d, date_time='%s', "
-            "language='%s', role=%s, is_alive=%s, is_blocked=%s",
+            "language='%s', is_alive=%s, is_blocked=%s",
             self.__tablename__,
             user_id,
             datetime.now(timezone.utc),
             language,
-            role.value,
             is_alive,
             is_blocked,
         )
@@ -55,17 +52,12 @@ class _UsersDB:
     async def get_user_record(self, *, user_id: int) -> UsersModel | None:
         cursor: AsyncCursor = await self.connection.execute(
             """
-            SELECT id,
-                    user_id,
-                    created,
-                    tz_region,
-                    tz_offset,
-                    longitude,
-                    latitude,
-                    language,
-                    role,
-                    is_alive,
-                    is_blocked
+         SELECT user_id,
+             created,
+             language,
+             is_alive,
+             is_blocked,
+             submission_status
             FROM users
             WHERE users.user_id = %s
         """,
@@ -105,3 +97,29 @@ class _UsersDB:
             user_id,
             user_lang,
         )
+
+    async def set_submission_status(self, *, user_id: int, status: str) -> None:
+        await self.connection.execute(
+            """
+            UPDATE users
+            SET submission_status = %s
+            WHERE user_id = %s
+        """,
+            (status, user_id),
+        )
+        logger.info(
+            "User updated. db='%s', user_id=%d, submission_status=%s",
+            self.__tablename__,
+            user_id,
+            status,
+        )
+
+    async def list_user_ids_by_group(self, *, group: str) -> list[int]:
+        cursor: AsyncCursor = await self.connection.execute(
+            """
+            SELECT user_id FROM users WHERE submission_status = %s AND is_blocked = FALSE
+        """,
+            (group,),
+        )
+        rows = await cursor.fetchall()
+        return [r[0] for r in rows]

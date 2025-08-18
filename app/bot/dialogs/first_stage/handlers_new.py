@@ -11,7 +11,7 @@ from aiogram_dialog.widgets.input import MessageInput
 
 from config.config import Config
 from app.infrastructure.database.database.db import DB
-from app.bot.enums.application_status import ApplicationStatus
+ 
 
 logger = logging.getLogger(__name__)
 
@@ -200,6 +200,8 @@ async def save_application(dialog_manager: DialogManager):
     
     # Сохраняем в БД и меняем статус на submitted
     try:
+        # Ensure application row exists
+        await db.applications.create_application(user_id=event_from_user.id)
         await db.applications.update_first_stage_form(
             user_id=event_from_user.id,
             full_name=dialog_data.get("full_name", ""),
@@ -216,15 +218,9 @@ async def save_application(dialog_manager: DialogManager):
             resume_local_path=resume_local_path,
             resume_google_drive_url=resume_google_drive_url
         )
-        
-        # Обновляем статус на SUBMITTED
-        await db.applications.update_application_status(
-            user_id=event_from_user.id,
-            status=ApplicationStatus.SUBMITTED
-        )
-        
+        # Обновляем статус пользователя на submitted
+        await db.users.set_submission_status(user_id=event_from_user.id, status="submitted")
         logger.info(f"Заявка пользователя {event_from_user.id} успешно сохранена в БД")
-        
     except Exception as e:
         logger.error(f"Ошибка при сохранении в БД: {e}")
         return

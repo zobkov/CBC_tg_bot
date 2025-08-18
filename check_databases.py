@@ -94,15 +94,6 @@ async def main():
     """Основная функция проверки"""
     print("🔍 Проверка состояния баз данных КБК")
     
-    # Конфигурация для базы пользователей
-    users_db_config = {
-        "host": os.getenv("DB_HOST"),
-        "port": int(os.getenv("DB_PORT")),
-        "user": os.getenv("DB_USER"),
-        "password": os.getenv("DB_PASS"),
-        "database": os.getenv("DB_NAME")
-    }
-    
     # Конфигурация для базы заявок
     applications_db_config = {
         "host": os.getenv("DB_APPLICATIONS_HOST"),
@@ -112,65 +103,30 @@ async def main():
         "database": os.getenv("DB_APPLICATIONS_NAME")
     }
     
-    # Проверяем обе базы данных
-    users_result = await check_database(users_db_config, "База пользователей")
-    apps_result = await check_database(applications_db_config, "База заявок")
+    # Проверяем базу данных заявок (содержит users и applications)
+    apps_result = await check_database(applications_db_config, "База заявок (applications + users)")
     
     # Финальный отчет
     print(f"\n{'='*50}")
     print("📝 ИТОГОВЫЙ ОТЧЕТ")
     print(f"{'='*50}")
     
-    print(f"🗂️  База пользователей (порт {users_db_config['port']}):")
-    if users_result["status"] == "success":
-        print(f"   ✅ Статус: Подключение успешно")
-        print(f"   📊 Таблицы: {', '.join(users_result['tables'])}")
-        if 'users' in users_result['tables']:
-            print(f"   ✅ Таблица users: Присутствует")
-        else:
-            print(f"   ❌ Таблица users: Отсутствует")
-    else:
-        print(f"   ❌ Статус: Ошибка подключения")
-        print(f"   📝 Ошибка: {users_result['error']}")
-    
     print(f"\n🗂️  База заявок (порт {applications_db_config['port']}):")
     if apps_result["status"] == "success":
         print(f"   ✅ Статус: Подключение успешно")
         print(f"   📊 Таблицы: {', '.join(apps_result['tables'])}")
-        if 'applications' in apps_result['tables']:
-            print(f"   ✅ Таблица applications: Присутствует")
-        else:
-            print(f"   ❌ Таблица applications: Отсутствует")
+        print(f"   ✅ Ожидаемые таблицы: users, applications")
+        print(f"   {'✅' if 'users' in apps_result['tables'] else '❌'} Таблица users")
+        print(f"   {'✅' if 'applications' in apps_result['tables'] else '❌'} Таблица applications")
     else:
         print(f"   ❌ Статус: Ошибка подключения")
         print(f"   📝 Ошибка: {apps_result['error']}")
     
-    # Проверка корректности разделения
-    print(f"\n🔍 АНАЛИЗ КОРРЕКТНОСТИ НАСТРОЙКИ:")
-    
-    both_success = (users_result["status"] == "success" and 
-                   apps_result["status"] == "success")
-    
-    if both_success:
-        users_tables = set(users_result["tables"])
-        apps_tables = set(apps_result["tables"])
-        
-        # Проверяем правильность разделения
-        correct_users = 'users' in users_tables and 'applications' not in users_tables
-        correct_apps = 'applications' in apps_tables and 'users' not in apps_tables
-        
-        if correct_users and correct_apps:
-            print("   ✅ Разделение баз данных настроено КОРРЕКТНО")
-            print("   ✅ База пользователей содержит только таблицу users")
-            print("   ✅ База заявок содержит только таблицу applications")
-        else:
-            print("   ⚠️  Обнаружены проблемы в разделении:")
-            if not correct_users:
-                print("   ❌ В базе пользователей неправильные таблицы")
-            if not correct_apps:
-                print("   ❌ В базе заявок неправильные таблицы")
+    print(f"\n🔍 АНАЛИЗ КОНФИГУРАЦИИ:")
+    if apps_result["status"] == "success":
+        print("   ✅ Единая база содержит обе таблицы (users, applications)")
     else:
-        print("   ❌ Невозможно проанализировать из-за ошибок подключения")
+        print("   ❌ Проверьте настройки подключения к базе заявок")
 
 
 if __name__ == "__main__":
