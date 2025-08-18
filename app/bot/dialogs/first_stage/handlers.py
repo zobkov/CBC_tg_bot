@@ -17,6 +17,7 @@ from app.bot.states.first_stage import FirstStageSG
 from app.bot.states.main_menu import MainMenuSG
 from app.bot.states.job_selection import JobSelectionSG
 from app.services.error_monitoring import error_monitor
+from app.utils.filename_utils import make_safe_filename
 
 logger = logging.getLogger(__name__)
 
@@ -201,7 +202,9 @@ async def process_resume_file(message: Message, widget, dialog_manager: DialogMa
     
     timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
     file_extension = os.path.splitext(document.file_name)[1] if document.file_name else ".pdf"
-    new_filename = f"{surname}_{initials}_{user.username or user.id}_{timestamp}{file_extension}"
+    # Compose a human-friendly filename, then sanitize to ASCII for cross-platform safety
+    raw_filename = f"{surname}_{initials}_{user.username or user.id}_{timestamp}{file_extension}"
+    new_filename = make_safe_filename(raw_filename)
     
     logger.info(f"📝 Сгенерировано имя файла: {new_filename}")
 
