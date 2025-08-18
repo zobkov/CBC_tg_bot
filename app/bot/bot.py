@@ -27,6 +27,9 @@ from app.bot.dialogs.start.dialogs import start_dialog
 from app.bot.dialogs.main_menu.dialogs import main_menu_dialog
 from app.bot.dialogs.first_stage.dialogs import first_stage_dialog
 from app.bot.dialogs.job_selection.dialogs import job_selection_dialog
+from app.services.broadcast_scheduler import BroadcastScheduler
+from pathlib import Path
+from app.infrastructure.database.database.db import DB
 
 logger = logging.getLogger(__name__)
 
@@ -60,16 +63,6 @@ async def main():
     dp["config"] = config
     dp["bot"] = bot
     
-    # Подключение к базе данных пользователей
-    db_pool: psycopg_pool.AsyncConnectionPool = await get_pg_pool(
-        db_name=config.db.database,
-        host=config.db.host,
-        port=config.db.port,
-        user=config.db.user,
-        password=config.db.password,
-    )
-    dp["db"] = db_pool
-    
     # Подключение к базе данных заявок
     db_applications_pool: psycopg_pool.AsyncConnectionPool = await get_pg_pool(
         db_name=config.db_applications.database,
@@ -79,6 +72,8 @@ async def main():
         password=config.db_applications.password,
     )
     dp["db_applications"] = db_applications_pool
+    # Пул для обратной совместимости ключа db
+    dp["db"] = db_applications_pool
 
     logger.info("Including routers")
     dp.include_routers(
@@ -101,19 +96,25 @@ async def main():
 
     await set_main_menu(bot)
 
-    # Launch polling and delayed message consumer
+    # Launch polling and broadcast scheduler
     try:
-        await asyncio.gather(
-            dp.start_polling(
-                bot,
-                bg_factory=bg_factory,
-                _db_pool=db_pool,
-                _db_applications_pool=db_applications_pool,
-            ),
+        scheduler = BroadcastScheduler(
+            bot=bot,
+            db_pool=db_applications_pool,
+            json_path=Path("config/broadcasts.json")
+        )
+        await scheduler.start()
+        await dp.start_polling(
+            bot,
+            bg_factory=bg_factory,
+            _db_applications_pool=db_applications_pool,
         )
     except Exception as e:
         logger.exception(e)
     finally:
-        await db_pool.close()
+        try:
+            await scheduler.stop()  # type: ignore
+        except Exception:
+            pass
         await db_applications_pool.close()
         logger.info("Connection to Postgres closed")
