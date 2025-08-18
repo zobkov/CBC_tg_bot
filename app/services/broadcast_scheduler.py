@@ -117,30 +117,19 @@ class BroadcastScheduler:
         if self.scheduler and self.scheduler.running:
             return
         
-        # Setup APScheduler with Redis storage (more reliable than memory)
+        # Setup APScheduler with fallback to memory storage
         try:
             from config.config import load_config
             config = load_config()
             
-            # Try Redis first, fallback to memory
-            try:
-                # Test Redis connection before creating jobstore
-                import redis
-                r = redis.Redis(host=config.redis.host, port=config.redis.port, 
-                              password=config.redis.password, db=1)
-                r.ping()  # Test connection
-                
-                jobstore = RedisJobStore(host=config.redis.host, port=config.redis.port, 
-                                       password=config.redis.password, db=1)
-                logger.info("Using Redis jobstore for APScheduler")
-            except Exception as e:
-                logger.warning("Redis not available, using memory jobstore: %s", e)
-                jobstore = MemoryJobStore()
-                
+            # Use memory jobstore to avoid pickle issues with Redis
+            jobstore = MemoryJobStore()
+            logger.info("Using memory jobstore for APScheduler (Redis disabled due to pickle issues)")
+            
         except Exception as e:
             logger.error("Failed to get config for APScheduler: %s", e)
             jobstore = MemoryJobStore()
-        
+    
         # Setup APScheduler
         jobstores = {
             'default': jobstore
