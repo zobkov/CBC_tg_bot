@@ -297,14 +297,15 @@ async def process_resume_file(message: Message, widget, dialog_manager: DialogMa
         
         # Подготавливаем сообщение пользователю
         message_text = f"✅ Резюме получено и сохранено как: {new_filename}\n"
-        
+        """   
         if google_file_url:
             message_text += "📁 Файл также загружен в Google Drive\n"
         elif config and config.google and config.google.enable_drive:
             error = dialog_manager.dialog_data.get("resume_google_error", "")
             message_text += f"⚠️ Файл сохранен локально, но не загружен в Google Drive: {error}\n"
         else:
-            message_text += "📋 Файл сохранен локально (Google Drive отключен)\n"
+            message_text += "📋 Файл сохранен локально (Google Drive отключен)\n
+        """
             
         message_text += "Теперь вы можете перейти к следующему шагу."
         

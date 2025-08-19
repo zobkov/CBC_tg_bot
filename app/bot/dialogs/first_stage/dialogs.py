@@ -1,6 +1,6 @@
-from aiogram_dialog import Dialog, Window
 from aiogram_dialog.widgets.kbd import Button, Radio, Column, Next, Back, Multiselect, Row
 from aiogram_dialog.widgets.text import Format, Const
+from aiogram_dialog import Dialog, Window
 from aiogram_dialog.widgets.input import MessageInput, TextInput
 from aiogram.enums import ContentType
 
@@ -52,6 +52,7 @@ first_stage_dialog = Dialog(
             on_click=on_apply_clicked,
             when="can_apply"
         ),
+        Button(Const("🏠 В главное меню"), id="go_to_menu", on_click=go_to_menu),
         state=FirstStageSG.stage_info,
         getter=get_stage_info
     ),

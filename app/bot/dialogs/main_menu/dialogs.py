@@ -35,7 +35,7 @@ main_menu_dialog = Dialog(
         Format("📞 <b>Поддержка</b>\n\n"
                "По общим вопросам: {general_support}\n"
                "Техническая поддержка: {technical_support}\n"
-               "Вопросы по отбору: {hr_support}"),
+               ),
         Back(Const("◀️ Назад")),
         state=MainMenuSG.support,
         getter=get_support_contacts
