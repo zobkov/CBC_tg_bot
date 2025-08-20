@@ -253,22 +253,34 @@ async def get_form_summary(dialog_manager: DialogManager, **kwargs) -> Dict[str,
     for i in range(1, 4):
         # Используем combined_data для получения приоритетов
         dept_key = combined_data.get(f"priority_{i}_department")
+        subdept_key = combined_data.get(f"priority_{i}_subdepartment")
         pos_index = combined_data.get(f"priority_{i}_position")
         
-        print(f"DEBUG: get_form_summary - priority_{i}: dept='{dept_key}', pos='{pos_index}'")
+        print(f"DEBUG: get_form_summary - priority_{i}: dept='{dept_key}', subdept='{subdept_key}', pos='{pos_index}'")
         
         if dept_key and pos_index is not None:
             priorities_exist = True
-            dept_name = config.selection.departments.get(dept_key, {}).get("name", dept_key)
+            dept_data = config.selection.departments.get(dept_key, {})
+            dept_name = dept_data.get("name", dept_key)
+            
+            # Если есть под-отдел, используем его позиции
+            if subdept_key and "subdepartments" in dept_data:
+                subdept_data = dept_data["subdepartments"].get(subdept_key, {})
+                subdept_name = subdept_data.get("name", subdept_key)
+                positions_list = subdept_data.get("positions", [])
+                dept_display_name = f"{dept_name} – {subdept_name}"
+            else:
+                # Используем позиции основного отдела
+                positions_list = dept_data.get("positions", [])
+                dept_display_name = dept_name
             
             # Получаем позицию по индексу из массива
-            positions_list = config.selection.departments.get(dept_key, {}).get("positions", [])
             try:
                 pos_name = positions_list[int(pos_index)]
             except (IndexError, ValueError):
                 pos_name = "Неизвестная позиция"
                 
-            priorities_summary += f"  {i}. {dept_name} - {pos_name}\n"
+            priorities_summary += f"  {i}. {dept_display_name} - {pos_name}\n"
         else:
             priorities_summary += f"  {i}. Не выбрано\n"
     

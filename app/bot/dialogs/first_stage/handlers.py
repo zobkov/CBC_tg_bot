@@ -408,7 +408,7 @@ async def save_application(dialog_manager: DialogManager):
         previous_department_text = ""
     
     try:
-        # Обрабатываем приоритеты вакансий
+        # Обрабатываем приоритеты вакансий с учетом под-отделов
         priorities_data = {}
         priorities_text = ""
         
@@ -418,27 +418,38 @@ async def save_application(dialog_manager: DialogManager):
         
         for i in range(1, 4):
             dept_key = dialog_data.get(f"priority_{i}_department")
+            subdept_key = dialog_data.get(f"priority_{i}_subdepartment")
             pos_index = dialog_data.get(f"priority_{i}_position")
             
             if dept_key and pos_index is not None:
-                dept_name = config.selection.departments.get(dept_key, {}).get("name", dept_key)
+                dept_data = config.selection.departments.get(dept_key, {})
+                dept_name = dept_data.get("name", dept_key)
+                
+                # Если есть под-отдел
+                if subdept_key and "subdepartments" in dept_data:
+                    subdept_data = dept_data["subdepartments"].get(subdept_key, {})
+                    subdept_name = subdept_data.get("name", subdept_key)
+                    positions_list = subdept_data.get("positions", [])
+                    full_dept_name = f"{dept_name} - {subdept_name}"
+                else:
+                    positions_list = dept_data.get("positions", [])
+                    full_dept_name = dept_name
                 
                 # Получаем позицию по индексу из массива
-                positions_list = config.selection.departments.get(dept_key, {}).get("positions", [])
                 try:
                     pos_name = positions_list[int(pos_index)]
                 except (IndexError, ValueError):
                     pos_name = "Неизвестная позиция"
                 
-                priorities_data[f"priority_{i}"] = f"{dept_name} - {pos_name}"
-                priorities_text += f"{i}: {dept_name} - {pos_name}; "
+                priorities_data[f"priority_{i}"] = f"{full_dept_name} - {pos_name}"
+                priorities_text += f"{i}: {full_dept_name} - {pos_name}; "
                 
                 # Используем первый приоритет как основной
                 if i == 1:
-                    main_department_name = dept_name
+                    main_department_name = full_dept_name
                     main_position_text = pos_name
                 
-                logger.info(f"🎯 Приоритет {i}: {dept_name} - {pos_name}")
+                logger.info(f"🎯 Приоритет {i}: {full_dept_name} - {pos_name}")
             else:
                 priorities_data[f"priority_{i}"] = "Не выбрано"
         
@@ -463,46 +474,52 @@ async def save_application(dialog_manager: DialogManager):
     # Сохраняем в БД и меняем статус на submitted
     logger.info(f"💾 Сохраняем заявку в базу данных...")
     
+    def get_department_and_position_data(priority_num):
+        """Получить данные департамента, под-отдела и позиции для приоритета"""
+        dept_key = dialog_data.get(f"priority_{priority_num}_department")
+        subdept_key = dialog_data.get(f"priority_{priority_num}_subdepartment")
+        pos_index = dialog_data.get(f"priority_{priority_num}_position")
+        
+        logger.info(f"🔍 Обрабатываем приоритет {priority_num}: dept={dept_key}, subdept={subdept_key}, pos={pos_index}")
+        
+        if not dept_key or pos_index is None:
+            logger.warning(f"⚠️ Приоритет {priority_num}: недостаточно данных")
+            return None, None, None
+            
+        dept_data = config.selection.departments.get(dept_key, {})
+        dept_name = dept_data.get("name", dept_key)
+        subdept_name = None
+        
+        # Если есть под-отдел
+        if subdept_key and "subdepartments" in dept_data:
+            subdept_data = dept_data["subdepartments"].get(subdept_key, {})
+            subdept_name = subdept_data.get("name", subdept_key)
+            positions_list = subdept_data.get("positions", [])
+            logger.info(f"📂 Приоритет {priority_num}: используем под-отдел '{subdept_name}' с {len(positions_list)} позициями")
+        else:
+            # Берем позиции напрямую из отдела
+            positions_list = dept_data.get("positions", [])
+            logger.info(f"📂 Приоритет {priority_num}: используем отдел '{dept_name}' с {len(positions_list)} позициями")
+        
+        try:
+            position_name = positions_list[int(pos_index)]
+            logger.info(f"✅ Приоритет {priority_num}: найдена позиция '{position_name}' по индексу {pos_index}")
+        except (IndexError, ValueError) as e:
+            position_name = "Неизвестная позиция"
+            logger.error(f"❌ Приоритет {priority_num}: ошибка получения позиции по индексу {pos_index}: {e}")
+            logger.error(f"❌ Доступные позиции: {positions_list}")
+            
+        return dept_name, subdept_name, position_name
+    
     # Подготавливаем данные приоритетов для БД
-    dept_1 = dialog_data.get("priority_1_department")
-    pos_1 = dialog_data.get("priority_1_position")
-    dept_2 = dialog_data.get("priority_2_department")
-    pos_2 = dialog_data.get("priority_2_position")
-    dept_3 = dialog_data.get("priority_3_department")
-    pos_3 = dialog_data.get("priority_3_position")
-    
-    # Преобразуем ключи департаментов в названия и индексы позиций в названия
-    db_department_1 = None
-    db_position_1 = None
-    if dept_1 and pos_1 is not None:
-        db_department_1 = config.selection.departments.get(dept_1, {}).get("name", dept_1)
-        positions_list = config.selection.departments.get(dept_1, {}).get("positions", [])
-        try:
-            db_position_1 = positions_list[int(pos_1)]
-        except (IndexError, ValueError):
-            db_position_1 = "Неизвестная позиция"
-    
-    db_department_2 = None
-    db_position_2 = None
-    if dept_2 and pos_2 is not None:
-        db_department_2 = config.selection.departments.get(dept_2, {}).get("name", dept_2)
-        positions_list = config.selection.departments.get(dept_2, {}).get("positions", [])
-        try:
-            db_position_2 = positions_list[int(pos_2)]
-        except (IndexError, ValueError):
-            db_position_2 = "Неизвестная позиция"
-    
-    db_department_3 = None
-    db_position_3 = None
-    if dept_3 and pos_3 is not None:
-        db_department_3 = config.selection.departments.get(dept_3, {}).get("name", dept_3)
-        positions_list = config.selection.departments.get(dept_3, {}).get("positions", [])
-        try:
-            db_position_3 = positions_list[int(pos_3)]
-        except (IndexError, ValueError):
-            db_position_3 = "Неизвестная позиция"
-    
-    logger.info(f"🎯 Сохраняем приоритеты: 1) {db_department_1} - {db_position_1}, 2) {db_department_2} - {db_position_2}, 3) {db_department_3} - {db_position_3}")
+    db_department_1, db_subdepartment_1, db_position_1 = get_department_and_position_data(1)
+    db_department_2, db_subdepartment_2, db_position_2 = get_department_and_position_data(2)
+    db_department_3, db_subdepartment_3, db_position_3 = get_department_and_position_data(3)
+
+    logger.info(f"🎯 Сохраняем приоритеты:")
+    logger.info(f"   1) {db_department_1} - {db_position_1} (под-отдел: {db_subdepartment_1})")
+    logger.info(f"   2) {db_department_2} - {db_position_2} (под-отдел: {db_subdepartment_2})")
+    logger.info(f"   3) {db_department_3} - {db_position_3} (под-отдел: {db_subdepartment_3})")
     
     try:
         # Ensure application row exists
@@ -518,10 +535,13 @@ async def save_application(dialog_manager: DialogManager):
             how_found_kbk=how_found_text,
             department_1=db_department_1,
             position_1=db_position_1,
+            subdepartment_1=db_subdepartment_1,
             department_2=db_department_2,
             position_2=db_position_2,
+            subdepartment_2=db_subdepartment_2,
             department_3=db_department_3,
             position_3=db_position_3,
+            subdepartment_3=db_subdepartment_3,
             experience=dialog_data.get("experience", ""),
             motivation=dialog_data.get("motivation", ""),
             resume_local_path=resume_local_path,
@@ -554,13 +574,16 @@ async def save_application(dialog_manager: DialogManager):
         'email': dialog_data.get("email", ""),
         'how_found_kbk': how_found_text,
         'previous_department': previous_department_text,
-        # Новая система приоритетов
+        # Новая система приоритетов с поддержкой под-отделов
         'department_1': db_department_1 or "",
         'position_1': db_position_1 or "",
+        'subdepartment_1': db_subdepartment_1 or "",
         'department_2': db_department_2 or "",
         'position_2': db_position_2 or "",
+        'subdepartment_2': db_subdepartment_2 or "",
         'department_3': db_department_3 or "",
         'position_3': db_position_3 or "",
+        'subdepartment_3': db_subdepartment_3 or "",
         'priorities': priorities_text,
         'experience': dialog_data.get("experience", ""),
         'motivation': dialog_data.get("motivation", ""),
@@ -632,9 +655,11 @@ async def save_to_csv(application_data: dict):
             fieldnames = [
                 'timestamp', 'user_id', 'username', 'full_name', 'university', 
                 'course', 'phone', 'email', 'how_found_kbk', 'previous_department',
-                'department_1', 'position_1', 'department_2', 'position_2', 
-                'department_3', 'position_3', 'priorities', 'experience', 
-                'motivation', 'status', 'resume_local_path', 'resume_google_drive_url'
+                'department_1', 'subdepartment_1', 'position_1', 
+                'department_2', 'subdepartment_2', 'position_2', 
+                'department_3', 'subdepartment_3', 'position_3', 
+                'priorities', 'experience', 'motivation', 'status', 
+                'resume_local_path', 'resume_google_drive_url'
             ]
             writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
             

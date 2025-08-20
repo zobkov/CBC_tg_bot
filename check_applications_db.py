@@ -45,34 +45,24 @@ async def check_applications_db():
             
             # Проверяем данные в таблице (основные поля, без статуса)
             cursor = await conn.execute("""
-                SELECT user_id, full_name, university, course, phone, email, 
-                       telegram_username, how_found_kbk,
-                       department_1, position_1,
-                       department_2, position_2,
-                       department_3, position_3,
-                       created, updated
-                FROM applications
-                ORDER BY created DESC;
-            """)
+            SELECT 
+                user_id, full_name, 
+                COALESCE(department_1, 'NULL') as dept1,
+                COALESCE(subdepartment_1, 'NULL') as subdept1,
+                COALESCE(position_1, 'Неизвестная позиция') as pos1,
+                created
+            FROM applications 
+            ORDER BY created DESC 
+            LIMIT 10
+        """)
             
             applications = await cursor.fetchall()
-            logger.info(f"\nВсего заявок: {len(applications)}")
-            
-            for i, app in enumerate(applications, 1):
-                logger.info(f"\nЗаявка {i}:")
-                logger.info(f"  User ID: {app[0]}")
-                logger.info(f"  Full Name: {app[1]}")
-                logger.info(f"  University: {app[2]}")
-                logger.info(f"  Course: {app[3]}")
-                logger.info(f"  Phone: {app[4]}")
-                logger.info(f"  Email: {app[5]}")
-                logger.info(f"  Telegram Username: {app[6]}")
-                logger.info(f"  How Found KBK: {app[7]}")
-                logger.info(f"  Priority 1: {app[8]} / {app[9]}")
-                logger.info(f"  Priority 2: {app[10]} / {app[11]}")
-                logger.info(f"  Priority 3: {app[12]} / {app[13]}")
-                logger.info(f"  Created: {app[14]}")
-                logger.info(f"  Updated: {app[15]}")
+        logger.info(f"🔍 Последние 10 заявок:")
+        
+        for i, app in enumerate(applications, 1):
+            user_id, full_name, dept1, subdept1, pos1, created = app
+            dept_display = f"{dept1}" + (f" / {subdept1}" if subdept1 != 'NULL' else "")
+            logger.info(f"📋 {i}. User {user_id} ({full_name}): {dept_display} - {pos1} | {created}")
 
             # Дополнительно: обзор по таблице users
             cursor = await conn.execute("""

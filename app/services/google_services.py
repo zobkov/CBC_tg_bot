@@ -143,18 +143,20 @@ class GoogleServicesManager:
             except gspread.WorksheetNotFound:
                 logger.info(f"📄 Лист {worksheet_name} не найден, создаем новый...")
                 # Создаем лист если его нет
-                worksheet = spreadsheet.add_worksheet(title=worksheet_name, rows=1000, cols=20)
+                worksheet = spreadsheet.add_worksheet(title=worksheet_name, rows=1000, cols=25)
                 
-                # Добавляем заголовки
+                # Добавляем заголовки с поддержкой под-отделов
                 headers = [
                     'Timestamp', 'User ID', 'Username', 'Full Name', 'University', 
                     'Course', 'Phone', 'Email', 'How Found KBK', 'Previous Department',
-                    'Department 1', 'Position 1', 'Department 2', 'Position 2', 
-                    'Department 3', 'Position 3', 'Priorities', 'Experience', 'Motivation', 'Status', 
+                    'Department 1', 'Position 1', 'Subdepartment 1',
+                    'Department 2', 'Position 2', 'Subdepartment 2', 
+                    'Department 3', 'Position 3', 'Subdepartment 3',
+                    'Priorities', 'Experience', 'Motivation', 'Status', 
                     'Resume Local Path', 'Resume Google Drive URL'
                 ]
                 worksheet.append_row(headers)
-                logger.info(f"✅ Лист {worksheet_name} создан с заголовками")
+                logger.info(f"✅ Лист {worksheet_name} создан с заголовками (включая под-отделы)")
             
             # Подготавливаем данные для записи
             logger.info(f"📝 Подготавливаем данные для записи...")
@@ -171,10 +173,13 @@ class GoogleServicesManager:
                 application_data.get('previous_department', ''),
                 application_data.get('department_1', ''),
                 application_data.get('position_1', ''),
+                application_data.get('subdepartment_1', ''),
                 application_data.get('department_2', ''),
                 application_data.get('position_2', ''),
+                application_data.get('subdepartment_2', ''),
                 application_data.get('department_3', ''),
                 application_data.get('position_3', ''),
+                application_data.get('subdepartment_3', ''),
                 application_data.get('priorities', ''),
                 application_data.get('experience', ''),
                 application_data.get('motivation', ''),

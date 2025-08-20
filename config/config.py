@@ -66,6 +66,11 @@ def load_config(path: str = None) -> Config:
     with open(config_path, 'r', encoding='utf-8') as f:
         json_config = json.load(f)
     
+    # Загружаем departments.json с под-отделами
+    departments_path = os.path.join(os.path.dirname(__file__), 'departments.json')
+    with open(departments_path, 'r', encoding='utf-8') as f:
+        departments_config = json.load(f)
+    
     # Загружаем переменные окружения для секретных данных
     env = Env()
     env.read_env()
@@ -118,7 +123,7 @@ def load_config(path: str = None) -> Config:
     
     selection_config = SelectionConfig(
         stages=json_config["selection_stages"],
-        departments=json_config["departments"],
+        departments=departments_config["departments"],  # Используем departments.json
         how_found_options=json_config["how_found_options"],
         support_contacts=json_config["support_contacts"]
     )

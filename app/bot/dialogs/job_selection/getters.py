@@ -78,6 +78,8 @@ async def get_positions_for_department(dialog_manager: DialogManager, **kwargs):
     selected_dept = dialog_manager.dialog_data.get("selected_department")
     selected_subdept = dialog_manager.dialog_data.get("selected_subdepartment")
     
+    print(f"DEBUG: get_positions_for_department - selected_dept={selected_dept}, selected_subdept={selected_subdept}")
+    
     if not selected_dept:
         return {"positions": [], "selected_department": "", "department_description": ""}
     
@@ -92,9 +94,13 @@ async def get_positions_for_department(dialog_manager: DialogManager, **kwargs):
         positions_list = subdept_data.get("positions", [])
         department_name = f"{department_name} - {subdept_data.get('name', selected_subdept)}"
         department_description = subdept_data.get("description", department_description)
+        print(f"DEBUG: Using subdepartment positions - subdept={selected_subdept}, positions_count={len(positions_list)}")
     else:
         # Берем позиции напрямую из отдела
         positions_list = dept_data.get("positions", [])
+        print(f"DEBUG: Using department positions - dept={selected_dept}, positions_count={len(positions_list)}")
+    
+    print(f"DEBUG: positions_list = {positions_list}")
     
     dialog_data = dialog_manager.dialog_data
     
@@ -112,6 +118,8 @@ async def get_positions_for_department(dialog_manager: DialogManager, **kwargs):
         # Проверяем, не выбрана ли уже эта позиция
         if not _is_vacancy_already_selected(dialog_data, selected_dept, selected_subdept, str(i), exclude_priority):
             positions.append((str(i), pos_name))
+    
+    print(f"DEBUG: final positions = {positions}")
     
     return {
         "positions": positions,
