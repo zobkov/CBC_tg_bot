@@ -6,6 +6,8 @@ from aiogram_dialog import DialogManager, StartMode
 
 from app.bot.states.start import StartSG
 from app.bot.states.main_menu import MainMenuSG
+from app.bot.states.first_stage import FirstStageSG
+from app.bot.states.job_selection import JobSelectionSG
 
 from app.bot.assets.media_groups.media_groups import build_start_media_group
 
@@ -21,3 +23,7 @@ async def process_command_start(message: Message, dialog_manager: DialogManager)
 @router.message(Command(commands=['menu']))
 async def process_command_menu(message: Message, dialog_manager: DialogManager):
     await dialog_manager.start(state=MainMenuSG.main_menu, mode=StartMode.RESET_STACK)
+
+@router.message(Command(commands=['test']))
+async def process_command_test(message: Message, dialog_manager: DialogManager):
+    await dialog_manager.start(state=JobSelectionSG.select_department, mode=StartMode.RESET_STACK)

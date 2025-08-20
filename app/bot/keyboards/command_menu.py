@@ -3,7 +3,8 @@ from aiogram.types import BotCommand
 
 LEXICON_COMMANDS_RU: dict[str, str] = {
     '/start': 'Запуск бота',
-    '/menu': 'Личный кабинет'
+    '/menu': 'Личный кабинет',
+    '/test': 'test'
 }
 
 async def set_main_menu(bot: Bot):
