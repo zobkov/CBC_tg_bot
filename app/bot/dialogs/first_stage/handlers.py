@@ -890,7 +890,7 @@ async def on_previous_department_selected(callback: CallbackQuery, widget, dialo
     }
     dialog_manager.dialog_data["previous_department_name"] = legacy_map.get(item_id, item_id)
     await callback.message.edit_text(text="Ты можешь выбрать до 3-х направлений, в которых хотел бы себя попробовать. Не забудь расставить их по уровню предпочтительности:" \
-        "\nприоритет №1 — самое желанное. Если ты успешно пройдешь отбор на несколько направлений, то мы определим тебя в отдел с самым высоким приоритетом! \n\nПример: \n1-ый приоритет — отдел SMM&PR, \n2-ой приоритет — отдел партнеров, \n3-ый приоритет — отдел программы."
+        "\nприоритет №1 — самое желанное. Если ты успешно пройдешь отбор на несколько направлений, то мы определим тебя в отдел с самым высоким приоритетом! \n\nПример: \n1-й приоритет — отдел SMM&PR, \n2-й приоритет — отдел партнеров, \n3-й приоритет — отдел программы."
                                                     )
     await dialog_manager.start(JobSelectionSG.select_department, show_mode=ShowMode.SEND)
 
