@@ -104,10 +104,10 @@ async def get_current_stage_info(dialog_manager: DialogManager, **kwargs) -> Dic
             if application_submitted and "results_date" in current_stage_info:
                 # Если заявка подана, показываем когда придут результаты
                 results_date = datetime.fromisoformat(current_stage_info["results_date"])
-                deadline_info = f"📊 <b>Результаты придут:</b> {results_date.strftime('%d.%m.%Y %H:%M')}"
+                deadline_info = f"Готово! Твоя заявка отправлена. Результаты придут: <b>{results_date.strftime('%d.%m.%Y %H:%M')}</b>"
             else:
                 # Если заявка не подана, показываем дедлайн
-                deadline_info = f"⏰ <b>Дедлайн:</b> {end_date.strftime('%d.%m.%Y %H:%M')}"
+                deadline_info = f"Подай заявку до <b>{end_date.strftime('%d.%m.%Y %H:%M')}</b>, чтобы перейти к следующему этапу"
             
             # Рассчитываем оставшееся время
             """ Убрал "Осталоь ... дн" так как динамическая информация в статическом сообщении
