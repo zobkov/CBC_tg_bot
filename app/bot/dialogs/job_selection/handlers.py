@@ -2,40 +2,79 @@ from typing import Any
 from aiogram.types import CallbackQuery
 from aiogram_dialog import DialogManager, StartMode
 from aiogram_dialog.widgets.kbd import Button
+import json
+import os
 
 from app.bot.states.job_selection import JobSelectionSG
 from app.bot.states.first_stage import FirstStageSG
+
+
+def load_departments_config():
+    """Загрузить конфигурацию отделов"""
+    config_path = os.path.join(os.path.dirname(__file__), '../../../../config/departments.json')
+    
+    with open(config_path, 'r', encoding='utf-8') as f:
+        return json.load(f)
 
 
 async def on_department_selected(
     callback: CallbackQuery, widget, dialog_manager: DialogManager, item_id: str
 ):
     """Обработчик выбора департамента"""
-    # Определяем текущий этап выбора
+    config = load_departments_config()
     current_state = dialog_manager.current_context().state.state
     
     print(f"DEBUG: on_department_selected called")
     print(f"DEBUG: current_state = {current_state}")
     print(f"DEBUG: item_id = {item_id}")
     
+    dialog_manager.dialog_data["selected_department"] = item_id
+    
+    # Проверяем, есть ли у отдела под-отделы
+    dept_data = config["departments"].get(item_id, {})
+    has_subdepartments = "subdepartments" in dept_data
+    
     if current_state == JobSelectionSG.select_department.state:
-        # Первый приоритет
-        dialog_manager.dialog_data["selected_department"] = item_id
         dialog_manager.dialog_data["priority_1_department"] = item_id
-        print(f"DEBUG: saved priority_1_department = {item_id}")
-        await dialog_manager.next()
+        if has_subdepartments:
+            await dialog_manager.switch_to(JobSelectionSG.select_subdepartment)
+        else:
+            await dialog_manager.switch_to(JobSelectionSG.select_position)
     elif current_state == JobSelectionSG.select_department_2.state:
-        # Второй приоритет
-        dialog_manager.dialog_data["selected_department"] = item_id
         dialog_manager.dialog_data["priority_2_department"] = item_id
-        print(f"DEBUG: saved priority_2_department = {item_id}")
-        await dialog_manager.next()
+        if has_subdepartments:
+            await dialog_manager.switch_to(JobSelectionSG.select_subdepartment_2)
+        else:
+            await dialog_manager.switch_to(JobSelectionSG.select_position_2)
     elif current_state == JobSelectionSG.select_department_3.state:
-        # Третий приоритет
-        dialog_manager.dialog_data["selected_department"] = item_id
         dialog_manager.dialog_data["priority_3_department"] = item_id
-        print(f"DEBUG: saved priority_3_department = {item_id}")
-        await dialog_manager.next()
+        if has_subdepartments:
+            await dialog_manager.switch_to(JobSelectionSG.select_subdepartment_3)
+        else:
+            await dialog_manager.switch_to(JobSelectionSG.select_position_3)
+
+
+async def on_subdepartment_selected(
+    callback: CallbackQuery, widget, dialog_manager: DialogManager, item_id: str
+):
+    """Обработчик выбора под-отдела"""
+    current_state = dialog_manager.current_context().state.state
+    
+    print(f"DEBUG: on_subdepartment_selected called")
+    print(f"DEBUG: current_state = {current_state}")
+    print(f"DEBUG: item_id = {item_id}")
+    
+    dialog_manager.dialog_data["selected_subdepartment"] = item_id
+    
+    if current_state == JobSelectionSG.select_subdepartment.state:
+        dialog_manager.dialog_data["priority_1_subdepartment"] = item_id
+        await dialog_manager.switch_to(JobSelectionSG.select_position)
+    elif current_state == JobSelectionSG.select_subdepartment_2.state:
+        dialog_manager.dialog_data["priority_2_subdepartment"] = item_id
+        await dialog_manager.switch_to(JobSelectionSG.select_position_2)
+    elif current_state == JobSelectionSG.select_subdepartment_3.state:
+        dialog_manager.dialog_data["priority_3_subdepartment"] = item_id
+        await dialog_manager.switch_to(JobSelectionSG.select_position_3)
 
 
 async def on_position_selected(
@@ -47,26 +86,15 @@ async def on_position_selected(
     print(f"DEBUG: on_position_selected called")
     print(f"DEBUG: current_state = {current_state}")
     print(f"DEBUG: item_id = {item_id}")
-    print(f"DEBUG: before save - dialog_data = {dialog_manager.dialog_data}")
     
     if current_state == JobSelectionSG.select_position.state:
-        # Первый приоритет
         dialog_manager.dialog_data["priority_1_position"] = item_id
-        print(f"DEBUG: saved priority_1_position = {item_id}")
-        print(f"DEBUG: after save - dialog_data = {dialog_manager.dialog_data}")
-        # Переходим к обзору приоритетов - пользователь может продолжить или подтвердить
         await dialog_manager.switch_to(JobSelectionSG.priorities_overview)
     elif current_state == JobSelectionSG.select_position_2.state:
-        # Второй приоритет
         dialog_manager.dialog_data["priority_2_position"] = item_id
-        print(f"DEBUG: saved priority_2_position = {item_id}")
-        # Переходим к выбору третьего приоритета
         await dialog_manager.switch_to(JobSelectionSG.select_department_3)
     elif current_state == JobSelectionSG.select_position_3.state:
-        # Третий приоритет
         dialog_manager.dialog_data["priority_3_position"] = item_id
-        print(f"DEBUG: saved priority_3_position = {item_id}")
-        # Переходим к обзору приоритетов
         await dialog_manager.switch_to(JobSelectionSG.priorities_overview)
 
 
@@ -85,23 +113,19 @@ async def on_priority_confirmed(
     
     for i in range(1, 4):
         dept_key = dialog_manager.dialog_data.get(f"priority_{i}_department")
+        subdept_key = dialog_manager.dialog_data.get(f"priority_{i}_subdepartment")
         pos_index = dialog_manager.dialog_data.get(f"priority_{i}_position")
-        
-        print(f"DEBUG: priority_{i}_department = {dept_key}")
-        print(f"DEBUG: priority_{i}_position = {pos_index}")
         
         if dept_key and pos_index is not None:
             priority_data[f"priority_{i}_department"] = dept_key
+            if subdept_key:
+                priority_data[f"priority_{i}_subdepartment"] = subdept_key
             priority_data[f"priority_{i}_position"] = pos_index
     
     print(f"DEBUG: priority_data to save = {priority_data}")
     
     # Объединяем исходные данные формы с новыми данными приоритетов
     combined_data = {**original_form_data, **priority_data}
-    
-    print(f"DEBUG: combined_data to pass = {combined_data}")
-    print(f"DEBUG: original_form_data keys = {list(original_form_data.keys())}")
-    print(f"DEBUG: priority_data keys = {list(priority_data.keys())}")
     
     # Сохраняем приоритеты в родительском диалоге
     dialog_manager.dialog_data.update(priority_data)
@@ -138,7 +162,38 @@ async def on_edit_department_selected(
     callback: CallbackQuery, widget, dialog_manager: DialogManager, item_id: str
 ):
     """Обработчик выбора департамента при редактировании"""
+    config = load_departments_config()
+    
     dialog_manager.dialog_data["edit_selected_department"] = item_id
+    
+    # Проверяем, есть ли у отдела под-отделы
+    dept_data = config["departments"].get(item_id, {})
+    has_subdepartments = "subdepartments" in dept_data
+    
+    # Определяем какой приоритет редактируется
+    editing_priority = dialog_manager.dialog_data.get("editing_priority", 1)
+    
+    if has_subdepartments:
+        if editing_priority == 1:
+            await dialog_manager.switch_to(JobSelectionSG.edit_priority_1_subdepartment)
+        elif editing_priority == 2:
+            await dialog_manager.switch_to(JobSelectionSG.edit_priority_2_subdepartment)
+        elif editing_priority == 3:
+            await dialog_manager.switch_to(JobSelectionSG.edit_priority_3_subdepartment)
+    else:
+        if editing_priority == 1:
+            await dialog_manager.switch_to(JobSelectionSG.edit_priority_1_position)
+        elif editing_priority == 2:
+            await dialog_manager.switch_to(JobSelectionSG.edit_priority_2_position)
+        elif editing_priority == 3:
+            await dialog_manager.switch_to(JobSelectionSG.edit_priority_3_position)
+
+
+async def on_edit_subdepartment_selected(
+    callback: CallbackQuery, widget, dialog_manager: DialogManager, item_id: str
+):
+    """Обработчик выбора под-отдела при редактировании"""
+    dialog_manager.dialog_data["edit_selected_subdepartment"] = item_id
     
     # Определяем какой приоритет редактируется
     editing_priority = dialog_manager.dialog_data.get("editing_priority", 1)
@@ -157,24 +212,23 @@ async def on_edit_position_selected(
     """Обработчик выбора позиции при редактировании"""
     editing_priority = dialog_manager.dialog_data.get("editing_priority", 1)
     edit_dept = dialog_manager.dialog_data.get("edit_selected_department")
+    edit_subdept = dialog_manager.dialog_data.get("edit_selected_subdepartment")
     
     # Сохраняем изменения
     dialog_manager.dialog_data[f"priority_{editing_priority}_department"] = edit_dept
+    if edit_subdept:
+        dialog_manager.dialog_data[f"priority_{editing_priority}_subdepartment"] = edit_subdept
+    else:
+        # Удаляем под-отдел если он не выбран
+        dialog_manager.dialog_data.pop(f"priority_{editing_priority}_subdepartment", None)
     dialog_manager.dialog_data[f"priority_{editing_priority}_position"] = item_id
     
     # Очищаем временные данные редактирования
     dialog_manager.dialog_data.pop("editing_priority", None)
     dialog_manager.dialog_data.pop("edit_selected_department", None)
+    dialog_manager.dialog_data.pop("edit_selected_subdepartment", None)
     
     # Возвращаемся к обзору приоритетов
-    await dialog_manager.switch_to(JobSelectionSG.priorities_overview)
-
-
-async def on_save_edited_priority(
-    callback: CallbackQuery, button: Button, dialog_manager: DialogManager
-):
-    """Обработчик сохранения отредактированного приоритета"""
-    # Этот обработчик может не понадобиться, так как сохранение происходит в on_edit_position_selected
     await dialog_manager.switch_to(JobSelectionSG.priorities_overview)
 
 
@@ -185,39 +239,6 @@ async def on_swap_priorities(
     await dialog_manager.switch_to(JobSelectionSG.swap_priorities_menu)
 
 
-async def on_start_over(
-    callback: CallbackQuery, button: Button, dialog_manager: DialogManager
-):
-    """Обработчик начала выбора заново"""
-    # Очищаем все данные о приоритетах
-    keys_to_remove = [
-        "priority_1_department", "priority_1_position",
-        "priority_2_department", "priority_2_position", 
-        "priority_3_department", "priority_3_position",
-        "selected_department", "edit_selected_department", "editing_priority"
-    ]
-    
-    for key in keys_to_remove:
-        dialog_manager.dialog_data.pop(key, None)
-    
-    # Начинаем сначала
-    await dialog_manager.switch_to(JobSelectionSG.select_department)
-
-
-async def on_add_priority_2(
-    callback: CallbackQuery, button: Button, dialog_manager: DialogManager
-):
-    """Обработчик добавления второго приоритета"""
-    await dialog_manager.switch_to(JobSelectionSG.select_department_2)
-
-
-async def on_add_priority_3(
-    callback: CallbackQuery, button: Button, dialog_manager: DialogManager
-):
-    """Обработчик добавления третьего приоритета"""
-    await dialog_manager.switch_to(JobSelectionSG.select_department_3)
-
-
 async def on_swap_1_2(
     callback: CallbackQuery, button: Button, dialog_manager: DialogManager
 ):
@@ -226,12 +247,15 @@ async def on_swap_1_2(
     
     # Обмениваем местами 1-й и 2-й приоритеты
     temp_dept = data.get("priority_1_department")
+    temp_subdept = data.get("priority_1_subdepartment")
     temp_pos = data.get("priority_1_position")
     
     data["priority_1_department"] = data.get("priority_2_department")
+    data["priority_1_subdepartment"] = data.get("priority_2_subdepartment")
     data["priority_1_position"] = data.get("priority_2_position")
     
     data["priority_2_department"] = temp_dept
+    data["priority_2_subdepartment"] = temp_subdept
     data["priority_2_position"] = temp_pos
     
     # Возвращаемся к обзору приоритетов
@@ -246,12 +270,15 @@ async def on_swap_1_3(
     
     # Обмениваем местами 1-й и 3-й приоритеты
     temp_dept = data.get("priority_1_department")
+    temp_subdept = data.get("priority_1_subdepartment")
     temp_pos = data.get("priority_1_position")
     
     data["priority_1_department"] = data.get("priority_3_department")
+    data["priority_1_subdepartment"] = data.get("priority_3_subdepartment")
     data["priority_1_position"] = data.get("priority_3_position")
     
     data["priority_3_department"] = temp_dept
+    data["priority_3_subdepartment"] = temp_subdept
     data["priority_3_position"] = temp_pos
     
     # Возвращаемся к обзору приоритетов
@@ -266,12 +293,15 @@ async def on_swap_2_3(
     
     # Обмениваем местами 2-й и 3-й приоритеты
     temp_dept = data.get("priority_2_department")
+    temp_subdept = data.get("priority_2_subdepartment")
     temp_pos = data.get("priority_2_position")
     
     data["priority_2_department"] = data.get("priority_3_department")
+    data["priority_2_subdepartment"] = data.get("priority_3_subdepartment")
     data["priority_2_position"] = data.get("priority_3_position")
     
     data["priority_3_department"] = temp_dept
+    data["priority_3_subdepartment"] = temp_subdept
     data["priority_3_position"] = temp_pos
     
     # Возвращаемся к обзору приоритетов
@@ -283,3 +313,17 @@ async def on_back_to_priorities_overview(
 ):
     """Обработчик возврата к обзору приоритетов"""
     await dialog_manager.switch_to(JobSelectionSG.priorities_overview)
+
+
+async def on_add_priority_2(
+    callback: CallbackQuery, button: Button, dialog_manager: DialogManager
+):
+    """Обработчик добавления второго приоритета"""
+    await dialog_manager.switch_to(JobSelectionSG.select_department_2)
+
+
+async def on_add_priority_3(
+    callback: CallbackQuery, button: Button, dialog_manager: DialogManager
+):
+    """Обработчик добавления третьего приоритета"""
+    await dialog_manager.switch_to(JobSelectionSG.select_department_3)

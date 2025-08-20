@@ -11,7 +11,7 @@ from aiogram_dialog.widgets.media import StaticMedia
 
 start_dialog = Dialog(
     Window(
-        Format("Нажми кнопку, чтобы перейти в свой личный кабинет"),
+        Format("Рады, что ты здесь! Сейчас расскажем об отборе немного подробнее. "),
         Start(
             Const("Далее"),
             state=MainMenuSG.main_menu,

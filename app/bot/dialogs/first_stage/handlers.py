@@ -158,11 +158,11 @@ async def process_resume_file(message: Message, widget, dialog_manager: DialogMa
     logger.info(f"   - Размер: {document.file_size} байт ({document.file_size / 1024 / 1024:.2f} МБ)")
     logger.info(f"   - MIME-тип: {document.mime_type}")
 
-    # Проверяем размер файла (максимум 10 МБ)
-    max_size = 10 * 1024 * 1024
+    # Проверяем размер файла (максимум 15 МБ)
+    max_size = 15 * 1024 * 1024
     if document.file_size > max_size:
         logger.warning(f"⚠️ Файл пользователя {user.id} слишком большой: {document.file_size} байт")
-        await message.answer("❌ Файл слишком большой. Максимальный размер: 10 МБ.\nПожалуйста, загрузите файл меньшего размера.")
+        await message.answer("❌ Файл слишком большой. Максимальный размер: 15 МБ.\nПожалуйста, загрузите файл меньшего размера.")
         return
 
     # Получаем данные пользователя из диалога
@@ -851,7 +851,10 @@ async def on_how_found_continue(callback: CallbackQuery, widget, dialog_manager:
     # Если пользователь НЕ выбрал "Ранее участвовал в КБК" (индекс 6), пропускаем окно previous_department
     if "6" not in checked_items:
         logger.info(f"⏭️ Пользователь не участвовал в КБК, пропускаем выбор предыдущего отдела")
-        await dialog_manager.start(JobSelectionSG.select_department)  # Пропускаем его и идем к experience
+        await callback.message.edit_text(text="Ты можешь выбрать до 3-х направлений, в которых хотел бы себя попробовать. Не забудь расставить их по уровню предпочтительности:" \
+        "\nприоритет №1 — самое желанное. Если ты успешно пройдешь отбор на несколько направлений, то мы определим тебя в отдел с самым высоким приоритетом! \n\nПример: 1-ый приоритет — отдел SMM&PR, 2-ой приоритет — отдел партнеров, 3-ый приоритет — отдел программы."
+                                                    )
+        await dialog_manager.start(JobSelectionSG.select_department, show_mode=ShowMode.SEND)  # Пропускаем его и идем к experience
         return
     
     # Переходим к следующему окну (previous_department)
@@ -886,7 +889,10 @@ async def on_previous_department_selected(callback: CallbackQuery, widget, dialo
         "legacy_cultural": "Культурно-экспертный отдел",
     }
     dialog_manager.dialog_data["previous_department_name"] = legacy_map.get(item_id, item_id)
-    await dialog_manager.start(JobSelectionSG.select_department)
+    await callback.message.edit_text(text="Ты можешь выбрать до 3-х направлений, в которых хотел бы себя попробовать. Не забудь расставить их по уровню предпочтительности:" \
+        "\nприоритет №1 — самое желанное. Если ты успешно пройдешь отбор на несколько направлений, то мы определим тебя в отдел с самым высоким приоритетом! \n\nПример: \n1-ый приоритет — отдел SMM&PR, \n2-ой приоритет — отдел партнеров, \n3-ый приоритет — отдел программы."
+                                                    )
+    await dialog_manager.start(JobSelectionSG.select_department, show_mode=ShowMode.SEND)
 
 
 # ======================

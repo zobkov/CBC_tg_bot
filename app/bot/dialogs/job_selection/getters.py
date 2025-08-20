@@ -1,13 +1,22 @@
 from aiogram_dialog import DialogManager
-from config.config import load_config
+import json
+import os
+
+
+def load_departments_config():
+    """Загрузить конфигурацию отделов"""
+    config_path = os.path.join(os.path.dirname(__file__), '../../../../config/departments.json')
+    
+    with open(config_path, 'r', encoding='utf-8') as f:
+        return json.load(f)
 
 
 async def get_departments_list(dialog_manager: DialogManager, **kwargs):
     """Получить список департаментов для выбора"""
-    config = load_config()
+    config = load_departments_config()
     departments = []
     
-    for dept_key, dept_data in config.selection.departments.items():
+    for dept_key, dept_data in config["departments"].items():
         departments.append((dept_key, dept_data["name"]))
     
     return {
@@ -15,9 +24,33 @@ async def get_departments_list(dialog_manager: DialogManager, **kwargs):
     }
 
 
-def _is_vacancy_already_selected(dialog_data, dept_key, pos_index, exclude_priority=None):
+async def get_subdepartments_list(dialog_manager: DialogManager, **kwargs):
+    """Получить список под-отделов для выбранного департамента"""
+    config = load_departments_config()
+    
+    # Получаем выбранный департамент из состояния
+    selected_dept = dialog_manager.dialog_data.get("selected_department")
+    if not selected_dept:
+        return {"subdepartments": [], "selected_department": "", "department_description": ""}
+    
+    dept_data = config["departments"].get(selected_dept, {})
+    subdepartments = []
+    
+    # Если есть под-отделы
+    if "subdepartments" in dept_data:
+        for subdept_key, subdept_data in dept_data["subdepartments"].items():
+            subdepartments.append((subdept_key, subdept_data["name"]))
+    
+    return {
+        "subdepartments": subdepartments,
+        "selected_department": dept_data.get("name", selected_dept),
+        "department_description": dept_data.get("description", "")
+    }
+
+
+def _is_vacancy_already_selected(dialog_data, dept_key, subdept_key, pos_index, exclude_priority=None):
     """Проверить, выбрана ли уже данная вакансия"""
-    current_vacancy = (dept_key, pos_index)
+    current_vacancy = (dept_key, subdept_key, pos_index)
     
     # Проверяем все приоритеты
     for i in range(1, 4):
@@ -26,30 +59,43 @@ def _is_vacancy_already_selected(dialog_data, dept_key, pos_index, exclude_prior
             continue
             
         dept = dialog_data.get(f"priority_{i}_department")
+        subdept = dialog_data.get(f"priority_{i}_subdepartment")
         pos = dialog_data.get(f"priority_{i}_position")
         
         if dept and pos is not None:
-            if (dept, str(pos)) == current_vacancy:
+            stored_vacancy = (dept, subdept, str(pos))
+            if stored_vacancy == current_vacancy:
                 return True
     
     return False
 
 
 async def get_positions_for_department(dialog_manager: DialogManager, **kwargs):
-    """Получить список позиций для выбранного департамента"""
-    config = load_config()
+    """Получить список позиций для выбранного департамента или под-отдела"""
+    config = load_departments_config()
     
-    # Получаем выбранный департамент из состояния
+    # Получаем выбранный департамент и под-отдел из состояния
     selected_dept = dialog_manager.dialog_data.get("selected_department")
+    selected_subdept = dialog_manager.dialog_data.get("selected_subdepartment")
+    
     if not selected_dept:
-        return {"positions": [], "selected_department": ""}
+        return {"positions": [], "selected_department": "", "department_description": ""}
     
-    # Получаем позиции для департамента
-    dept_data = config.selection.departments.get(selected_dept, {})
+    dept_data = config["departments"].get(selected_dept, {})
     positions = []
+    department_name = dept_data.get("name", selected_dept)
+    department_description = dept_data.get("description", "")
     
-    # Позиции теперь хранятся как массив, а не объект
-    positions_list = dept_data.get("positions", [])
+    # Если выбран под-отдел
+    if selected_subdept and "subdepartments" in dept_data:
+        subdept_data = dept_data["subdepartments"].get(selected_subdept, {})
+        positions_list = subdept_data.get("positions", [])
+        department_name = f"{department_name} - {subdept_data.get('name', selected_subdept)}"
+        department_description = subdept_data.get("description", department_description)
+    else:
+        # Берем позиции напрямую из отдела
+        positions_list = dept_data.get("positions", [])
+    
     dialog_data = dialog_manager.dialog_data
     
     # Определяем, какой приоритет мы сейчас выбираем, чтобы исключить его из проверки
@@ -63,23 +109,21 @@ async def get_positions_for_department(dialog_manager: DialogManager, **kwargs):
         exclude_priority = 3
     
     for i, pos_name in enumerate(positions_list):
-        # Проверяем, не выбрана ли уже эта позиция в этом департаменте
-        if not _is_vacancy_already_selected(dialog_data, selected_dept, str(i), exclude_priority):
-            positions.append((str(i), pos_name))  # используем индекс как ID
-    
-    # Получаем название департамента
-    dept_name = dept_data.get("name", selected_dept)
+        # Проверяем, не выбрана ли уже эта позиция
+        if not _is_vacancy_already_selected(dialog_data, selected_dept, selected_subdept, str(i), exclude_priority):
+            positions.append((str(i), pos_name))
     
     return {
         "positions": positions,
-        "selected_department": dept_name,
+        "selected_department": department_name,
+        "department_description": department_description
     }
 
 
 async def get_priorities_overview(dialog_manager: DialogManager, **kwargs):
     """Получить обзор всех выбранных приоритетов"""
     data = dialog_manager.dialog_data
-    config = load_config()
+    config = load_departments_config()
     
     priorities_text = ""
     priorities_count = 0
@@ -87,26 +131,32 @@ async def get_priorities_overview(dialog_manager: DialogManager, **kwargs):
     # Формируем текст с приоритетами
     for i in range(1, 4):
         dept_key = data.get(f"priority_{i}_department")
+        subdept_key = data.get(f"priority_{i}_subdepartment")
         pos_index = data.get(f"priority_{i}_position")
         
         if dept_key and pos_index is not None:
             priorities_count += 1
-            dept_name = config.selection.departments.get(dept_key, {}).get("name", dept_key)
+            dept_data = config["departments"].get(dept_key, {})
+            dept_name = dept_data.get("name", dept_key)
+            
+            # Если есть под-отдел
+            if subdept_key and "subdepartments" in dept_data:
+                subdept_data = dept_data["subdepartments"].get(subdept_key, {})
+                positions_list = subdept_data.get("positions", [])
+                full_dept_name = f"{dept_name} - {subdept_data.get('name', subdept_key)}"
+            else:
+                positions_list = dept_data.get("positions", [])
+                full_dept_name = dept_name
             
             # Получаем позицию по индексу из массива
-            positions_list = config.selection.departments.get(dept_key, {}).get("positions", [])
             try:
                 pos_name = positions_list[int(pos_index)]
             except (IndexError, ValueError):
                 pos_name = "Неизвестная позиция"
                 
-            priorities_text += f"🥇 <b>{i}-й приоритет:</b> {dept_name} - {pos_name}\n"
+            priorities_text += f"🥇 <b>{i}-й приоритет:</b> {full_dept_name} - {pos_name}\n"
         else:
             priorities_text += f"⚪ <b>{i}-й приоритет:</b> <i>не выбран</i>\n"
-    
-    # Добавим информацию для дебага
-    print(f"DEBUG: priorities_count = {priorities_count}")
-    print(f"DEBUG: dialog_data = {data}")
     
     return {
         "priorities_text": priorities_text,
@@ -121,34 +171,67 @@ async def get_edit_departments_list(dialog_manager: DialogManager, **kwargs):
     return await get_departments_list(dialog_manager, **kwargs)
 
 
-async def get_edit_positions_for_department(dialog_manager: DialogManager, **kwargs):
-    """Получить список позиций для редактирования выбранного департамента"""
-    config = load_config()
+async def get_edit_subdepartments_list(dialog_manager: DialogManager, **kwargs):
+    """Получить список под-отделов для редактирования"""
+    config = load_departments_config()
     
     # Получаем выбранный департамент из состояния редактирования
     selected_dept = dialog_manager.dialog_data.get("edit_selected_department")
     if not selected_dept:
-        return {"positions": [], "selected_department": ""}
+        return {"subdepartments": [], "selected_department": "", "department_description": ""}
     
-    # Получаем позиции для департамента
-    dept_data = config.selection.departments.get(selected_dept, {})
+    dept_data = config["departments"].get(selected_dept, {})
+    subdepartments = []
+    
+    # Если есть под-отделы
+    if "subdepartments" in dept_data:
+        for subdept_key, subdept_data in dept_data["subdepartments"].items():
+            subdepartments.append((subdept_key, subdept_data["name"]))
+    
+    return {
+        "subdepartments": subdepartments,
+        "selected_department": dept_data.get("name", selected_dept),
+        "department_description": dept_data.get("description", "")
+    }
+
+
+async def get_edit_positions_for_department(dialog_manager: DialogManager, **kwargs):
+    """Получить список позиций для редактирования выбранного департамента/под-отдела"""
+    config = load_departments_config()
+    
+    # Получаем выбранный департамент и под-отдел из состояния редактирования
+    selected_dept = dialog_manager.dialog_data.get("edit_selected_department")
+    selected_subdept = dialog_manager.dialog_data.get("edit_selected_subdepartment")
+    
+    if not selected_dept:
+        return {"positions": [], "selected_department": "", "department_description": ""}
+    
+    dept_data = config["departments"].get(selected_dept, {})
     positions = []
+    department_name = dept_data.get("name", selected_dept)
+    department_description = dept_data.get("description", "")
     
-    # Позиции хранятся как массив
-    positions_list = dept_data.get("positions", [])
+    # Если выбран под-отдел
+    if selected_subdept and "subdepartments" in dept_data:
+        subdept_data = dept_data["subdepartments"].get(selected_subdept, {})
+        positions_list = subdept_data.get("positions", [])
+        department_name = f"{department_name} - {subdept_data.get('name', selected_subdept)}"
+        department_description = subdept_data.get("description", department_description)
+    else:
+        # Берем позиции напрямую из отдела
+        positions_list = dept_data.get("positions", [])
+    
     dialog_data = dialog_manager.dialog_data
     editing_priority = dialog_data.get("editing_priority", 1)
     
     for i, pos_name in enumerate(positions_list):
-        # Проверяем, не выбрана ли уже эта позиция в этом департаменте
+        # Проверяем, не выбрана ли уже эта позиция
         # (исключая редактируемый приоритет)
-        if not _is_vacancy_already_selected(dialog_data, selected_dept, str(i), exclude_priority=editing_priority):
-            positions.append((str(i), pos_name))  # используем индекс как ID
-    
-    # Получаем название департамента
-    dept_name = dept_data.get("name", selected_dept)
+        if not _is_vacancy_already_selected(dialog_data, selected_dept, selected_subdept, str(i), exclude_priority=editing_priority):
+            positions.append((str(i), pos_name))
     
     return {
         "positions": positions,
-        "selected_department": dept_name,
+        "selected_department": department_name,
+        "department_description": department_description
     }
