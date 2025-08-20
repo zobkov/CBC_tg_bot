@@ -1,7 +1,7 @@
 aiofiles==24.1.0
-aiogram==3.21.0
+aiogram==3.11.0
 aiogram.contrib==1.1.4
-aiogram_dialog==2.4.0
+aiogram_dialog==2.2.0
 aiohappyeyeballs==2.6.1
 aiohttp==3.12.15
 aiosignal==1.4.0
@@ -45,7 +45,7 @@ pydantic_core==2.33.2
 pyparsing==3.2.3
 python-dotenv==1.1.1
 pytz==2025.2
-redis==6.3.0
+redis==5.0.0
 requests==2.32.4
 requests-oauthlib==2.0.0
 rsa==4.9.1
