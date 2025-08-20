@@ -11,8 +11,8 @@ main_menu_dialog = Dialog(
     Window(
         Format("🏠 <b>Личный кабинет кандидата в команду КБК 2026</b>\n\n"
                "📅 <b>Текущий этап:</b> {stage_name}\n"
-               "📝 <b>Статус заявки:</b> {status_text}\n"
-               "{deadline_info}\n\n"
+               "📝 <b>Статус заявки:</b> {status_text}\n\n"
+               "{deadline_info}\n"
                "{stage_description}"),
         Row(
             Button(
