@@ -39,6 +39,10 @@ async def main():
     config = load_config()
 
     logger.info("Starting bot")
+    
+    # Инициализируем переменные для корректного закрытия соединений
+    redis_client = None
+    db_applications_pool = None
 
     bot = Bot(
         token=config.tg_bot.token,
@@ -46,16 +50,42 @@ async def main():
     )
     
     # Иннициализируем redis
-    if config.redis.password:
-        redis_client = Redis.from_url(f"redis://:{config.redis.password}@{config.redis.host}:{config.redis.port}/0")
-    else:
-        redis_client = Redis.from_url(f"redis://{config.redis.host}:{config.redis.port}/0")
-    storage = RedisStorage(
-        redis=redis_client,
-        key_builder=DefaultKeyBuilder(with_bot_id=True, with_destiny=True),
-        state_ttl=86400,  # время жизни состояния в секунду (например, 1 день)
-        data_ttl=86400   # время жизни данных
-    )
+    logger.info("Connecting to Redis...")
+    try:
+        if config.redis.password:
+            redis_url = f"redis://:{config.redis.password}@{config.redis.host}:{config.redis.port}/0"
+            logger.info(f"Connecting to Redis with password at {config.redis.host}:{config.redis.port}")
+            redis_client = Redis.from_url(redis_url, decode_responses=False)
+        else:
+            redis_url = f"redis://{config.redis.host}:{config.redis.port}/0"
+            logger.info(f"Connecting to Redis without password at {config.redis.host}:{config.redis.port}")
+            redis_client = Redis.from_url(redis_url, decode_responses=False)
+        
+        # Проверяем подключение к Redis
+        logger.info("Testing Redis connection...")
+        ping_result = await redis_client.ping()
+        logger.info(f"Redis ping result: {ping_result}")
+        logger.info(f"Successfully connected to Redis at {config.redis.host}:{config.redis.port}")
+        
+        # Создаем storage для FSM
+        logger.info("Creating Redis storage for FSM...")
+        storage = RedisStorage(
+            redis=redis_client,
+            key_builder=DefaultKeyBuilder(with_bot_id=True, with_destiny=True),
+            state_ttl=86400,  # время жизни состояния в секунду (например, 1 день)
+            data_ttl=86400   # время жизни данных
+        )
+        logger.info("Redis storage created successfully")
+        
+    except ConnectionError as e:
+        logger.error(f"Connection error to Redis at {config.redis.host}:{config.redis.port}: {e}")
+        logger.error("Check if Redis server is running and accessible")
+        raise
+    except Exception as e:
+        logger.error(f"Failed to connect to Redis at {config.redis.host}:{config.redis.port}: {e}")
+        logger.error(f"Error type: {type(e).__name__}")
+        logger.error("Bot cannot start without Redis connection")
+        raise
 
     dp = Dispatcher(storage=storage)
     
@@ -64,7 +94,7 @@ async def main():
     dp["bot"] = bot
     
     # Подключение к базе данных заявок
-    db_applications_pool: psycopg_pool.AsyncConnectionPool = await get_pg_pool(
+    db_applications_pool = await get_pg_pool(
         db_name=config.db_applications.database,
         host=config.db_applications.host,
         port=config.db_applications.port,
@@ -116,5 +146,19 @@ async def main():
             await scheduler.stop()  # type: ignore
         except Exception:
             pass
-        await db_applications_pool.close()
-        logger.info("Connection to Postgres closed")
+        
+        # Закрываем соединение с Redis
+        if redis_client:
+            try:
+                await redis_client.aclose()
+                logger.info("Connection to Redis closed")
+            except Exception as e:
+                logger.error(f"Error closing Redis connection: {e}")
+        
+        # Закрываем соединение с Postgres
+        if db_applications_pool:
+            try:
+                await db_applications_pool.close()
+                logger.info("Connection to Postgres closed")
+            except Exception as e:
+                logger.error(f"Error closing Postgres connection: {e}")
