@@ -285,7 +285,7 @@ async def get_subdepartment_media(dialog_manager: DialogManager, **kwargs):
         "logistics_it": "choose_department/logistics/логистика.png",
         "partners": "choose_department/partners/partners.png",
         "program": "choose_department/program/program.png",
-        "smm_pr": "choose_department/smmpr/sммрр.png"
+        "smm_pr": "choose_department/smmpr/smm.png"
     }
     
     image_path = department_images.get(selected_dept, "choose_department/отделы.png")
