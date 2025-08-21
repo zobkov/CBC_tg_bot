@@ -8,16 +8,7 @@ from app.utils.optimized_dialog_widgets import get_file_id_for_path
 
 
 def load_departments_config():
-    """Загр    # Определяем путь к изображению отдела
-    department_images = {
-        "creative": "choose_department/creative/творческий.png",
-        "design": "choose_department/design/дизайн.png", 
-        "exhibition": "choose_department/exhibition/выставочный.png",
-        "logistics_it": "choose_department/logistics/логистика.png",
-        "partners": "choose_department/partners/партнеры.png",
-        "program": "choose_department/program/программа.png",
-        "smm_pr": "choose_department/smmpr/smm.png"
-    }игурацию отделов"""
+    """Загрузить конфигурацию отделов"""
     config_path = os.path.join(os.path.dirname(__file__), '../../../../config/departments.json')
     
     with open(config_path, 'r', encoding='utf-8') as f:
@@ -321,6 +312,26 @@ async def get_position_media(dialog_manager: DialogManager, **kwargs):
     selected_dept = dialog_manager.dialog_data.get("selected_department")
     selected_subdept = dialog_manager.dialog_data.get("selected_subdepartment")
     
+    # Проверяем, была ли отправлена медиа-группа для этого подотдела
+    # Если да, то не показываем DynamicMedia (медиа-группа уже отправлена отдельно)
+    if (selected_dept == "creative" and selected_subdept == "stage") or \
+       (selected_dept == "smm_pr" and selected_subdept in ["social", "media"]):
+        # Для подотделов с медиа-группами возвращаем простое placeholder изображение
+        file_id = get_file_id_for_path("choose_department/отделы.png")
+        if file_id:
+            media = MediaAttachment(
+                type=ContentType.PHOTO,
+                file_id=MediaId(file_id)
+            )
+        else:
+            media = MediaAttachment(
+                type=ContentType.PHOTO,
+                path="app/bot/assets/images/choose_department/отделы.png"
+            )
+        return {
+            "media": media
+        }
+    
     if not selected_dept:
         return await get_department_selection_media(dialog_manager, **kwargs)
     
@@ -333,20 +344,9 @@ async def get_position_media(dialog_manager: DialogManager, **kwargs):
         "program": "choose_position/program/ПРОГРАММА.png"
     }
     
-    # Для отделов с подотделами
-    if selected_dept in ["creative", "smm_pr"] and selected_subdept:
-        if selected_dept == "creative":
-            subdept_images = {
-                "stage": "choose_position/creative/ТВОРЧЕСКИЙ_сцена_1.png",
-                "booth": "choose_position/creative/ТВОРЧЕСКИЙ_стенд.png"
-            }
-            image_path = subdept_images.get(selected_subdept, "choose_position/creative/ТВОРЧЕСКИЙ_сцена_1.png")
-        elif selected_dept == "smm_pr":
-            subdept_images = {
-                "social": "choose_position/smmpr/СММ_соцсети_1.png", 
-                "media": "choose_position/smmpr/СММ_шоу_1.png"
-            }
-            image_path = subdept_images.get(selected_subdept, "choose_position/smmpr/СММ_соцсети_1.png")
+    # Для отделов с подотделами без медиа-группы
+    if selected_dept == "creative" and selected_subdept == "booth":
+        image_path = "choose_position/creative/ТВОРЧЕСКИЙ_стенд.png"
     else:
         # Обычные отделы
         image_path = department_position_images.get(selected_dept, "choose_department/отделы.png")
@@ -411,6 +411,26 @@ async def get_edit_position_media(dialog_manager: DialogManager, **kwargs):
     selected_dept = dialog_manager.dialog_data.get("edit_selected_department")
     selected_subdept = dialog_manager.dialog_data.get("edit_selected_subdepartment")
     
+    # Проверяем, была ли отправлена медиа-группа для этого подотдела при редактировании
+    # Если да, то не показываем DynamicMedia (медиа-группа уже отправлена отдельно)
+    if (selected_dept == "creative" and selected_subdept == "stage") or \
+       (selected_dept == "smm_pr" and selected_subdept in ["social", "media"]):
+        # Для подотделов с медиа-группами возвращаем простое placeholder изображение
+        file_id = get_file_id_for_path("choose_department/отделы.png")
+        if file_id:
+            media = MediaAttachment(
+                type=ContentType.PHOTO,
+                file_id=MediaId(file_id)
+            )
+        else:
+            media = MediaAttachment(
+                type=ContentType.PHOTO,
+                path="app/bot/assets/images/choose_department/отделы.png"
+            )
+        return {
+            "media": media
+        }
+    
     if not selected_dept:
         return await get_department_selection_media(dialog_manager, **kwargs)
     
@@ -422,19 +442,9 @@ async def get_edit_position_media(dialog_manager: DialogManager, **kwargs):
         "program": "choose_position/program/ПРОГРАММА.png"
     }
     
-    if selected_dept in ["creative", "smm_pr"] and selected_subdept:
-        if selected_dept == "creative":
-            subdept_images = {
-                "stage": "choose_position/creative/ТВОРЧЕСКИЙ_сцена_1.png",
-                "booth": "choose_position/creative/ТВОРЧЕСКИЙ_стенд.png"
-            }
-            image_path = subdept_images.get(selected_subdept, "choose_position/creative/ТВОРЧЕСКИЙ_сцена_1.png")
-        elif selected_dept == "smm_pr":
-            subdept_images = {
-                "social": "choose_position/smmpr/СММ_соцсети_1.png",
-                "media": "choose_position/smmpr/СММ_шоу_1.png" 
-            }
-            image_path = subdept_images.get(selected_subdept, "choose_position/smmpr/СММ_соцсети_1.png")
+    # Для отделов с подотделами без медиа-группы
+    if selected_dept == "creative" and selected_subdept == "booth":
+        image_path = "choose_position/creative/ТВОРЧЕСКИЙ_стенд.png"
     else:
         image_path = department_position_images.get(selected_dept, "choose_department/отделы.png")
     
@@ -454,3 +464,48 @@ async def get_edit_position_media(dialog_manager: DialogManager, **kwargs):
     return {
         "media": media
     }
+
+
+
+async def should_show_position_media(data, widget, dialog_manager: DialogManager):
+    """Проверяет, нужно ли показывать медиа в окне выбора позиций"""
+    # Определяем текущее состояние для понимания какой приоритет
+    current_state = dialog_manager.current_context().state.state
+    
+    # Определяем приоритет по состоянию
+    if current_state == "JobSelectionSG:select_position":
+        priority = 1
+    elif current_state == "JobSelectionSG:select_position_2":
+        priority = 2
+    elif current_state == "JobSelectionSG:select_position_3":
+        priority = 3
+    else:
+        return True  # По умолчанию показываем медиа
+    
+    # Получаем данные о выбранном отделе и подотделе для этого приоритета
+    selected_dept = dialog_manager.dialog_data.get(f"priority_{priority}_department")
+    selected_subdept = dialog_manager.dialog_data.get(f"priority_{priority}_subdepartment")
+    
+    # Если выбран отдел с медиа-группой, то не показываем DynamicMedia
+    if (selected_dept == "creative" and selected_subdept == "stage") or \
+       (selected_dept == "smm_pr" and selected_subdept in ["social", "media"]):
+        return False
+    
+    return True
+
+
+async def should_show_edit_position_media(data, widget, dialog_manager: DialogManager):
+    """Проверяет, нужно ли показывать медиа в окне редактирования позиций"""
+    # Получаем номер редактируемого приоритета
+    editing_priority = dialog_manager.dialog_data.get("editing_priority", 1)
+    
+    # Получаем данные редактируемого приоритета
+    selected_dept = dialog_manager.dialog_data.get(f"priority_{editing_priority}_department")
+    selected_subdept = dialog_manager.dialog_data.get(f"priority_{editing_priority}_subdepartment")
+    
+    # Если выбран отдел с медиа-группой, то не показываем DynamicMedia
+    if (selected_dept == "creative" and selected_subdept == "stage") or \
+       (selected_dept == "smm_pr" and selected_subdept in ["social", "media"]):
+        return False
+    
+    return True

@@ -1,12 +1,17 @@
 from typing import Any
 from aiogram.types import CallbackQuery
-from aiogram_dialog import DialogManager, StartMode
+from aiogram_dialog import DialogManager, StartMode, ShowMode
 from aiogram_dialog.widgets.kbd import Button
 import json
 import os
 
 from app.bot.states.job_selection import JobSelectionSG
 from app.bot.states.first_stage import FirstStageSG
+from app.bot.assets.media_groups.media_groups import (
+    build_creative_stage_media_group, 
+    build_smm_social_media_group, 
+    build_smm_media_media_group
+)
 
 
 def load_departments_config():
@@ -66,15 +71,37 @@ async def on_subdepartment_selected(
     
     dialog_manager.dialog_data["selected_subdepartment"] = item_id
     
+    # Получаем информацию о выбранном отделе
+    selected_dept = dialog_manager.dialog_data.get("selected_department")
+    
+    # Проверяем, нужна ли медиа-группа для этого подотдела
+    media_group = None
+    if selected_dept == "creative" and item_id == "stage":
+        media_group = build_creative_stage_media_group()
+    elif selected_dept == "smm_pr" and item_id == "social":
+        media_group = build_smm_social_media_group()
+    elif selected_dept == "smm_pr" and item_id == "media":
+        media_group = build_smm_media_media_group()
+    
+    # Если нужна медиа-группа, отправляем её и сохраняем ID сообщений для последующего удаления
+    if media_group:
+        sent_messages = await callback.bot.send_media_group(
+            chat_id=callback.message.chat.id, 
+            media=media_group
+        )
+        # Сохраняем ID сообщений медиа-группы для удаления
+        media_group_message_ids = [msg.message_id for msg in sent_messages]
+        dialog_manager.dialog_data["media_group_message_ids"] = media_group_message_ids
+    
     if current_state == JobSelectionSG.select_subdepartment.state:
         dialog_manager.dialog_data["priority_1_subdepartment"] = item_id
-        await dialog_manager.switch_to(JobSelectionSG.select_position)
+        await dialog_manager.switch_to(JobSelectionSG.select_position, show_mode=ShowMode.DELETE_AND_SEND)
     elif current_state == JobSelectionSG.select_subdepartment_2.state:
         dialog_manager.dialog_data["priority_2_subdepartment"] = item_id
-        await dialog_manager.switch_to(JobSelectionSG.select_position_2)
+        await dialog_manager.switch_to(JobSelectionSG.select_position_2, show_mode=ShowMode.DELETE_AND_SEND)
     elif current_state == JobSelectionSG.select_subdepartment_3.state:
         dialog_manager.dialog_data["priority_3_subdepartment"] = item_id
-        await dialog_manager.switch_to(JobSelectionSG.select_position_3)
+        await dialog_manager.switch_to(JobSelectionSG.select_position_3, show_mode=ShowMode.DELETE_AND_SEND)
 
 
 async def on_position_selected(
@@ -86,6 +113,21 @@ async def on_position_selected(
     print(f"DEBUG: on_position_selected called")
     print(f"DEBUG: current_state = {current_state}")
     print(f"DEBUG: item_id = {item_id}")
+    
+    # Удаляем медиа-группу, если она была отправлена
+    media_group_message_ids = dialog_manager.dialog_data.get("media_group_message_ids")
+    if media_group_message_ids:
+        try:
+            for message_id in media_group_message_ids:
+                await callback.bot.delete_message(
+                    chat_id=callback.message.chat.id,
+                    message_id=message_id
+                )
+        except Exception as e:
+            print(f"Ошибка при удалении медиа-группы: {e}")
+        finally:
+            # Очищаем ID медиа-группы
+            dialog_manager.dialog_data.pop("media_group_message_ids", None)
     
     if current_state == JobSelectionSG.select_position.state:
         dialog_manager.dialog_data["priority_1_position"] = item_id
@@ -195,6 +237,28 @@ async def on_edit_subdepartment_selected(
     """Обработчик выбора под-отдела при редактировании"""
     dialog_manager.dialog_data["edit_selected_subdepartment"] = item_id
     
+    # Получаем информацию о выбранном отделе
+    selected_dept = dialog_manager.dialog_data.get("edit_selected_department")
+    
+    # Проверяем, нужна ли медиа-группа для этого подотдела
+    media_group = None
+    if selected_dept == "creative" and item_id == "stage":
+        media_group = build_creative_stage_media_group()
+    elif selected_dept == "smm_pr" and item_id == "social":
+        media_group = build_smm_social_media_group()
+    elif selected_dept == "smm_pr" and item_id == "media":
+        media_group = build_smm_media_media_group()
+    
+    # Если нужна медиа-группа, отправляем её и сохраняем ID сообщений для последующего удаления
+    if media_group:
+        sent_messages = await callback.bot.send_media_group(
+            chat_id=callback.message.chat.id, 
+            media=media_group
+        )
+        # Сохраняем ID сообщений медиа-группы для удаления
+        media_group_message_ids = [msg.message_id for msg in sent_messages]
+        dialog_manager.dialog_data["edit_media_group_message_ids"] = media_group_message_ids
+    
     # Определяем какой приоритет редактируется
     editing_priority = dialog_manager.dialog_data.get("editing_priority", 1)
     
@@ -210,6 +274,21 @@ async def on_edit_position_selected(
     callback: CallbackQuery, widget, dialog_manager: DialogManager, item_id: str
 ):
     """Обработчик выбора позиции при редактировании"""
+    # Удаляем медиа-группу, если она была отправлена при редактировании
+    edit_media_group_message_ids = dialog_manager.dialog_data.get("edit_media_group_message_ids")
+    if edit_media_group_message_ids:
+        try:
+            for message_id in edit_media_group_message_ids:
+                await callback.bot.delete_message(
+                    chat_id=callback.message.chat.id,
+                    message_id=message_id
+                )
+        except Exception as e:
+            print(f"Ошибка при удалении медиа-группы при редактировании: {e}")
+        finally:
+            # Очищаем ID медиа-группы
+            dialog_manager.dialog_data.pop("edit_media_group_message_ids", None)
+    
     editing_priority = dialog_manager.dialog_data.get("editing_priority", 1)
     edit_dept = dialog_manager.dialog_data.get("edit_selected_department")
     edit_subdept = dialog_manager.dialog_data.get("edit_selected_subdepartment")
@@ -230,6 +309,80 @@ async def on_edit_position_selected(
     
     # Возвращаемся к обзору приоритетов
     await dialog_manager.switch_to(JobSelectionSG.priorities_overview)
+
+
+async def on_back_from_positions(
+    callback: CallbackQuery, button: Button, dialog_manager: DialogManager
+):
+    """Обработчик нажатия кнопки 'Назад' из окна выбора позиций с удалением медиа-группы"""
+    # Удаляем медиа-группу, если она была отправлена
+    media_group_message_ids = dialog_manager.dialog_data.get("media_group_message_ids")
+    if media_group_message_ids:
+        try:
+            for message_id in media_group_message_ids:
+                await callback.bot.delete_message(
+                    chat_id=callback.message.chat.id,
+                    message_id=message_id
+                )
+        except Exception as e:
+            print(f"Ошибка при удалении медиа-группы: {e}")
+        finally:
+            # Очищаем ID медиа-группы
+            dialog_manager.dialog_data.pop("media_group_message_ids", None)
+    
+    # Также удаляем медиа-группу редактирования, если она есть
+    edit_media_group_message_ids = dialog_manager.dialog_data.get("edit_media_group_message_ids")
+    if edit_media_group_message_ids:
+        try:
+            for message_id in edit_media_group_message_ids:
+                await callback.bot.delete_message(
+                    chat_id=callback.message.chat.id,
+                    message_id=message_id
+                )
+        except Exception as e:
+            print(f"Ошибка при удалении медиа-группы редактирования: {e}")
+        finally:
+            # Очищаем ID медиа-группы
+            dialog_manager.dialog_data.pop("edit_media_group_message_ids", None)
+    
+    # Возвращаемся к выбору департамента в зависимости от кнопки
+    button_id = button.widget_id
+    if button_id == "back_to_dep_1":
+        await dialog_manager.switch_to(JobSelectionSG.select_department)
+    elif button_id == "back_to_dep_2":
+        await dialog_manager.switch_to(JobSelectionSG.select_department_2)
+    elif button_id == "back_to_dep_3":
+        await dialog_manager.switch_to(JobSelectionSG.select_department_3)
+
+
+async def on_back_from_edit_positions(
+    callback: CallbackQuery, button: Button, dialog_manager: DialogManager
+):
+    """Обработчик нажатия кнопки 'Назад' из окна редактирования позиций с удалением медиа-группы"""
+    # Удаляем медиа-группу редактирования, если она была отправлена
+    edit_media_group_message_ids = dialog_manager.dialog_data.get("edit_media_group_message_ids")
+    if edit_media_group_message_ids:
+        try:
+            for message_id in edit_media_group_message_ids:
+                await callback.bot.delete_message(
+                    chat_id=callback.message.chat.id,
+                    message_id=message_id
+                )
+        except Exception as e:
+            print(f"Ошибка при удалении медиа-группы редактирования: {e}")
+        finally:
+            # Очищаем ID медиа-группы
+            dialog_manager.dialog_data.pop("edit_media_group_message_ids", None)
+    
+    # Определяем какой приоритет редактируется и возвращаемся к соответствующему состоянию
+    editing_priority = dialog_manager.dialog_data.get("editing_priority", 1)
+    
+    if editing_priority == 1:
+        await dialog_manager.switch_to(JobSelectionSG.edit_priority_1)
+    elif editing_priority == 2:
+        await dialog_manager.switch_to(JobSelectionSG.edit_priority_2)
+    elif editing_priority == 3:
+        await dialog_manager.switch_to(JobSelectionSG.edit_priority_3)
 
 
 async def on_swap_priorities(

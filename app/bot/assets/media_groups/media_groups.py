@@ -91,4 +91,38 @@ def build_start_media_group_legacy(caption: str | None = None):
     return media_group.build()
 
 
+def build_creative_stage_media_group(caption: str | None = None):
+    """Build media group for creative stage subdepartment"""
+    creative_stage_paths = [
+        "choose_position/creative/ТВОРЧЕСКИЙ_сцена_1.png",
+        "choose_position/creative/ТВОРЧЕСКИЙ_сцена_2.png", 
+        "choose_position/creative/ТВОРЧЕСКИЙ_сцена_3.png"
+    ]
+    
+    media_group = compose_media_group_optimized(creative_stage_paths, caption=caption)
+    return media_group.build()
+
+
+def build_smm_social_media_group(caption: str | None = None):
+    """Build media group for SMM social networks subdepartment"""
+    smm_social_paths = [
+        "choose_position/smmpr/СММ_соцсети_1.png",
+        "choose_position/smmpr/СММ_соцсети_2.png"
+    ]
+    
+    media_group = compose_media_group_optimized(smm_social_paths, caption=caption)
+    return media_group.build()
+
+
+def build_smm_media_media_group(caption: str | None = None):
+    """Build media group for SMM media show subdepartment"""
+    smm_media_paths = [
+        "choose_position/smmpr/СММ_шоу_1.png",
+        "choose_position/smmpr/СММ_шоу_2.png"
+    ]
+    
+    media_group = compose_media_group_optimized(smm_media_paths, caption=caption)
+    return media_group.build()
+
+
 

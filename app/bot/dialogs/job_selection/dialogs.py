@@ -4,6 +4,7 @@ from aiogram_dialog.widgets.kbd import Select, Row, Back, Next, Start, Button, C
 from aiogram_dialog.widgets.input import MessageInput
 from aiogram_dialog.widgets.media import StaticMedia, DynamicMedia
 from aiogram_dialog.api.entities import MediaAttachment, MediaId
+from aiogram_dialog import DialogManager, StartMode, ShowMode
 
 from aiogram.enums import ContentType
 
@@ -13,14 +14,14 @@ from .getters import (
     get_departments_list, get_subdepartments_list, get_positions_for_department, get_priorities_overview,
     get_edit_departments_list, get_edit_subdepartments_list, get_edit_positions_for_department,
     get_department_selection_media, get_subdepartment_media, get_position_media,
-    get_edit_subdepartment_media, get_edit_position_media
+    get_edit_subdepartment_media, get_edit_position_media, should_show_position_media, should_show_edit_position_media
 )
 from .handlers import (
     on_department_selected, on_subdepartment_selected, on_position_selected, on_priority_confirmed,
     on_edit_priority_1, on_edit_priority_2, on_edit_priority_3,
     on_swap_priorities, on_edit_department_selected, on_edit_subdepartment_selected, on_edit_position_selected,
     on_swap_1_2, on_swap_1_3, on_swap_2_3, on_back_to_priorities_overview,
-    on_add_priority_2, on_add_priority_3
+    on_add_priority_2, on_add_priority_3, on_back_from_positions, on_back_from_edit_positions
 )
 
 job_selection_dialog = Dialog(
@@ -73,7 +74,8 @@ job_selection_dialog = Dialog(
         Format("👨‍💼 <b>{selected_department}</b>\n\n{department_description}\n\n"),
         Format("Выберите позицию:"),
         DynamicMedia(
-            "media"
+            "media",
+            when=should_show_position_media
         ),
         Column(
             Select(
@@ -84,7 +86,7 @@ job_selection_dialog = Dialog(
                 on_click=on_position_selected,
             ),
         ),
-        SwitchTo(Const("⬅️ Назад"), id='back_to_dep_1', state=JobSelectionSG.select_department),
+        Button(Const("⬅️ Назад"), id='back_to_dep_1', on_click=on_back_from_positions),
         state=JobSelectionSG.select_position,
         getter=[get_positions_for_department, get_position_media],
     ),
@@ -135,7 +137,8 @@ job_selection_dialog = Dialog(
         Format("👨‍💼 <b>{selected_department}</b>\n\n{department_description}\n\n"),
         Format("Выберите позицию:"),
         DynamicMedia(
-            "media"
+            "media",
+            when=should_show_position_media
         ),
         Column(
             Select(
@@ -146,7 +149,7 @@ job_selection_dialog = Dialog(
                 on_click=on_position_selected,
             ),
         ),
-        SwitchTo(Const("⬅️ Назад"), id='back_to_dep_1', state=JobSelectionSG.select_department_2),
+        Button(Const("⬅️ Назад"), id='back_to_dep_2', on_click=on_back_from_positions),
         state=JobSelectionSG.select_position_2,
         getter=[get_positions_for_department, get_position_media],
     ),
@@ -197,7 +200,8 @@ job_selection_dialog = Dialog(
         Format("👨‍💼 <b>{selected_department}</b>\n\n{department_description}\n\n"),
         Format("Выберите позицию:"),
         DynamicMedia(
-            "media"
+            "media",
+            when=should_show_position_media
         ),
         Column(
             Select(
@@ -208,7 +212,7 @@ job_selection_dialog = Dialog(
                 on_click=on_position_selected,
             ),
         ),
-        SwitchTo(Const("⬅️ Назад"), id='back_to_dep_1', state=JobSelectionSG.select_department_3),
+        Button(Const("⬅️ Назад"), id='back_to_dep_3', on_click=on_back_from_positions),
         state=JobSelectionSG.select_position_3,
         getter=[get_positions_for_department, get_position_media],
     ),
@@ -291,7 +295,8 @@ job_selection_dialog = Dialog(
         Format("👨‍💼 Редактирование <b>первого приоритета</b>\n<b>{selected_department}</b>\n\n{department_description}\n\n"),
         Format("<b>Выберите позицию:</b>"),
         DynamicMedia(
-            "media"
+            "media",
+            when=should_show_edit_position_media
         ),
         Column(
             Select(
@@ -355,7 +360,8 @@ job_selection_dialog = Dialog(
         Format("👨‍💼 Редактирование <b>второго приоритета</b>\n<b>{selected_department}</b>\n\n{department_description}\n\n"),
         Format("<b>Выберите позицию:</b>"),
         DynamicMedia(
-            "media"
+            "media",
+            when=should_show_edit_position_media
         ),
         Column(
             Select(
@@ -366,7 +372,7 @@ job_selection_dialog = Dialog(
                 on_click=on_edit_position_selected,
             ),
         ),
-        SwitchTo(Const("⬅️ Назад"), id='edit_back_to_dep_2', state=JobSelectionSG.edit_priority_2),
+        Button(Const("⬅️ Назад"), id='edit_back_to_dep_2', on_click=on_back_from_edit_positions),
         state=JobSelectionSG.edit_priority_2_position,
         getter=[get_edit_positions_for_department, get_edit_position_media],
     ),
@@ -419,7 +425,8 @@ job_selection_dialog = Dialog(
         Format("👨‍💼 Редактирование <b>третьего приоритета</b>\n<b>{selected_department}</b>\n\n{department_description}\n\n"),
         Format("<b>Выберите позицию:</b>"),
         DynamicMedia(
-            "media"
+            "media",
+            when=should_show_edit_position_media
         ),
         Column(
             Select(
@@ -430,7 +437,7 @@ job_selection_dialog = Dialog(
                 on_click=on_edit_position_selected,
             ),
         ),
-        SwitchTo(Const("⬅️ Назад"), id='edit_back_to_dep_3', state=JobSelectionSG.edit_priority_3),
+        Button(Const("⬅️ Назад"), id='edit_back_to_dep_3', on_click=on_back_from_edit_positions),
         state=JobSelectionSG.edit_priority_3_position,
         getter=[get_edit_positions_for_department, get_edit_position_media],
     ),
