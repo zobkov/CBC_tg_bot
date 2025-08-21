@@ -467,7 +467,7 @@ async def get_edit_position_media(dialog_manager: DialogManager, **kwargs):
 
 
 
-async def should_show_position_media(data, widget, dialog_manager: DialogManager):
+def should_show_position_media(data, widget, dialog_manager: DialogManager):
     """Проверяет, нужно ли показывать медиа в окне выбора позиций"""
     # Определяем текущее состояние для понимания какой приоритет
     current_state = dialog_manager.current_context().state.state
