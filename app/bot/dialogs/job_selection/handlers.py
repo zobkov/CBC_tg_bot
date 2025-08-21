@@ -224,11 +224,11 @@ async def on_edit_department_selected(
             await dialog_manager.switch_to(JobSelectionSG.edit_priority_3_subdepartment)
     else:
         if editing_priority == 1:
-            await dialog_manager.switch_to(JobSelectionSG.edit_priority_1_position)
+            await dialog_manager.switch_to(JobSelectionSG.edit_priority_1_position, show_mode=ShowMode.DELETE_AND_SEND)
         elif editing_priority == 2:
-            await dialog_manager.switch_to(JobSelectionSG.edit_priority_2_position)
+            await dialog_manager.switch_to(JobSelectionSG.edit_priority_2_position, show_mode=ShowMode.DELETE_AND_SEND)
         elif editing_priority == 3:
-            await dialog_manager.switch_to(JobSelectionSG.edit_priority_3_position)
+            await dialog_manager.switch_to(JobSelectionSG.edit_priority_3_position, show_mode=ShowMode.DELETE_AND_SEND)
 
 
 async def on_edit_subdepartment_selected(
@@ -263,11 +263,11 @@ async def on_edit_subdepartment_selected(
     editing_priority = dialog_manager.dialog_data.get("editing_priority", 1)
     
     if editing_priority == 1:
-        await dialog_manager.switch_to(JobSelectionSG.edit_priority_1_position)
+        await dialog_manager.switch_to(JobSelectionSG.edit_priority_1_position, show_mode=ShowMode.DELETE_AND_SEND)
     elif editing_priority == 2:
-        await dialog_manager.switch_to(JobSelectionSG.edit_priority_2_position)
+        await dialog_manager.switch_to(JobSelectionSG.edit_priority_2_position, show_mode=ShowMode.DELETE_AND_SEND)
     elif editing_priority == 3:
-        await dialog_manager.switch_to(JobSelectionSG.edit_priority_3_position)
+        await dialog_manager.switch_to(JobSelectionSG.edit_priority_3_position, show_mode=ShowMode.DELETE_AND_SEND)
 
 
 async def on_edit_position_selected(
@@ -389,7 +389,7 @@ async def on_swap_priorities(
     callback: CallbackQuery, button: Button, dialog_manager: DialogManager
 ):
     """Обработчик перехода к меню выбора приоритетов для обмена"""
-    await dialog_manager.switch_to(JobSelectionSG.swap_priorities_menu)
+    await dialog_manager.switch_to(JobSelectionSG.swap_priorities_menu, show_mode=ShowMode.DELETE_AND_SEND)
 
 
 async def on_swap_1_2(

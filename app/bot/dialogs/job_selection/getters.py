@@ -473,11 +473,11 @@ def should_show_position_media(data, widget, dialog_manager: DialogManager):
     current_state = dialog_manager.current_context().state.state
     
     # Определяем приоритет по состоянию
-    if current_state == "JobSelectionSG:select_position":
+    if current_state == "JobSelectionSG:select_position" or current_state == "JobSelectionSG.edit_priority_1":
         priority = 1
-    elif current_state == "JobSelectionSG:select_position_2":
+    elif current_state == "JobSelectionSG:select_position_2" or current_state == "JobSelectionSG.edit_priority_2":
         priority = 2
-    elif current_state == "JobSelectionSG:select_position_3":
+    elif current_state == "JobSelectionSG:select_position_3" or current_state == "JobSelectionSG.edit_priority_3":
         priority = 3
     else:
         return True  # По умолчанию показываем медиа

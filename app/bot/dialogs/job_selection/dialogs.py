@@ -251,7 +251,8 @@ job_selection_dialog = Dialog(
     Window(
         Const("🏢 Редактирование <b>первого приоритета</b>\nВыберите новый отдел:"),
         DynamicMedia(
-            "media"
+            "media",
+            when=should_show_position_media
         ),
         Column(
             Select(
@@ -274,7 +275,8 @@ job_selection_dialog = Dialog(
         Format("🏢 Редактирование <b>первого приоритета</b>\n<b>{selected_department}</b>\n\n{department_description}\n\n"),
         Format("<b>Выберите направление в данном отделе:</b>"),
         DynamicMedia(
-            "media"
+            "media",
+            when=should_show_position_media
         ),
         Column(
             Select(
@@ -296,7 +298,7 @@ job_selection_dialog = Dialog(
         Format("<b>Выберите позицию:</b>"),
         DynamicMedia(
             "media",
-            when=should_show_edit_position_media
+            when=should_show_position_media
         ),
         Column(
             Select(
@@ -307,7 +309,7 @@ job_selection_dialog = Dialog(
                 on_click=on_edit_position_selected,
             ),
         ),
-        SwitchTo(Const("⬅️ Назад"), id='edit_back_to_dep_1', state=JobSelectionSG.edit_priority_1),
+        Button(Const("⬅️ Назад"), id='edit_back_to_dep_1', on_click=on_back_from_edit_positions),
         state=JobSelectionSG.edit_priority_1_position,
         getter=[get_edit_positions_for_department, get_edit_position_media],
     ),
@@ -316,7 +318,8 @@ job_selection_dialog = Dialog(
     Window(
         Const("🏢 Редактирование <b>второго приоритета</b>\nВыберите новый отдел:"),
         DynamicMedia(
-            "media"
+            "media",
+            when=should_show_position_media
         ),
         Column(
             Select(
@@ -339,7 +342,8 @@ job_selection_dialog = Dialog(
         Format("🏢 Редактирование <b>второго приоритета</b>\n<b>{selected_department}</b>\n\n{department_description}\n\n"),
         Format("<b>Выберите направление в данном отделе:</b>"),
         DynamicMedia(
-            "media"
+            "media",
+            when=should_show_position_media
         ),
         Column(
             Select(
@@ -381,7 +385,8 @@ job_selection_dialog = Dialog(
     Window(
         Const("🏢 Редактирование <b>третьего приоритета</b>\nВыберите новый отдел:"),
         DynamicMedia(
-            "media"
+            "media",
+            when=should_show_position_media
         ),
         Column(
             Select(
@@ -404,7 +409,8 @@ job_selection_dialog = Dialog(
         Format("🏢 Редактирование <b>третьего приоритета</b>\n<b>{selected_department}</b>\n\n{department_description}\n\n"),
         Format("<b>Выберите направление в данном отделе:</b>"),
         DynamicMedia(
-            "media"
+            "media",
+            when=should_show_position_media
         ),
         Column(
             Select(
