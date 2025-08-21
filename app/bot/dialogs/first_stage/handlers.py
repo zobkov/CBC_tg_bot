@@ -307,7 +307,7 @@ async def process_resume_file(message: Message, widget, dialog_manager: DialogMa
             message_text += "📋 Файл сохранен локально (Google Drive отключен)\n
         """
             
-        message_text += "Теперь вы можете перейти к следующему шагу."
+        message_text += "Теперь ты можешь перейти к следующему шагу."
         
         await message.answer(message_text)
         
