@@ -28,6 +28,7 @@ from app.bot.dialogs.main_menu.dialogs import main_menu_dialog
 from app.bot.dialogs.first_stage.dialogs import first_stage_dialog
 from app.bot.dialogs.job_selection.dialogs import job_selection_dialog
 from app.services.broadcast_scheduler import BroadcastScheduler
+from app.services.photo_file_id_manager import startup_photo_check
 from pathlib import Path
 from app.infrastructure.database.database.db import DB
 
@@ -125,6 +126,15 @@ async def main():
     bg_factory = setup_dialogs(dp)
 
     await set_main_menu(bot)
+
+    # Проверяем новые фотографии и обновляем file_id при старте
+    logger.info("Checking for new photos and updating file_ids...")
+    try:
+        file_ids = await startup_photo_check(bot)
+        logger.info(f"Photo file_id check completed. Total photos: {len(file_ids)}")
+    except Exception as e:
+        logger.error(f"Error during photo file_id check: {e}")
+        # Не останавливаем бота из-за ошибки с фотографиями
 
     # Launch polling and broadcast scheduler
     try:

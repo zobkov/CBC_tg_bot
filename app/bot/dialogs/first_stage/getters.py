@@ -3,9 +3,12 @@ from typing import Dict, Any
 
 from aiogram.types import User
 from aiogram_dialog import DialogManager
+from aiogram_dialog.api.entities import MediaAttachment, MediaId
+from aiogram.enums import ContentType
 
 from config.config import Config
 from app.infrastructure.database.database.db import DB
+from app.utils.optimized_dialog_widgets import get_file_id_for_path
 
 logger = logging.getLogger(__name__)
 
@@ -352,4 +355,24 @@ async def get_edit_how_found_options(dialog_manager: DialogManager, **kwargs) ->
     return {
         "how_found_options": options,
         "has_selections": has_selections
+    }
+
+
+async def get_first_stage_media(dialog_manager: DialogManager, **kwargs):
+    """Получаем медиа для первого окна first_stage"""
+    file_id = get_file_id_for_path("first_stage_intro/Анкетирование.png")
+    
+    if file_id:
+        media = MediaAttachment(
+            type=ContentType.PHOTO,
+            file_id=MediaId(file_id)
+        )
+    else:
+        media = MediaAttachment(
+            type=ContentType.PHOTO,
+            path="app/bot/assets/images/first_stage_intro/Анкетирование.png"
+        )
+    
+    return {
+        "media": media
     }

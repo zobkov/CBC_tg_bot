@@ -3,9 +3,12 @@ from typing import Dict, Any
 
 from aiogram.types import User
 from aiogram_dialog import DialogManager
+from aiogram_dialog.api.entities import MediaAttachment, MediaId
+from aiogram.enums import ContentType
 
 from config.config import Config
 from app.infrastructure.database.database.db import DB
+from app.utils.optimized_dialog_widgets import get_file_id_for_path
 
 
 async def get_user_info(dialog_manager: DialogManager, event_from_user: User, **kwargs) -> Dict[str, Any]:
@@ -190,4 +193,26 @@ async def get_support_contacts(dialog_manager: DialogManager, **kwargs) -> Dict[
         "general_support": config.selection.support_contacts["general"],
         "technical_support": config.selection.support_contacts["technical"],
         "hr_support": config.selection.support_contacts["hr"]
+    }
+
+
+async def get_main_menu_media(dialog_manager: DialogManager, **kwargs) -> Dict[str, Any]:
+    """Получаем медиа для главного меню"""
+    file_id = get_file_id_for_path("main_menu/main_menu.jpg")
+    
+    if file_id:
+        # Используем file_id для быстрой отправки
+        media = MediaAttachment(
+            type=ContentType.PHOTO,
+            file_id=MediaId(file_id)
+        )
+    else:
+        # Fallback на путь к файлу
+        media = MediaAttachment(
+            type=ContentType.PHOTO,
+            path="app/bot/assets/images/main_menu/main_menu.jpg"
+        )
+    
+    return {
+        "media": media
     }

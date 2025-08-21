@@ -1,10 +1,23 @@
 from aiogram_dialog import DialogManager
+from aiogram_dialog.api.entities import MediaAttachment, MediaId
+from aiogram.enums import ContentType
 import json
 import os
 
+from app.utils.optimized_dialog_widgets import get_file_id_for_path
+
 
 def load_departments_config():
-    """Загрузить конфигурацию отделов"""
+    """Загр    # Определяем путь к изображению отдела
+    department_images = {
+        "creative": "choose_department/creative/творческий.png",
+        "design": "choose_department/design/дизайн.png", 
+        "exhibition": "choose_department/exhibition/выставочный.png",
+        "logistics_it": "choose_department/logistics/логистика.png",
+        "partners": "choose_department/partners/партнеры.png",
+        "program": "choose_department/program/программа.png",
+        "smm_pr": "choose_department/smmpr/smm.png"
+    }игурацию отделов"""
     config_path = os.path.join(os.path.dirname(__file__), '../../../../config/departments.json')
     
     with open(config_path, 'r', encoding='utf-8') as f:
@@ -242,4 +255,202 @@ async def get_edit_positions_for_department(dialog_manager: DialogManager, **kwa
         "positions": positions,
         "selected_department": department_name,
         "department_description": department_description
+    }
+
+
+async def get_department_selection_media(dialog_manager: DialogManager, **kwargs):
+    """Получаем медиа для окна выбора отдела"""
+    file_id = get_file_id_for_path("choose_department/отделы.png")
+    
+    if file_id:
+        media = MediaAttachment(
+            type=ContentType.PHOTO,
+            file_id=MediaId(file_id)
+        )
+    else:
+        media = MediaAttachment(
+            type=ContentType.PHOTO,
+            path="app/bot/assets/images/choose_department/отделы.png"
+        )
+    
+    return {
+        "media": media
+    }
+
+
+async def get_subdepartment_media(dialog_manager: DialogManager, **kwargs):
+    """Получаем медиа для под-отдела на основе выбранного отдела"""
+    selected_dept = dialog_manager.dialog_data.get("selected_department")
+    
+    if not selected_dept:
+        # Fallback изображение
+        return await get_department_selection_media(dialog_manager, **kwargs)
+    
+    # Определяем путь к изображению отдела
+    department_images = {
+        "creative": "choose_department/creative/творческий.png",
+        "design": "choose_department/design/дизайн.png", 
+        "exhibition": "choose_department/exhibition/exhibition.png",
+        "logistics_it": "choose_department/logistics/логистика.png",
+        "partners": "choose_department/partners/partners.png",
+        "program": "choose_department/program/program.png",
+        "smm_pr": "choose_department/smmpr/sммрр.png"
+    }
+    
+    image_path = department_images.get(selected_dept, "choose_department/отделы.png")
+    file_id = get_file_id_for_path(image_path)
+    
+    if file_id:
+        media = MediaAttachment(
+            type=ContentType.PHOTO,
+            file_id=MediaId(file_id)
+        )
+    else:
+        media = MediaAttachment(
+            type=ContentType.PHOTO,
+            path=f"app/bot/assets/images/{image_path}"
+        )
+    
+    return {
+        "media": media
+    }
+
+
+async def get_position_media(dialog_manager: DialogManager, **kwargs):
+    """Получаем медиа для позиций на основе выбранного отдела и под-отдела"""
+    selected_dept = dialog_manager.dialog_data.get("selected_department")
+    selected_subdept = dialog_manager.dialog_data.get("selected_subdepartment")
+    
+    if not selected_dept:
+        return await get_department_selection_media(dialog_manager, **kwargs)
+    
+    # Базовые изображения для отделов без подотделов
+    department_position_images = {
+        "design": "choose_position/design/ДИЗАЙН.png",
+        "exhibition": "choose_position/exhibition/ВЫСТАВКИ.png", 
+        "logistics_it": "choose_position/logistics/ЛОГИСТИКА.png",
+        "partners": "choose_position/partners/ПАРТНЕРЫ.png",
+        "program": "choose_position/program/ПРОГРАММА.png"
+    }
+    
+    # Для отделов с подотделами
+    if selected_dept in ["creative", "smm_pr"] and selected_subdept:
+        if selected_dept == "creative":
+            subdept_images = {
+                "stage": "choose_position/creative/ТВОРЧЕСКИЙ_сцена_1.png",
+                "booth": "choose_position/creative/ТВОРЧЕСКИЙ_стенд.png"
+            }
+            image_path = subdept_images.get(selected_subdept, "choose_position/creative/ТВОРЧЕСКИЙ_сцена_1.png")
+        elif selected_dept == "smm_pr":
+            subdept_images = {
+                "social": "choose_position/smmpr/СММ_соцсети_1.png", 
+                "media": "choose_position/smmpr/СММ_шоу_1.png"
+            }
+            image_path = subdept_images.get(selected_subdept, "choose_position/smmpr/СММ_соцсети_1.png")
+    else:
+        # Обычные отделы
+        image_path = department_position_images.get(selected_dept, "choose_department/отделы.png")
+    
+    file_id = get_file_id_for_path(image_path)
+    
+    if file_id:
+        media = MediaAttachment(
+            type=ContentType.PHOTO,
+            file_id=MediaId(file_id)
+        )
+    else:
+        media = MediaAttachment(
+            type=ContentType.PHOTO,
+            path=f"app/bot/assets/images/{image_path}"
+        )
+    
+    return {
+        "media": media
+    }
+
+
+# Функции для редактирования (аналогичные основным, но используют edit_ префиксы)
+async def get_edit_subdepartment_media(dialog_manager: DialogManager, **kwargs):
+    """Получаем медиа для под-отдела при редактировании"""
+    selected_dept = dialog_manager.dialog_data.get("edit_selected_department")
+    
+    if not selected_dept:
+        return await get_department_selection_media(dialog_manager, **kwargs)
+    
+    department_images = {
+        "creative": "choose_department/creative/творческий.png",
+        "design": "choose_department/design/дизайн.png",
+        "exhibition": "choose_department/exhibition/выставочный.png", 
+        "logistics_it": "choose_department/logistics/логистика.png",
+        "partners": "choose_department/partners/партнеры.png",
+        "program": "choose_department/program/программа.png",
+        "smm_pr": "choose_department/smmpr/smm.png"
+    }
+    
+    image_path = department_images.get(selected_dept, "choose_department/отделы.png")
+    file_id = get_file_id_for_path(image_path)
+    
+    if file_id:
+        media = MediaAttachment(
+            type=ContentType.PHOTO,
+            file_id=MediaId(file_id)
+        )
+    else:
+        media = MediaAttachment(
+            type=ContentType.PHOTO,
+            path=f"app/bot/assets/images/{image_path}"
+        )
+    
+    return {
+        "media": media
+    }
+
+
+async def get_edit_position_media(dialog_manager: DialogManager, **kwargs):
+    """Получаем медиа для позиций при редактировании"""
+    selected_dept = dialog_manager.dialog_data.get("edit_selected_department")
+    selected_subdept = dialog_manager.dialog_data.get("edit_selected_subdepartment")
+    
+    if not selected_dept:
+        return await get_department_selection_media(dialog_manager, **kwargs)
+    
+    department_position_images = {
+        "design": "choose_position/design/ДИЗАЙН.png",
+        "exhibition": "choose_position/exhibition/ВЫСТАВКИ.png",
+        "logistics_it": "choose_position/logistics/ЛОГИСТИКА.png", 
+        "partners": "choose_position/partners/ПАРТНЕРЫ.png",
+        "program": "choose_position/program/ПРОГРАММА.png"
+    }
+    
+    if selected_dept in ["creative", "smm_pr"] and selected_subdept:
+        if selected_dept == "creative":
+            subdept_images = {
+                "stage": "choose_position/creative/ТВОРЧЕСКИЙ_сцена_1.png",
+                "booth": "choose_position/creative/ТВОРЧЕСКИЙ_стенд.png"
+            }
+            image_path = subdept_images.get(selected_subdept, "choose_position/creative/ТВОРЧЕСКИЙ_сцена_1.png")
+        elif selected_dept == "smm_pr":
+            subdept_images = {
+                "social": "choose_position/smmpr/СММ_соцсети_1.png",
+                "media": "choose_position/smmpr/СММ_шоу_1.png" 
+            }
+            image_path = subdept_images.get(selected_subdept, "choose_position/smmpr/СММ_соцсети_1.png")
+    else:
+        image_path = department_position_images.get(selected_dept, "choose_department/отделы.png")
+    
+    file_id = get_file_id_for_path(image_path)
+    
+    if file_id:
+        media = MediaAttachment(
+            type=ContentType.PHOTO,
+            file_id=MediaId(file_id)
+        )
+    else:
+        media = MediaAttachment(
+            type=ContentType.PHOTO,
+            path=f"app/bot/assets/images/{image_path}"
+        )
+    
+    return {
+        "media": media
     }

@@ -2,13 +2,14 @@ from aiogram_dialog.widgets.kbd import Button, Radio, Column, Next, Back, Multis
 from aiogram_dialog.widgets.text import Format, Const
 from aiogram_dialog import Dialog, Window
 from aiogram_dialog.widgets.input import MessageInput, TextInput
+from aiogram_dialog.widgets.media import DynamicMedia
 from aiogram.enums import ContentType
 
 from app.bot.states.first_stage import FirstStageSG
 from .getters import (
     get_stage_info, get_how_found_options, get_departments, get_departments_for_previous,
     get_positions_for_department, get_course_options, get_form_summary,
-    get_edit_menu_data, get_edit_how_found_options
+    get_edit_menu_data, get_edit_how_found_options, get_first_stage_media
 )
 from .handlers import (
     on_apply_clicked, on_full_name_input, on_university_input,
@@ -21,29 +22,16 @@ from .handlers import (
     on_edit_phone_input, on_edit_email_input, on_edit_how_found_state_changed,
     on_edit_how_found_continue, on_edit_previous_department_selected,
     on_edit_experience_input, on_edit_motivation_input, on_edit_resume_uploaded,
-    on_edit_department_selected, on_edit_position_selected
-)
-from .getters import (
-    get_stage_info, get_how_found_options, get_departments, get_departments_for_previous,
-    get_positions_for_department, get_course_options, get_form_summary
-)
-from .handlers import (
-    on_apply_clicked, on_full_name_input, on_university_input,
-    on_phone_input, on_email_input, on_course_selected, 
-    on_how_found_state_changed, on_how_found_continue, on_previous_department_selected,
-    on_department_selected, on_position_selected,
-    on_experience_input, on_motivation_input, on_resume_uploaded,
-    on_confirm_application, on_edit_clicked, on_edit_field_clicked, on_back_to_confirmation,
-    on_edit_full_name_input, on_edit_university_input, on_edit_course_selected,
-    on_edit_phone_input, on_edit_email_input, on_edit_how_found_state_changed,
-    on_edit_experience_input, on_edit_motivation_input, on_edit_resume_uploaded,
-    on_experience_input, on_motivation_input, on_resume_uploaded,
-    on_confirm_application, go_to_menu, on_job_selection_result
+    on_edit_department_selected, on_edit_position_selected,
+    go_to_menu, on_job_selection_result
 )
 
 first_stage_dialog = Dialog(
     # Информация о первом этапе
     Window(
+        DynamicMedia(
+            "media"
+        ),
         Format("📋 <b>{stage_name}</b>\n\n"
                "Переходим к первому этапу отбора — анкетированию. На этом этапе мы хотим поближе познакомиться с кандидатом: узнать, кто ты, чем увлекаешься и в каких проектах участвовал. Не знаешь, какая позиция тебе больше подходит? Не переживай, чуть позже мы дадим краткий обзор отделов и вакансий, чтобы проще было выбрать.\n\n"
                "{application_status_text}"),
@@ -55,7 +43,7 @@ first_stage_dialog = Dialog(
         ),
         Button(Const("🏠 В главное меню"), id="go_to_menu", on_click=go_to_menu),
         state=FirstStageSG.stage_info,
-        getter=get_stage_info
+        getter=[get_stage_info, get_first_stage_media]
     ),
 
     # ФИО

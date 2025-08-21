@@ -9,14 +9,19 @@ from aiogram_dialog import DialogManager, StartMode
 from aiogram.types import ContentType
 from aiogram_dialog.widgets.media import StaticMedia
 
+
+async def on_next_clicked(callback, widget, manager: DialogManager):
+    """Обработчик кнопки 'Далее' для перехода в главное меню"""
+    await manager.start(state=MainMenuSG.main_menu, mode=StartMode.RESET_STACK)
+
+
 start_dialog = Dialog(
     Window(
         Format("Рады, что ты здесь! Сейчас расскажем об отборе немного подробнее. "),
-        Start(
+        Button(
             Const("Далее"),
-            state=MainMenuSG.main_menu,
-            mode=StartMode.RESET_STACK,
-            id="Start_main_menu_from_intro"
+            id="next_to_main_menu",
+            on_click=on_next_clicked
             ),
         state=StartSG.start,
     ),

@@ -2,6 +2,7 @@ from pathlib import Path
 
 from aiogram.utils.media_group import MediaGroupBuilder
 from aiogram.types.input_file import FSInputFile
+from app.utils.photo_utils import get_photo_sender
 
 
 def compose_media_group(paths: list[str], caption: str | None = None) -> MediaGroupBuilder:
@@ -17,7 +18,59 @@ def compose_media_group(paths: list[str], caption: str | None = None) -> MediaGr
         return media_group
 
 
+def compose_media_group_optimized(relative_paths: list[str], caption: str | None = None) -> MediaGroupBuilder:
+    """
+    Build a MediaGroup using file_id when available, fallback to local files.
+    
+    Args:
+        relative_paths: List of paths relative to images folder (e.g., ["start/1.png", "start/2.png"])
+        caption: Optional caption for the media group
+        
+    Returns:
+        MediaGroupBuilder ready to build
+    """
+    photo_sender = get_photo_sender()
+    media_group = MediaGroupBuilder(caption=caption) if caption else MediaGroupBuilder()
+    
+    for relative_path in relative_paths:
+        # Пытаемся получить file_id
+        file_id = photo_sender.get_file_id(relative_path)
+        
+        if file_id:
+            # Используем file_id для быстрой отправки
+            media_group.add_photo(file_id)
+        else:
+            # Fallback: используем файл напрямую
+            full_path = Path("app/bot/assets/images") / relative_path
+            if full_path.exists():
+                media_group.add_photo(FSInputFile(full_path))
+    
+    return media_group
+
+
 def build_start_media_group(caption: str | None = None):
+    """Build optimized media group for start images using file_id when available"""
+    
+    # Относительные пути от папки images
+    start_relative_paths = [
+        "start/1.jpg",
+        "start/2.png", 
+        "start/3.png",
+        "start/4.png",
+        "start/5.png",
+        "start/6.png",
+        "start/7.png",
+        "start/8.png",
+        "start/9.png",
+    ]
+    
+    # Используем оптимизированную функцию
+    media_group = compose_media_group_optimized(start_relative_paths, caption=caption)
+    return media_group.build()
+
+
+def build_start_media_group_legacy(caption: str | None = None):
+    """Legacy version using file paths (kept for compatibility)"""
     # Используем папку с новыми изображениями
     images_dir = Path(__file__).parent.parent / "images" / "start"
     

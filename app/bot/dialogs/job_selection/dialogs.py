@@ -11,7 +11,9 @@ from app.bot.states.job_selection import JobSelectionSG
 from app.bot.states.first_stage import FirstStageSG
 from .getters import (
     get_departments_list, get_subdepartments_list, get_positions_for_department, get_priorities_overview,
-    get_edit_departments_list, get_edit_subdepartments_list, get_edit_positions_for_department
+    get_edit_departments_list, get_edit_subdepartments_list, get_edit_positions_for_department,
+    get_department_selection_media, get_subdepartment_media, get_position_media,
+    get_edit_subdepartment_media, get_edit_position_media
 )
 from .handlers import (
     on_department_selected, on_subdepartment_selected, on_position_selected, on_priority_confirmed,
@@ -24,8 +26,8 @@ from .handlers import (
 job_selection_dialog = Dialog(
     # Выбор департамента для первого приоритета
     Window(
-        StaticMedia(
-           path="app/bot/dialogs/job_selection/assets/1.jpeg"
+        DynamicMedia(
+            "media"
         ),
         Const(
             "Работа КБК — это синергия 7 разных отделов, каждый из которых одинаково важен! \n"
@@ -42,16 +44,15 @@ job_selection_dialog = Dialog(
             ),
         ),
         state=JobSelectionSG.select_department,
-        getter=get_departments_list,
+        getter=[get_departments_list, get_department_selection_media],
     ),
     
     # Выбор под-отдела для первого приоритета
     Window(
         Format("🏢 <b>{selected_department}</b>\n\n{department_description}\n\n"),
         Format("Выберите направление в данном отделе:"),
-        StaticMedia(
-            path="app/bot/dialogs/job_selection/assets/1.jpeg",
-            type="photo"
+        DynamicMedia(
+            "media"
         ),
         Column(
             Select(
@@ -64,16 +65,15 @@ job_selection_dialog = Dialog(
         ),
         Back(Const("⬅️ Назад к отделам")),
         state=JobSelectionSG.select_subdepartment,
-        getter=get_subdepartments_list,
+        getter=[get_subdepartments_list, get_subdepartment_media],
     ),
     
     # Выбор позиции для первого приоритета
     Window(
         Format("👨‍💼 <b>{selected_department}</b>\n\n{department_description}\n\n"),
         Format("Выберите позицию:"),
-        StaticMedia(
-            path="app/bot/dialogs/job_selection/assets/1.jpeg",
-            type="photo"
+        DynamicMedia(
+            "media"
         ),
         Column(
             Select(
@@ -86,15 +86,14 @@ job_selection_dialog = Dialog(
         ),
         SwitchTo(Const("⬅️ Назад"), id='back_to_dep_1', state=JobSelectionSG.select_department),
         state=JobSelectionSG.select_position,
-        getter=get_positions_for_department,
+        getter=[get_positions_for_department, get_position_media],
     ),
     
     # Выбор департамента для второго приоритета
     Window(
         Const("🏢 Выберите отдел для вашей <b>второй приоритетной</b> вакансии:"),
-        StaticMedia(
-            path="app/bot/dialogs/job_selection/assets/1.jpeg",
-            type="photo"
+        DynamicMedia(
+            "media"
         ),
         Column(
             Select(
@@ -107,16 +106,15 @@ job_selection_dialog = Dialog(
         ),
         Back(Const("⬅️ Назад")),
         state=JobSelectionSG.select_department_2,
-        getter=get_departments_list,
+        getter=[get_departments_list, get_department_selection_media],
     ),
     
     # Выбор под-отдела для второго приоритета
     Window(
         Format("🏢 <b>{selected_department}</b>\n\n{department_description}\n\n"),
         Format("Выберите направление в данном отделе:"),
-        StaticMedia(
-            path="app/bot/dialogs/job_selection/assets/1.jpeg",
-            type="photo"
+        DynamicMedia(
+            "media"
         ),
         Column(
             Select(
@@ -129,16 +127,15 @@ job_selection_dialog = Dialog(
         ),
         Back(Const("⬅️ Назад к отделам")),
         state=JobSelectionSG.select_subdepartment_2,
-        getter=get_subdepartments_list,
+        getter=[get_subdepartments_list, get_subdepartment_media],
     ),
     
     # Выбор позиции для второго приоритета
     Window(
         Format("👨‍💼 <b>{selected_department}</b>\n\n{department_description}\n\n"),
         Format("Выберите позицию:"),
-        StaticMedia(
-            path="app/bot/dialogs/job_selection/assets/1.jpeg",
-            type="photo"
+        DynamicMedia(
+            "media"
         ),
         Column(
             Select(
@@ -151,15 +148,14 @@ job_selection_dialog = Dialog(
         ),
         SwitchTo(Const("⬅️ Назад"), id='back_to_dep_1', state=JobSelectionSG.select_department_2),
         state=JobSelectionSG.select_position_2,
-        getter=get_positions_for_department,
+        getter=[get_positions_for_department, get_position_media],
     ),
     
     # Выбор департамента для третьего приоритета
     Window(
         Const("🏢 Выберите отдел для вашей <b>третьей приоритетной</b> вакансии:"),
-        StaticMedia(
-            path="app/bot/dialogs/job_selection/assets/1.jpeg",
-            type="photo"
+        DynamicMedia(
+            "media"
         ),
         Column(
             Select(
@@ -172,16 +168,15 @@ job_selection_dialog = Dialog(
         ),
         Back(Const("⬅️ Назад")),
         state=JobSelectionSG.select_department_3,
-        getter=get_departments_list,
+        getter=[get_departments_list, get_department_selection_media],
     ),
     
     # Выбор под-отдела для третьего приоритета
     Window(
         Format("🏢 <b>{selected_department}</b>\n\n{department_description}\n\n"),
         Format("Выберите направление в данном отделе:"),
-        StaticMedia(
-            path="app/bot/dialogs/job_selection/assets/1.jpeg",
-            type="photo"
+        DynamicMedia(
+            "media"
         ),
         Column(
             Select(
@@ -194,16 +189,15 @@ job_selection_dialog = Dialog(
         ),
         Back(Const("⬅️ Назад к отделам")),
         state=JobSelectionSG.select_subdepartment_3,
-        getter=get_subdepartments_list,
+        getter=[get_subdepartments_list, get_subdepartment_media],
     ),
     
     # Выбор позиции для третьего приоритета
     Window(
         Format("👨‍💼 <b>{selected_department}</b>\n\n{department_description}\n\n"),
         Format("Выберите позицию:"),
-        StaticMedia(
-            path="app/bot/dialogs/job_selection/assets/1.jpeg",
-            type="photo"
+        DynamicMedia(
+            "media"
         ),
         Column(
             Select(
@@ -216,7 +210,7 @@ job_selection_dialog = Dialog(
         ),
         SwitchTo(Const("⬅️ Назад"), id='back_to_dep_1', state=JobSelectionSG.select_department_3),
         state=JobSelectionSG.select_position_3,
-        getter=get_positions_for_department,
+        getter=[get_positions_for_department, get_position_media],
     ),
     
     # Обзор всех приоритетов с возможностью редактирования
@@ -252,9 +246,8 @@ job_selection_dialog = Dialog(
     # Редактирование 1-го приоритета - выбор департамента
     Window(
         Const("🏢 Редактирование <b>первого приоритета</b>\nВыберите новый отдел:"),
-        StaticMedia(
-            path="app/bot/dialogs/job_selection/assets/1.jpeg",
-            type="photo"
+        DynamicMedia(
+            "media"
         ),
         Column(
             Select(
@@ -269,16 +262,15 @@ job_selection_dialog = Dialog(
                id="back_to_overview", 
                on_click=on_back_to_priorities_overview),
         state=JobSelectionSG.edit_priority_1,
-        getter=get_edit_departments_list,
+        getter=[get_edit_departments_list, get_department_selection_media],
     ),
     
     # Редактирование 1-го приоритета - выбор под-отдела
     Window(
         Format("🏢 Редактирование <b>первого приоритета</b>\n<b>{selected_department}</b>\n\n{department_description}\n\n"),
         Format("<b>Выберите направление в данном отделе:</b>"),
-        StaticMedia(
-            path="app/bot/dialogs/job_selection/assets/1.jpeg",
-            type="photo"
+        DynamicMedia(
+            "media"
         ),
         Column(
             Select(
@@ -291,16 +283,15 @@ job_selection_dialog = Dialog(
         ),
         Back(Const("⬅️ Назад к отделам")),
         state=JobSelectionSG.edit_priority_1_subdepartment,
-        getter=get_edit_subdepartments_list,
+        getter=[get_edit_subdepartments_list, get_edit_subdepartment_media],
     ),
     
     # Редактирование 1-го приоритета - выбор позиции
     Window(
         Format("👨‍💼 Редактирование <b>первого приоритета</b>\n<b>{selected_department}</b>\n\n{department_description}\n\n"),
         Format("<b>Выберите позицию:</b>"),
-        StaticMedia(
-            path="app/bot/dialogs/job_selection/assets/1.jpeg",
-            type="photo"
+        DynamicMedia(
+            "media"
         ),
         Column(
             Select(
@@ -313,15 +304,14 @@ job_selection_dialog = Dialog(
         ),
         SwitchTo(Const("⬅️ Назад"), id='edit_back_to_dep_1', state=JobSelectionSG.edit_priority_1),
         state=JobSelectionSG.edit_priority_1_position,
-        getter=get_edit_positions_for_department,
+        getter=[get_edit_positions_for_department, get_edit_position_media],
     ),
     
     # Редактирование 2-го приоритета - выбор департамента
     Window(
         Const("🏢 Редактирование <b>второго приоритета</b>\nВыберите новый отдел:"),
-        StaticMedia(
-            path="app/bot/dialogs/job_selection/assets/1.jpeg",
-            type="photo"
+        DynamicMedia(
+            "media"
         ),
         Column(
             Select(
@@ -336,16 +326,15 @@ job_selection_dialog = Dialog(
                id="back_to_overview_2", 
                on_click=on_back_to_priorities_overview),
         state=JobSelectionSG.edit_priority_2,
-        getter=get_edit_departments_list,
+        getter=[get_edit_departments_list, get_department_selection_media],
     ),
     
     # Редактирование 2-го приоритета - выбор под-отдела
     Window(
         Format("🏢 Редактирование <b>второго приоритета</b>\n<b>{selected_department}</b>\n\n{department_description}\n\n"),
         Format("<b>Выберите направление в данном отделе:</b>"),
-        StaticMedia(
-            path="app/bot/dialogs/job_selection/assets/1.jpeg",
-            type="photo"
+        DynamicMedia(
+            "media"
         ),
         Column(
             Select(
@@ -358,16 +347,15 @@ job_selection_dialog = Dialog(
         ),
         Back(Const("⬅️ Назад к отделам")),
         state=JobSelectionSG.edit_priority_2_subdepartment,
-        getter=get_edit_subdepartments_list,
+        getter=[get_edit_subdepartments_list, get_edit_subdepartment_media],
     ),
     
     # Редактирование 2-го приоритета - выбор позиции
     Window(
         Format("👨‍💼 Редактирование <b>второго приоритета</b>\n<b>{selected_department}</b>\n\n{department_description}\n\n"),
         Format("<b>Выберите позицию:</b>"),
-        StaticMedia(
-            path="app/bot/dialogs/job_selection/assets/1.jpeg",
-            type="photo"
+        DynamicMedia(
+            "media"
         ),
         Column(
             Select(
@@ -380,15 +368,14 @@ job_selection_dialog = Dialog(
         ),
         SwitchTo(Const("⬅️ Назад"), id='edit_back_to_dep_2', state=JobSelectionSG.edit_priority_2),
         state=JobSelectionSG.edit_priority_2_position,
-        getter=get_edit_positions_for_department,
+        getter=[get_edit_positions_for_department, get_edit_position_media],
     ),
     
     # Редактирование 3-го приоритета - выбор департамента
     Window(
         Const("🏢 Редактирование <b>третьего приоритета</b>\nВыберите новый отдел:"),
-        StaticMedia(
-            path="app/bot/dialogs/job_selection/assets/1.jpeg",
-            type="photo"
+        DynamicMedia(
+            "media"
         ),
         Column(
             Select(
@@ -403,16 +390,15 @@ job_selection_dialog = Dialog(
                id="back_to_overview_3", 
                on_click=on_back_to_priorities_overview),
         state=JobSelectionSG.edit_priority_3,
-        getter=get_edit_departments_list,
+        getter=[get_edit_departments_list, get_department_selection_media],
     ),
     
     # Редактирование 3-го приоритета - выбор под-отдела
     Window(
         Format("🏢 Редактирование <b>третьего приоритета</b>\n<b>{selected_department}</b>\n\n{department_description}\n\n"),
         Format("<b>Выберите направление в данном отделе:</b>"),
-        StaticMedia(
-            path="app/bot/dialogs/job_selection/assets/1.jpeg",
-            type="photo"
+        DynamicMedia(
+            "media"
         ),
         Column(
             Select(
@@ -425,16 +411,15 @@ job_selection_dialog = Dialog(
         ),
         Back(Const("⬅️ Назад к отделам")),
         state=JobSelectionSG.edit_priority_3_subdepartment,
-        getter=get_edit_subdepartments_list,
+        getter=[get_edit_subdepartments_list, get_edit_subdepartment_media],
     ),
     
     # Редактирование 3-го приоритета - выбор позиции
     Window(
         Format("👨‍💼 Редактирование <b>третьего приоритета</b>\n<b>{selected_department}</b>\n\n{department_description}\n\n"),
         Format("<b>Выберите позицию:</b>"),
-        StaticMedia(
-            path="app/bot/dialogs/job_selection/assets/1.jpeg",
-            type="photo"
+        DynamicMedia(
+            "media"
         ),
         Column(
             Select(
@@ -447,7 +432,7 @@ job_selection_dialog = Dialog(
         ),
         SwitchTo(Const("⬅️ Назад"), id='edit_back_to_dep_3', state=JobSelectionSG.edit_priority_3),
         state=JobSelectionSG.edit_priority_3_position,
-        getter=get_edit_positions_for_department,
+        getter=[get_edit_positions_for_department, get_edit_position_media],
     ),
     
     # Окно выбора типа обмена приоритетов
