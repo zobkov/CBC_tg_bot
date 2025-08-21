@@ -472,36 +472,25 @@ def should_show_position_media(data, widget, dialog_manager: DialogManager):
     # Определяем текущее состояние для понимания какой приоритет
     current_state = dialog_manager.current_context().state.state
     
-    # Определяем приоритет по состоянию
-    if current_state == "JobSelectionSG:select_position" or current_state == "JobSelectionSG.edit_priority_1":
-        priority = 1
-    elif current_state == "JobSelectionSG:select_position_2" or current_state == "JobSelectionSG.edit_priority_2":
-        priority = 2
-    elif current_state == "JobSelectionSG:select_position_3" or current_state == "JobSelectionSG.edit_priority_3":
-        priority = 3
+    # Проверяем, это обычный выбор или редактирование
+    if current_state in ["JobSelectionSG:edit_priority_1_position", "JobSelectionSG:edit_priority_2_position", "JobSelectionSG:edit_priority_3_position"]:
+        # Для редактирования используем edit_selected_* данные
+        selected_dept = dialog_manager.dialog_data.get("edit_selected_department")
+        selected_subdept = dialog_manager.dialog_data.get("edit_selected_subdepartment")
     else:
-        return True  # По умолчанию показываем медиа
-    
-    # Получаем данные о выбранном отделе и подотделе для этого приоритета
-    selected_dept = dialog_manager.dialog_data.get(f"priority_{priority}_department")
-    selected_subdept = dialog_manager.dialog_data.get(f"priority_{priority}_subdepartment")
-    
-    # Если выбран отдел с медиа-группой, то не показываем DynamicMedia
-    if (selected_dept == "creative" and selected_subdept == "stage") or \
-       (selected_dept == "smm_pr" and selected_subdept in ["social", "media"]):
-        return False
-    
-    return True
-
-
-async def should_show_edit_position_media(data, widget, dialog_manager: DialogManager):
-    """Проверяет, нужно ли показывать медиа в окне редактирования позиций"""
-    # Получаем номер редактируемого приоритета
-    editing_priority = dialog_manager.dialog_data.get("editing_priority", 1)
-    
-    # Получаем данные редактируемого приоритета
-    selected_dept = dialog_manager.dialog_data.get(f"priority_{editing_priority}_department")
-    selected_subdept = dialog_manager.dialog_data.get(f"priority_{editing_priority}_subdepartment")
+        # Определяем приоритет по состоянию для обычного выбора
+        if current_state == "JobSelectionSG:select_position":
+            priority = 1
+        elif current_state == "JobSelectionSG:select_position_2":
+            priority = 2
+        elif current_state == "JobSelectionSG:select_position_3":
+            priority = 3
+        else:
+            return True  # По умолчанию показываем медиа
+        
+        # Получаем данные о выбранном отделе и подотделе для этого приоритета
+        selected_dept = dialog_manager.dialog_data.get(f"priority_{priority}_department")
+        selected_subdept = dialog_manager.dialog_data.get(f"priority_{priority}_subdepartment")
     
     # Если выбран отдел с медиа-группой, то не показываем DynamicMedia
     if (selected_dept == "creative" and selected_subdept == "stage") or \

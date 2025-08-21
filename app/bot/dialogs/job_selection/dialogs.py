@@ -14,7 +14,7 @@ from .getters import (
     get_departments_list, get_subdepartments_list, get_positions_for_department, get_priorities_overview,
     get_edit_departments_list, get_edit_subdepartments_list, get_edit_positions_for_department,
     get_department_selection_media, get_subdepartment_media, get_position_media,
-    get_edit_subdepartment_media, get_edit_position_media, should_show_position_media, should_show_edit_position_media
+    get_edit_subdepartment_media, get_edit_position_media, should_show_position_media
 )
 from .handlers import (
     on_department_selected, on_subdepartment_selected, on_position_selected, on_priority_confirmed,
@@ -365,7 +365,7 @@ job_selection_dialog = Dialog(
         Format("<b>Выберите позицию:</b>"),
         DynamicMedia(
             "media",
-            when=should_show_edit_position_media
+            when=should_show_position_media
         ),
         Column(
             Select(
@@ -432,7 +432,7 @@ job_selection_dialog = Dialog(
         Format("<b>Выберите позицию:</b>"),
         DynamicMedia(
             "media",
-            when=should_show_edit_position_media
+            when=should_show_position_media
         ),
         Column(
             Select(
