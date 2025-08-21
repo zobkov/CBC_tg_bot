@@ -18,12 +18,20 @@ def compose_media_group(paths: list[str], caption: str | None = None) -> MediaGr
 
 
 def build_start_media_group(caption: str | None = None):
-    base_dir = Path(__file__).parent
-    # Use absolute paths to local images in the same folder as this file
+    # Используем папку с новыми изображениями
+    images_dir = Path(__file__).parent.parent / "images" / "start"
+    
+    # Используем все PNG файлы из папки start (1.png - 9.png)
     start_media_paths = [
-        base_dir / "1.jpeg",
-        base_dir / "2.jpeg",
-        base_dir / "3.jpeg",
+        images_dir / "1.png",
+        images_dir / "2.png",
+        images_dir / "3.png",
+        images_dir / "4.png",
+        images_dir / "5.png",
+        images_dir / "6.png",
+        images_dir / "7.png",
+        images_dir / "8.png",
+        images_dir / "9.png",
     ]
 
     media_group = compose_media_group([str(p) for p in start_media_paths], caption=caption)
