@@ -72,7 +72,7 @@ job_selection_dialog = Dialog(
     # Выбор позиции для первого приоритета
     Window(
         Format("👨‍💼 <b>{selected_department}</b>\n\n{department_description}\n\n"),
-        Format("Выбери позицию:"),
+        Format("<b>Выбери позицию:</b>"),
         DynamicMedia(
             "media",
             when=should_show_position_media
@@ -135,7 +135,7 @@ job_selection_dialog = Dialog(
     # Выбор позиции для второго приоритета
     Window(
         Format("👨‍💼 <b>{selected_department}</b>\n\n{department_description}\n\n"),
-        Format("Выбери позицию:"),
+        Format("<b>Выбери позицию:</b>"),
         DynamicMedia(
             "media",
             when=should_show_position_media
@@ -198,7 +198,7 @@ job_selection_dialog = Dialog(
     # Выбор позиции для третьего приоритета
     Window(
         Format("👨‍💼 <b>{selected_department}</b>\n\n{department_description}\n\n"),
-        Format("Выбери позицию:"),
+        Format("<b>Выбери позицию:</b>"),
         DynamicMedia(
             "media",
             when=should_show_position_media
