@@ -137,15 +137,12 @@ async def get_priorities_overview(dialog_manager: DialogManager, **kwargs):
     data = dialog_manager.dialog_data
     config = load_departments_config()
     
-    # Добавляем отладочную информацию
-    print(f"DEBUG: get_priorities_overview - dialog_data keys: {list(data.keys())}")
-    print(f"DEBUG: get_priorities_overview - start_data: {dialog_manager.start_data}")
-    
     # Проверяем start_data, так как данные могут быть переданы через start()
     start_data = dialog_manager.start_data or {}
     combined_data = {**start_data, **data}  # start_data имеет меньший приоритет
     
-    print(f"DEBUG: get_priorities_overview - combined_data keys: {list(combined_data.keys())}")
+    # Проверяем, это редактирование или первичное заполнение
+    is_editing = combined_data.get("is_editing", False)
     
     priorities_text = ""
     priorities_count = 0
@@ -155,8 +152,6 @@ async def get_priorities_overview(dialog_manager: DialogManager, **kwargs):
         dept_key = combined_data.get(f"priority_{i}_department")
         subdept_key = combined_data.get(f"priority_{i}_subdepartment")
         pos_index = combined_data.get(f"priority_{i}_position")
-        
-        print(f"DEBUG: priority_{i}: dept='{dept_key}', subdept='{subdept_key}', pos='{pos_index}'")
         
         if dept_key and pos_index is not None:
             priorities_count += 1
@@ -182,13 +177,13 @@ async def get_priorities_overview(dialog_manager: DialogManager, **kwargs):
         else:
             priorities_text += f"⚪ <b>{i}-й приоритет:</b> <i>не выбран</i>\n"
     
-    print(f"DEBUG: final priorities_text: '{priorities_text}'")
-    
     return {
         "priorities_text": priorities_text,
         "priorities_count": priorities_count,
         "can_add_2": priorities_count >= 1 and not combined_data.get("priority_2_department"),
         "can_add_3": priorities_count >= 2 and not combined_data.get("priority_3_department"),
+        "is_editing": is_editing,
+        "continue_button_text": "✅ Сохранить изменения" if is_editing else "✅ Продолжить заполнение анкеты"
     }
 
 

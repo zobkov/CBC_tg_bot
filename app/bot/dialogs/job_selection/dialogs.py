@@ -223,7 +223,7 @@ job_selection_dialog = Dialog(
         Format("{priorities_text}"),
         Format("\n💡 <i>Ты можешь отредактировать любой приоритет, добавить новые или поменять их местами.</i>"),
         Row(
-            Button(Const("✅ Продолжить заполнение анкеты"), 
+            Button(Format("{continue_button_text}"), 
                    id="confirm_priorities", 
                    on_click=on_priority_confirmed),
         ),

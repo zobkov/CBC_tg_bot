@@ -30,8 +30,17 @@ async def on_job_selection_result(start_data: Any, result: Any, dialog_manager: 
         dialog_manager.dialog_data.update(result)
         logger.info(f"✅ Данные приоритетов сохранены в основном диалоге: {list(result.keys())}")
     
-    # Возвращаемся к состоянию experience вместо confirmation
-    await dialog_manager.switch_to(FirstStageSG.experience)
+    # Проверяем, было ли это редактирование
+    was_editing = start_data and start_data.get("is_editing", False)
+    
+    if was_editing:
+        # Если это было редактирование, возвращаемся к состоянию подтверждения
+        logger.info(f"🔄 Возвращение к подтверждению после редактирования вакансий")
+        await dialog_manager.switch_to(FirstStageSG.confirmation)
+    else:
+        # Если это было первичное заполнение, продолжаем к experience
+        logger.info(f"➡️ Продолжение заполнения анкеты после выбора вакансий")
+        await dialog_manager.switch_to(FirstStageSG.experience)
 
 
 async def process_name(message: Message, widget, dialog_manager: DialogManager, **kwargs):
@@ -957,6 +966,9 @@ async def on_edit_field_clicked(callback: CallbackQuery, button, dialog_manager:
         # Добавляем также данные из start_data если они есть
         if dialog_manager.start_data:
             current_data.update(dialog_manager.start_data)
+        
+        # ВАЖНО: Добавляем флаг редактирования
+        current_data["is_editing"] = True
         
         logger.info(f"🔄 Передаем данные в диалог выбора вакансий: {list(current_data.keys())}")
         await dialog_manager.start(JobSelectionSG.priorities_overview, data=current_data)

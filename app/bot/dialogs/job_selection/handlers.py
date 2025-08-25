@@ -144,11 +144,11 @@ async def on_priority_confirmed(
     callback: CallbackQuery, button: Button, dialog_manager: DialogManager
 ):
     """Обработчик подтверждения выбора приоритетов"""
-    print(f"DEBUG: on_priority_confirmed called")
-    print(f"DEBUG: dialog_data before processing = {dialog_manager.dialog_data}")
-    
     # Получаем исходные данные формы переданные при запуске диалога
     original_form_data = dict(dialog_manager.start_data or {})
+    
+    # Проверяем, это редактирование или первичное заполнение
+    is_editing = original_form_data.get("is_editing", False)
     
     # Сохраняем данные приоритетов в основные данные заявки
     priority_data = {}
@@ -164,16 +164,19 @@ async def on_priority_confirmed(
                 priority_data[f"priority_{i}_subdepartment"] = subdept_key
             priority_data[f"priority_{i}_position"] = pos_index
     
-    print(f"DEBUG: priority_data to save = {priority_data}")
-    
     # Объединяем исходные данные формы с новыми данными приоритетов
     combined_data = {**original_form_data, **priority_data}
     
     # Сохраняем приоритеты в родительском диалоге
     dialog_manager.dialog_data.update(priority_data)
     
-    # Закрываем диалог выбора вакансий и возвращаемся к первому этапу
-    await dialog_manager.done(result=priority_data)
+    if is_editing:
+        # Если это редактирование, возвращаемся с результатом в родительский диалог
+        # Родительский диалог должен остаться на том же состоянии (confirmation)
+        await dialog_manager.done(result=priority_data)
+    else:
+        # Если это первичное заполнение, продолжаем обычный flow
+        await dialog_manager.done(result=priority_data)
 
 
 async def on_edit_priority_1(
