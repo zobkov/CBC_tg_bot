@@ -137,14 +137,26 @@ async def get_priorities_overview(dialog_manager: DialogManager, **kwargs):
     data = dialog_manager.dialog_data
     config = load_departments_config()
     
+    # Добавляем отладочную информацию
+    print(f"DEBUG: get_priorities_overview - dialog_data keys: {list(data.keys())}")
+    print(f"DEBUG: get_priorities_overview - start_data: {dialog_manager.start_data}")
+    
+    # Проверяем start_data, так как данные могут быть переданы через start()
+    start_data = dialog_manager.start_data or {}
+    combined_data = {**start_data, **data}  # start_data имеет меньший приоритет
+    
+    print(f"DEBUG: get_priorities_overview - combined_data keys: {list(combined_data.keys())}")
+    
     priorities_text = ""
     priorities_count = 0
     
     # Формируем текст с приоритетами
     for i in range(1, 4):
-        dept_key = data.get(f"priority_{i}_department")
-        subdept_key = data.get(f"priority_{i}_subdepartment")
-        pos_index = data.get(f"priority_{i}_position")
+        dept_key = combined_data.get(f"priority_{i}_department")
+        subdept_key = combined_data.get(f"priority_{i}_subdepartment")
+        pos_index = combined_data.get(f"priority_{i}_position")
+        
+        print(f"DEBUG: priority_{i}: dept='{dept_key}', subdept='{subdept_key}', pos='{pos_index}'")
         
         if dept_key and pos_index is not None:
             priorities_count += 1
@@ -170,21 +182,44 @@ async def get_priorities_overview(dialog_manager: DialogManager, **kwargs):
         else:
             priorities_text += f"⚪ <b>{i}-й приоритет:</b> <i>не выбран</i>\n"
     
+    print(f"DEBUG: final priorities_text: '{priorities_text}'")
+    
     return {
         "priorities_text": priorities_text,
         "priorities_count": priorities_count,
-        "can_add_2": priorities_count >= 1 and not data.get("priority_2_department"),
-        "can_add_3": priorities_count >= 2 and not data.get("priority_3_department"),
+        "can_add_2": priorities_count >= 1 and not combined_data.get("priority_2_department"),
+        "can_add_3": priorities_count >= 2 and not combined_data.get("priority_3_department"),
     }
 
 
 async def get_edit_departments_list(dialog_manager: DialogManager, **kwargs):
-    """Получить список департаментов для редактирования (то же что и обычный список)"""
-    return await get_departments_list(dialog_manager, **kwargs)
+    """Получить список департаментов для редактирования с предзаполнением текущего выбора"""
+    # Получаем обычный список отделов
+    result = await get_departments_list(dialog_manager, **kwargs)
+    
+    # Определяем редактируемый приоритет и отмечаем выбранный отдел
+    editing_priority = dialog_manager.dialog_data.get("editing_priority", 1)
+    current_dept = dialog_manager.dialog_data.get(f"priority_{editing_priority}_department")
+    
+    if current_dept:
+        # Устанавливаем выбранный отдел в состояние редактирования
+        dialog_manager.dialog_data["edit_selected_department"] = current_dept
+        
+        # Отмечаем текущий выбор в списке отделов
+        departments = result.get("departments", [])
+        updated_departments = []
+        for dept_id, dept_name in departments:
+            if dept_id == current_dept:
+                updated_departments.append((dept_id, f"✅ {dept_name} (текущий выбор)"))
+            else:
+                updated_departments.append((dept_id, dept_name))
+        result["departments"] = updated_departments
+    
+    return result
 
 
 async def get_edit_subdepartments_list(dialog_manager: DialogManager, **kwargs):
-    """Получить список под-отделов для редактирования"""
+    """Получить список под-отделов для редактирования с предзаполнением текущего выбора"""
     config = load_departments_config()
     
     # Получаем выбранный департамент из состояния редактирования
@@ -195,10 +230,21 @@ async def get_edit_subdepartments_list(dialog_manager: DialogManager, **kwargs):
     dept_data = config["departments"].get(selected_dept, {})
     subdepartments = []
     
+    # Получаем текущий выбранный под-отдел для редактируемого приоритета
+    editing_priority = dialog_manager.dialog_data.get("editing_priority", 1)
+    current_subdept = dialog_manager.dialog_data.get(f"priority_{editing_priority}_subdepartment")
+    
     # Если есть под-отделы
     if "subdepartments" in dept_data:
         for subdept_key, subdept_data in dept_data["subdepartments"].items():
-            subdepartments.append((subdept_key, subdept_data["name"]))
+            if subdept_key == current_subdept:
+                display_name = f"✅ {subdept_data['name']} (текущий выбор)"
+            else:
+                display_name = subdept_data["name"]
+            subdepartments.append((subdept_key, display_name))
+    
+    if current_subdept:
+        dialog_manager.dialog_data["edit_selected_subdepartment"] = current_subdept
     
     return {
         "subdepartments": subdepartments,
@@ -236,11 +282,19 @@ async def get_edit_positions_for_department(dialog_manager: DialogManager, **kwa
     dialog_data = dialog_manager.dialog_data
     editing_priority = dialog_data.get("editing_priority", 1)
     
+    # Получаем текущую выбранную позицию для редактируемого приоритета
+    current_position = dialog_data.get(f"priority_{editing_priority}_position")
+    
     for i, pos_name in enumerate(positions_list):
         # Проверяем, не выбрана ли уже эта позиция
         # (исключая редактируемый приоритет)
         if not _is_vacancy_already_selected(dialog_data, selected_dept, selected_subdept, str(i), exclude_priority=editing_priority):
-            positions.append((str(i), pos_name))
+            # Отмечаем текущую выбранную позицию специальным символом
+            if current_position is not None and str(i) == str(current_position):
+                display_name = f"✅ {pos_name} (текущий выбор)"
+            else:
+                display_name = pos_name
+            positions.append((str(i), display_name))
     
     return {
         "positions": positions,

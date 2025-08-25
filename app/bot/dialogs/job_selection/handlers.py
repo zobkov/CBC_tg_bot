@@ -181,7 +181,35 @@ async def on_edit_priority_1(
 ):
     """Обработчик редактирования первого приоритета"""
     dialog_manager.dialog_data["editing_priority"] = 1
-    await dialog_manager.switch_to(JobSelectionSG.edit_priority_1)
+    
+    # Проверяем, есть ли уже выбранные данные для этого приоритета
+    current_dept = dialog_manager.dialog_data.get("priority_1_department")
+    current_subdept = dialog_manager.dialog_data.get("priority_1_subdepartment")
+    
+    if current_dept:
+        # Предзаполняем данные редактирования
+        dialog_manager.dialog_data["edit_selected_department"] = current_dept
+        
+        # Проверяем, есть ли под-отделы у этого отдела
+        from config.config import load_departments_config
+        config = load_departments_config()
+        dept_data = config["departments"].get(current_dept, {})
+        has_subdepartments = "subdepartments" in dept_data
+        
+        if has_subdepartments:
+            if current_subdept:
+                # Есть и отдел, и под-отдел - переходим к выбору позиции
+                dialog_manager.dialog_data["edit_selected_subdepartment"] = current_subdept
+                await dialog_manager.switch_to(JobSelectionSG.edit_priority_1_position)
+            else:
+                # Есть отдел, но нет под-отдела - переходим к выбору под-отдела
+                await dialog_manager.switch_to(JobSelectionSG.edit_priority_1_subdepartment)
+        else:
+            # Отдел без под-отделов - переходим к выбору позиции
+            await dialog_manager.switch_to(JobSelectionSG.edit_priority_1_position)
+    else:
+        # Нет выбранного отдела - начинаем с выбора отдела
+        await dialog_manager.switch_to(JobSelectionSG.edit_priority_1)
 
 
 async def on_edit_priority_2(
@@ -189,7 +217,35 @@ async def on_edit_priority_2(
 ):
     """Обработчик редактирования второго приоритета"""
     dialog_manager.dialog_data["editing_priority"] = 2
-    await dialog_manager.switch_to(JobSelectionSG.edit_priority_2)
+    
+    # Проверяем, есть ли уже выбранные данные для этого приоритета
+    current_dept = dialog_manager.dialog_data.get("priority_2_department")
+    current_subdept = dialog_manager.dialog_data.get("priority_2_subdepartment")
+    
+    if current_dept:
+        # Предзаполняем данные редактирования
+        dialog_manager.dialog_data["edit_selected_department"] = current_dept
+        
+        # Проверяем, есть ли под-отделы у этого отдела
+        from config.config import load_departments_config
+        config = load_departments_config()
+        dept_data = config["departments"].get(current_dept, {})
+        has_subdepartments = "subdepartments" in dept_data
+        
+        if has_subdepartments:
+            if current_subdept:
+                # Есть и отдел, и под-отдел - переходим к выбору позиции
+                dialog_manager.dialog_data["edit_selected_subdepartment"] = current_subdept
+                await dialog_manager.switch_to(JobSelectionSG.edit_priority_2_position)
+            else:
+                # Есть отдел, но нет под-отдела - переходим к выбору под-отдела
+                await dialog_manager.switch_to(JobSelectionSG.edit_priority_2_subdepartment)
+        else:
+            # Отдел без под-отделов - переходим к выбору позиции
+            await dialog_manager.switch_to(JobSelectionSG.edit_priority_2_position)
+    else:
+        # Нет выбранного отдела - начинаем с выбора отдела
+        await dialog_manager.switch_to(JobSelectionSG.edit_priority_2)
 
 
 async def on_edit_priority_3(
@@ -197,7 +253,35 @@ async def on_edit_priority_3(
 ):
     """Обработчик редактирования третьего приоритета"""
     dialog_manager.dialog_data["editing_priority"] = 3
-    await dialog_manager.switch_to(JobSelectionSG.edit_priority_3)
+    
+    # Проверяем, есть ли уже выбранные данные для этого приоритета
+    current_dept = dialog_manager.dialog_data.get("priority_3_department")
+    current_subdept = dialog_manager.dialog_data.get("priority_3_subdepartment")
+    
+    if current_dept:
+        # Предзаполняем данные редактирования
+        dialog_manager.dialog_data["edit_selected_department"] = current_dept
+        
+        # Проверяем, есть ли под-отделы у этого отдела
+        from config.config import load_departments_config
+        config = load_departments_config()
+        dept_data = config["departments"].get(current_dept, {})
+        has_subdepartments = "subdepartments" in dept_data
+        
+        if has_subdepartments:
+            if current_subdept:
+                # Есть и отдел, и под-отдел - переходим к выбору позиции
+                dialog_manager.dialog_data["edit_selected_subdepartment"] = current_subdept
+                await dialog_manager.switch_to(JobSelectionSG.edit_priority_3_position)
+            else:
+                # Есть отдел, но нет под-отдела - переходим к выбору под-отдела
+                await dialog_manager.switch_to(JobSelectionSG.edit_priority_3_subdepartment)
+        else:
+            # Отдел без под-отделов - переходим к выбору позиции
+            await dialog_manager.switch_to(JobSelectionSG.edit_priority_3_position)
+    else:
+        # Нет выбранного отдела - начинаем с выбора отдела
+        await dialog_manager.switch_to(JobSelectionSG.edit_priority_3)
 
 
 async def on_edit_department_selected(
