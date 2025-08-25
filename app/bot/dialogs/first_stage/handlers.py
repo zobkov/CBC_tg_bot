@@ -1091,8 +1091,19 @@ async def on_edit_how_found_continue(callback: CallbackQuery, widget, dialog_man
             await callback.answer("❌ Пожалуйста, выберите хотя бы один вариант", show_alert=True)
             return
         dialog_manager.dialog_data["how_found_selections"] = list(checked_items)
-        await callback.answer("✅ Источники информации о КБК успешно изменены!")
-        await dialog_manager.switch_to(FirstStageSG.confirmation)
+        
+        # Проверяем, выбрал ли пользователь "Ранее участвовал в КБК" (индекс 6)
+        if "6" in checked_items:
+            logger.info(f"⏭️ Пользователь {callback.from_user.id} выбрал 'Ранее участвовал в КБК', переходим к выбору предыдущего отдела")
+            await callback.answer("✅ Источники информации обновлены!")
+            await dialog_manager.switch_to(FirstStageSG.edit_previous_department)
+        else:
+            # Если не выбрал участие в КБК, очищаем данные о предыдущем отделе
+            dialog_manager.dialog_data.pop("previous_department", None)
+            dialog_manager.dialog_data.pop("previous_department_name", None)
+            logger.info(f"🔄 Пользователь {callback.from_user.id} не участвовал в КБК, очищаем данные о предыдущем отделе")
+            await callback.answer("✅ Источники информации о КБК успешно изменены!")
+            await dialog_manager.switch_to(FirstStageSG.confirmation)
 
 
 async def on_edit_previous_department_selected(callback: CallbackQuery, widget, dialog_manager: DialogManager, item_id, **kwargs):

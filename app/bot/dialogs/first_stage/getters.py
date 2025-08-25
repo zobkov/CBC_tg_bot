@@ -207,14 +207,14 @@ async def get_form_summary(dialog_manager: DialogManager, **kwargs) -> Dict[str,
         return {"summary": "Ошибка загрузки конфигурации"}
     
     # Получаем множественные варианты "Откуда узнали" из Multiselect
-    multiselect = dialog_manager.find("how_found_multiselect")
-    how_found_selections: list[str] = []
+    # Сначала пытаемся получить из dialog_data (где сохраняются данные при редактировании)
+    how_found_selections = dialog_data.get("how_found_selections", [])
     
-    if multiselect:
-        how_found_selections = list(multiselect.get_checked())
-    else:
-        # Fallback к dialog_data если Multiselect не найден
-        how_found_selections = dialog_data.get("how_found_selections", [])
+    # Если данных нет в dialog_data, пробуем получить из активного виджета
+    if not how_found_selections:
+        multiselect = dialog_manager.find("how_found_multiselect")
+        if multiselect:
+            how_found_selections = list(multiselect.get_checked())
     
     how_found_texts = []
     for selection in how_found_selections:
@@ -236,6 +236,8 @@ async def get_form_summary(dialog_manager: DialogManager, **kwargs) -> Dict[str,
             # Приоритетно используем сохраненное имя (для legacy)
             dept_name = previous_dept_name or config.selection.departments.get(previous_dept_key, {}).get("name", previous_dept_key)
             previous_dept_text = f"\n🏢 <b>Предыдущий отдел в КБК:</b> {dept_name}"
+        # Если выбрано "Ранее участвовал в КБК", но отдел не указан, не показываем поле
+    # Если не выбрано "Ранее участвовал в КБК", поле не показываем вообще
     
     # Формируем информацию о приоритетах вакансий
     priorities_summary = ""
@@ -246,12 +248,6 @@ async def get_form_summary(dialog_manager: DialogManager, **kwargs) -> Dict[str,
     
     # Объединяем данные: приоритет у dialog_data, но start_data может дополнить
     combined_data = {**start_data, **dialog_data}
-    
-    # Добавим отладочную информацию
-    print(f"DEBUG: get_form_summary - dialog_data keys = {list(dialog_data.keys())}")
-    print(f"DEBUG: get_form_summary - start_data keys = {list(start_data.keys())}")
-    print(f"DEBUG: get_form_summary - combined_data keys = {list(combined_data.keys())}")
-    print(f"DEBUG: get_form_summary - checking priorities...")
     
     for i in range(1, 4):
         # Используем combined_data для получения приоритетов

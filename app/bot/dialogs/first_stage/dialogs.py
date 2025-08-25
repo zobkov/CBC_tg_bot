@@ -217,7 +217,7 @@ first_stage_dialog = Dialog(
                 on_click=on_edit_field_clicked
             ),
             Button(
-                Format("📢 Изменить 'Откуда узнали'"),
+                Format("📢 Изменить 'Откуда узнал(а) о КБК'"),
                 id="edit_how_found",
                 on_click=on_edit_field_clicked
             ),
@@ -336,13 +336,15 @@ first_stage_dialog = Dialog(
     
     Window(
         Const("Респект, коллега! В каком отделе ты работал?"),
-        Radio(
-            Format("• {item[text]}"),
-            Format("🔘 {item[text]}"),
-            id="edit_previous_dept_radio",
-            item_id_getter=lambda item: item["id"],
-            items="departments",
-            on_click=on_edit_previous_department_selected
+        Column(
+            Radio(
+                Format("🔘 {item[text]}"),
+                Format("⚪ {item[text]}"),
+                id="edit_previous_dept_radio",
+                item_id_getter=lambda item: item["id"],
+                items="departments",
+                on_click=on_edit_previous_department_selected
+            )
         ),
         Button(
             Const("⬅️ Назад к меню"),
