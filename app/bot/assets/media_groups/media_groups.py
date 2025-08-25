@@ -59,9 +59,9 @@ def build_start_media_group(caption: str | None = None):
         "start/4.png",
         "start/5.png",
         "start/6.png",
-        "start/9.png",
-        "start/7.png",
         "start/8.png",
+        "start/7.png",
+        "start/9.png",
     ]
     
     # Используем оптимизированную функцию

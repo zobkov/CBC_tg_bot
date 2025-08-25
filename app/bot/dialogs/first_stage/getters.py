@@ -283,9 +283,9 @@ async def get_form_summary(dialog_manager: DialogManager, **kwargs) -> Dict[str,
             except (IndexError, ValueError):
                 pos_name = "Неизвестная позиция"
                 
-            priorities_summary += f"  {i}. {dept_display_name} - {pos_name}\n"
+            priorities_summary += f"{i}. {dept_display_name} - {pos_name}\n"
         else:
-            priorities_summary += f"  {i}. Не выбрано\n"
+            priorities_summary += f"{i}. Не выбрано\n"
     
     if not priorities_exist:
         priorities_summary = "❌ Вакансии не выбраны"
