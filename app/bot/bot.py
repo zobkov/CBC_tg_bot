@@ -17,6 +17,7 @@ from aiogram_dialog.api.exceptions import UnknownIntent, UnknownState
 from config.config import load_config
 from app.infrastructure.database.connect_to_pg import get_pg_pool
 from app.bot.middlewares.database import DatabaseMiddleware
+from app.bot.middlewares.error_handler import ErrorHandlerMiddleware
 
 from app.bot.handlers.commands import router as commands_router 
 
@@ -120,6 +121,7 @@ async def main():
                        )
 
     logger.info("Including middlewares")
+    dp.update.middleware(ErrorHandlerMiddleware())
     dp.update.middleware(DatabaseMiddleware())
 
     logger.info("Setting up dialogs")
