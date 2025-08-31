@@ -12,18 +12,16 @@ from .getters import (
     get_edit_menu_data, get_edit_how_found_options, get_first_stage_media
 )
 from .handlers import (
-    on_apply_clicked, on_full_name_input, on_university_input,
-    on_phone_input, on_email_input, on_course_selected, 
+    on_full_name_input, on_university_input, on_phone_input, on_email_input,
     on_how_found_state_changed, on_how_found_continue, on_previous_department_selected,
-    on_department_selected, on_position_selected,
-    on_experience_input, on_motivation_input, on_resume_uploaded,
-    on_confirm_application, on_edit_clicked, on_edit_field_clicked, on_back_to_confirmation,
-    on_edit_full_name_input, on_edit_university_input, on_edit_course_selected,
-    on_edit_phone_input, on_edit_email_input, on_edit_how_found_state_changed,
-    on_edit_how_found_continue, on_edit_previous_department_selected,
-    on_edit_experience_input, on_edit_motivation_input, on_edit_resume_uploaded,
-    on_edit_department_selected, on_edit_position_selected,
-    go_to_menu, on_job_selection_result
+    on_job_selection_result, on_yes_previous_kbk, on_no_previous_kbk,
+    on_experience_input, on_motivation_input, on_resume_uploaded, on_skip_resume,
+    on_apply_clicked, on_submit_application, on_back_to_menu, go_to_menu,
+    on_edit_full_name_input, on_edit_university_input, on_edit_phone_input, on_edit_email_input,
+    on_edit_experience_input, on_edit_motivation_input, on_edit_resume_uploaded, on_skip_edit_resume,
+    on_edit_department_selected, on_edit_position_selected, on_back_to_confirmation,
+    on_edit_clicked, on_confirm_application, on_edit_field_clicked,
+    on_edit_how_found_state_changed, on_edit_how_found_continue, on_edit_previous_department_selected
 )
 
 first_stage_dialog = Dialog(
@@ -166,7 +164,7 @@ first_stage_dialog = Dialog(
         Button(
             Const("⏭️ Пропустить отправку резюме"),
             id="skip_resume",
-            on_click=on_resume_uploaded
+            on_click=on_skip_resume
         ),
         state=FirstStageSG.resume_upload
     ),
@@ -401,7 +399,7 @@ first_stage_dialog = Dialog(
         Button(
             Const("⏭️ Пропустить отправку резюме"),
             id="skip_edit_resume",
-            on_click=on_edit_resume_uploaded
+            on_click=on_skip_edit_resume
         ),
         Button(
             Const("⬅️ Назад к меню"),

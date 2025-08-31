@@ -1012,6 +1012,50 @@ async def on_resume_uploaded(message: Message, widget, dialog_manager: DialogMan
     await process_resume_file(message, widget, dialog_manager, **kwargs)
 
 
+async def on_skip_resume(callback: CallbackQuery, button, dialog_manager: DialogManager):
+    """Обработка пропуска отправки резюме"""
+    logger.info(f"⏭️ Пользователь {callback.from_user.id} пропускает отправку резюме")
+    # Очищаем данные резюме
+    dialog_manager.dialog_data.pop("resume_file_id", None)
+    dialog_manager.dialog_data.pop("resume_filename", None)
+    dialog_manager.dialog_data.pop("resume_text", None)
+    await callback.answer("✅ Резюме пропущено!")
+    await dialog_manager.switch_to(FirstStageSG.confirmation)
+
+
+async def on_yes_previous_kbk(callback: CallbackQuery, button, dialog_manager: DialogManager):
+    """Обработка выбора 'Да' для участия в предыдущих КБК"""
+    logger.info(f"✅ Пользователь {callback.from_user.id} подтвердил участие в предыдущих КБК")
+    dialog_manager.dialog_data["was_in_kbk"] = True
+    await callback.answer("✅ Отлично!")
+    await dialog_manager.switch_to(FirstStageSG.previous_department)
+
+
+async def on_no_previous_kbk(callback: CallbackQuery, button, dialog_manager: DialogManager):
+    """Обработка выбора 'Нет' для участия в предыдущих КБК"""
+    logger.info(f"❌ Пользователь {callback.from_user.id} НЕ участвовал в предыдущих КБК")
+    dialog_manager.dialog_data["was_in_kbk"] = False
+    await callback.answer("✅ Понятно!")
+    # Пропускаем выбор отдела КБК и переходим к выбору вакансий
+    await dialog_manager.start("job_selection", data=dialog_manager.dialog_data)
+
+
+async def on_submit_application(callback: CallbackQuery, button, dialog_manager: DialogManager):
+    """Обработка финальной отправки заявки"""
+    logger.info(f"🚀 Пользователь {callback.from_user.id} финально отправляет заявку")
+    await save_application(dialog_manager)
+    await callback.answer("✅ Заявка успешно отправлена!")
+    await dialog_manager.switch_to(FirstStageSG.success)
+
+
+async def on_back_to_menu(callback: CallbackQuery, button, dialog_manager: DialogManager):
+    """Возврат в главное меню"""
+    logger.info(f"🏠 Пользователь {callback.from_user.id} возвращается в главное меню")
+    await callback.answer("🏠 Возвращаемся в меню")
+    # Тут нужно будет перейти в главное меню диалога
+    await dialog_manager.done()
+
+
 # Новые обработчики для множественного выбора "Откуда узнали о КБК"
 async def on_how_found_state_changed(callback: CallbackQuery, widget, dialog_manager: DialogManager, *args, **kwargs):
     """Обработчик изменения состояния в Multiselect"""
@@ -1351,6 +1395,17 @@ async def on_edit_resume_uploaded(message: Message, widget, dialog_manager: Dial
     # Используем расширенную логику обработки резюме (поддерживает файлы и текст)
     await process_resume_file(message, widget, dialog_manager, **kwargs)
     await message.answer("✅ Резюме успешно изменено!")
+    await dialog_manager.switch_to(FirstStageSG.confirmation)
+
+
+async def on_skip_edit_resume(callback: CallbackQuery, button, dialog_manager: DialogManager):
+    """Обработка пропуска отправки резюме при редактировании"""
+    logger.info(f"✏️⏭️ Пользователь {callback.from_user.id} пропускает отправку резюме при редактировании")
+    # Очищаем данные резюме, если нужно
+    dialog_manager.dialog_data.pop("resume_file_id", None)
+    dialog_manager.dialog_data.pop("resume_filename", None)
+    dialog_manager.dialog_data.pop("resume_text", None)
+    await callback.answer("✅ Резюме не будет изменено!")
     await dialog_manager.switch_to(FirstStageSG.confirmation)
 
 
