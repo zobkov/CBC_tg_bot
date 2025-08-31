@@ -295,12 +295,23 @@ async def on_edit_department_selected(
     
     dialog_manager.dialog_data["edit_selected_department"] = item_id
     
+    # Определяем какой приоритет редактируется
+    editing_priority = dialog_manager.dialog_data.get("editing_priority", 1)
+    
+    # Сбрасываем выбранную позицию и подотдел, так как сменился отдел
+    # Это исправляет баг с отображением неправильной позиции при смене отдела
+    if f"priority_{editing_priority}_position" in dialog_manager.dialog_data:
+        del dialog_manager.dialog_data[f"priority_{editing_priority}_position"]
+    if f"priority_{editing_priority}_subdepartment" in dialog_manager.dialog_data:
+        del dialog_manager.dialog_data[f"priority_{editing_priority}_subdepartment"]
+    
+    # Сбрасываем также временные данные редактирования для подотдела
+    if "edit_selected_subdepartment" in dialog_manager.dialog_data:
+        del dialog_manager.dialog_data["edit_selected_subdepartment"]
+    
     # Проверяем, есть ли у отдела под-отделы
     dept_data = config["departments"].get(item_id, {})
     has_subdepartments = "subdepartments" in dept_data
-    
-    # Определяем какой приоритет редактируется
-    editing_priority = dialog_manager.dialog_data.get("editing_priority", 1)
     
     if has_subdepartments:
         if editing_priority == 1:
@@ -323,6 +334,14 @@ async def on_edit_subdepartment_selected(
 ):
     """Обработчик выбора под-отдела при редактировании"""
     dialog_manager.dialog_data["edit_selected_subdepartment"] = item_id
+    
+    # Определяем какой приоритет редактируется
+    editing_priority = dialog_manager.dialog_data.get("editing_priority", 1)
+    
+    # Сбрасываем выбранную позицию, так как сменился подотдел
+    # Это исправляет баг с отображением неправильной позиции при смене подотдела
+    if f"priority_{editing_priority}_position" in dialog_manager.dialog_data:
+        del dialog_manager.dialog_data[f"priority_{editing_priority}_position"]
     
     # Получаем информацию о выбранном отделе
     selected_dept = dialog_manager.dialog_data.get("edit_selected_department")

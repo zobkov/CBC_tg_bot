@@ -279,13 +279,23 @@ async def get_edit_positions_for_department(dialog_manager: DialogManager, **kwa
     
     # Получаем текущую выбранную позицию для редактируемого приоритета
     current_position = dialog_data.get(f"priority_{editing_priority}_position")
+    current_dept = dialog_data.get(f"priority_{editing_priority}_department")
+    current_subdept = dialog_data.get(f"priority_{editing_priority}_subdepartment")
     
     for i, pos_name in enumerate(positions_list):
         # Проверяем, не выбрана ли уже эта позиция
         # (исключая редактируемый приоритет)
         if not _is_vacancy_already_selected(dialog_data, selected_dept, selected_subdept, str(i), exclude_priority=editing_priority):
             # Отмечаем текущую выбранную позицию специальным символом
-            if current_position is not None and str(i) == str(current_position):
+            # Проверяем не только индекс позиции, но и соответствие отдела/подотдела
+            is_current_choice = (
+                current_position is not None and 
+                str(i) == str(current_position) and 
+                current_dept == selected_dept and 
+                current_subdept == selected_subdept
+            )
+            
+            if is_current_choice:
                 display_name = f"✅ {pos_name} (текущий выбор)"
             else:
                 display_name = pos_name
