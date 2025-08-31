@@ -194,9 +194,9 @@ async def on_edit_priority_1(
         dialog_manager.dialog_data["edit_selected_department"] = current_dept
         
         # Проверяем, есть ли под-отделы у этого отдела
-        from config.config import load_departments_config
         config = load_departments_config()
         dept_data = config["departments"].get(current_dept, {})
+        has_subdepartments = "subdepartments" in dept_data
         has_subdepartments = "subdepartments" in dept_data
         
         if has_subdepartments:
@@ -230,9 +230,9 @@ async def on_edit_priority_2(
         dialog_manager.dialog_data["edit_selected_department"] = current_dept
         
         # Проверяем, есть ли под-отделы у этого отдела
-        from config.config import load_departments_config
         config = load_departments_config()
         dept_data = config["departments"].get(current_dept, {})
+        has_subdepartments = "subdepartments" in dept_data
         has_subdepartments = "subdepartments" in dept_data
         
         if has_subdepartments:
@@ -266,9 +266,9 @@ async def on_edit_priority_3(
         dialog_manager.dialog_data["edit_selected_department"] = current_dept
         
         # Проверяем, есть ли под-отделы у этого отдела
-        from config.config import load_departments_config
         config = load_departments_config()
         dept_data = config["departments"].get(current_dept, {})
+        has_subdepartments = "subdepartments" in dept_data
         has_subdepartments = "subdepartments" in dept_data
         
         if has_subdepartments:
