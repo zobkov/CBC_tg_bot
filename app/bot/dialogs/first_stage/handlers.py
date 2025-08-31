@@ -149,17 +149,207 @@ async def process_motivation(message: Message, widget, dialog_manager: DialogMan
     await dialog_manager.next()
 
 
-async def process_resume_file(message: Message, widget, dialog_manager: DialogManager, **kwargs):
+async def process_text_resume(message: Message, dialog_manager: DialogManager):
+    """Обработка текстового резюме"""
+    user = message.from_user
+    text_content = message.text.strip()
+    
+    logger.info(f"📝 Обрабатываем текстовое резюме от пользователя {user.id}")
+    
+    # Получаем данные пользователя из диалога
+    dialog_data = dialog_manager.dialog_data
+    
+    # Безопасно получаем имя, фамилию и отчество
+    surname = dialog_data.get("surname", "")
+    name = dialog_data.get("name", "")
+    patronymic = dialog_data.get("patronymic", "")
+    
+    # Если данные пустые, используем значения по умолчанию
+    if not surname or surname.strip() == "":
+        surname = "User"
+    if not name or name.strip() == "":
+        name = "Unknown"
+    if not patronymic or patronymic.strip() == "":
+        patronymic = "Unknown"
+
+    logger.info(f"👤 Данные пользователя для генерации имени файла:")
+    logger.info(f"   - Фамилия: {surname}")
+    logger.info(f"   - Имя: {name}")
+    logger.info(f"   - Отчество: {patronymic}")
+
+    # Генерируем имя файла
+    name_initial = name[0].upper() if name and len(name) > 0 and name != "Unknown" else "U"
+    
+    if patronymic and patronymic.strip() != "" and patronymic != "Unknown":
+        patronymic_initial = patronymic[0].upper()
+        initials = f"{name_initial}{patronymic_initial}"
+        logger.info(f"   📝 Инициалы (с отчеством): {initials}")
+    else:
+        initials = name_initial
+        logger.info(f"   📝 Инициалы (без отчества): {initials}")
+    
+    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+    raw_filename = f"{surname}_{initials}_{user.username or user.id}_{timestamp}.txt"
+    new_filename = make_safe_filename(raw_filename)
+    
+    logger.info(f"📝 Сгенерировано имя файла для текстового резюме: {new_filename}")
+
+    try:
+        # Создаем директорию если её нет
+        file_path = f"app/storage/resumes/{new_filename}"
+        os.makedirs(os.path.dirname(file_path), exist_ok=True)
+        
+        # Сохраняем текст в файл
+        with open(file_path, 'w', encoding='utf-8') as f:
+            f.write(text_content)
+        
+        logger.info(f"✅ Текстовое резюме сохранено локально: {file_path}")
+        
+        # Обрабатываем Google Drive загрузку
+        config: Config = dialog_manager.middleware_data.get("config")
+        google_file_url = None
+        
+        if config and config.google and config.google.enable_drive:
+            google_file_url = await upload_to_google_drive(file_path, new_filename, config, user.id)
+            if google_file_url:
+                dialog_manager.dialog_data["resume_google_url"] = google_file_url
+            else:
+                dialog_manager.dialog_data["resume_google_error"] = "Не удалось получить URL файла в Google Drive"
+        
+        # Сохраняем информацию о файле в данных диалога
+        dialog_manager.dialog_data["resume_file"] = new_filename
+        
+        # Подготавливаем сообщение пользователю
+        message_text = f"✅ Текстовое резюме получено и сохранено как: {new_filename}\n"
+        message_text += "Теперь ты можешь перейти к следующему шагу."
+        
+        await message.answer(message_text)
+        
+        # Переходим к подтверждению
+        logger.info(f"➡️ Переходим к подтверждению заявки для пользователя {user.id}")
+        await dialog_manager.switch_to(FirstStageSG.confirmation)
+        
+    except Exception as e:
+        logger.error(f"❌ Ошибка при обработке текстового резюме: {e}")
+        await message.answer("Произошла ошибка при обработке текста. Попробуйте еще раз.")
+        return
+
+
+async def process_photo_resume(message: Message, photo_list, dialog_manager: DialogManager):
+    """Обработка фотографии резюме"""
     bot: Bot = dialog_manager.middleware_data["bot"]
-    document: Document = message.document
+    user = message.from_user
+    
+    logger.info(f"📸 Обрабатываем фотографию резюме от пользователя {user.id}")
+    
+    # Берем фото самого высокого качества (последнее в списке)
+    if not photo_list:
+        logger.error(f"❌ Список фотографий пуст для пользователя {user.id}")
+        await message.answer("Произошла ошибка при обработке фотографии. Попробуйте еще раз.")
+        return
+    
+    # Выбираем фото наивысшего качества
+    photo = photo_list[-1]
+    
+    logger.info(f"📋 Информация о фотографии:")
+    logger.info(f"   - File ID: {photo.file_id}")
+    logger.info(f"   - Размер: {photo.file_size} байт ({photo.file_size / 1024 / 1024:.2f} МБ)")
+    logger.info(f"   - Разрешение: {photo.width}x{photo.height}")
+
+    # Проверяем размер файла (максимум 15 МБ)
+    max_size = 15 * 1024 * 1024
+    if photo.file_size and photo.file_size > max_size:
+        logger.warning(f"⚠️ Фотография пользователя {user.id} слишком большая: {photo.file_size} байт")
+        await message.answer("❌ Фотография слишком большая. Максимальный размер: 15 МБ.\nПожалуйста, загрузите фотографию меньшего размера.")
+        return
+
+    # Получаем данные пользователя из диалога
+    dialog_data = dialog_manager.dialog_data
+    
+    # Безопасно получаем имя, фамилию и отчество
+    surname = dialog_data.get("surname", "")
+    name = dialog_data.get("name", "")
+    patronymic = dialog_data.get("patronymic", "")
+    
+    # Если данные пустые, используем значения по умолчанию
+    if not surname or surname.strip() == "":
+        surname = "User"
+    if not name or name.strip() == "":
+        name = "Unknown"
+    if not patronymic or patronymic.strip() == "":
+        patronymic = "Unknown"
+
+    logger.info(f"👤 Данные пользователя для генерации имени файла:")
+    logger.info(f"   - Фамилия: {surname}")
+    logger.info(f"   - Имя: {name}")
+    logger.info(f"   - Отчество: {patronymic}")
+
+    # Генерируем имя файла
+    name_initial = name[0].upper() if name and len(name) > 0 and name != "Unknown" else "U"
+    
+    if patronymic and patronymic.strip() != "" and patronymic != "Unknown":
+        patronymic_initial = patronymic[0].upper()
+        initials = f"{name_initial}{patronymic_initial}"
+        logger.info(f"   📝 Инициалы (с отчеством): {initials}")
+    else:
+        initials = name_initial
+        logger.info(f"   📝 Инициалы (без отчества): {initials}")
+    
+    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+    # Для фотографий используем расширение .jpg
+    raw_filename = f"{surname}_{initials}_{user.username or user.id}_{timestamp}.jpg"
+    new_filename = make_safe_filename(raw_filename)
+    
+    logger.info(f"📝 Сгенерировано имя файла для фотографии: {new_filename}")
+
+    try:
+        # Получаем файл от Telegram
+        file = await bot.get_file(photo.file_id)
+        file_path = f"app/storage/resumes/{new_filename}"
+        
+        # Создаем директорию если её нет
+        os.makedirs(os.path.dirname(file_path), exist_ok=True)
+        
+        # Скачиваем файл
+        await bot.download_file(file.file_path, file_path)
+        logger.info(f"✅ Фотография резюме скачана локально: {file_path}")
+        
+        # Обрабатываем Google Drive загрузку
+        config: Config = dialog_manager.middleware_data.get("config")
+        google_file_url = None
+        
+        if config and config.google and config.google.enable_drive:
+            google_file_url = await upload_to_google_drive(file_path, new_filename, config, user.id)
+            if google_file_url:
+                dialog_manager.dialog_data["resume_google_url"] = google_file_url
+            else:
+                dialog_manager.dialog_data["resume_google_error"] = "Не удалось получить URL файла в Google Drive"
+        
+        # Сохраняем информацию о файле в данных диалога
+        dialog_manager.dialog_data["resume_file"] = new_filename
+        
+        # Подготавливаем сообщение пользователю
+        message_text = f"✅ Фотография резюме получена и сохранена как: {new_filename}\n"
+        message_text += "Теперь ты можешь перейти к следующему шагу."
+        
+        await message.answer(message_text)
+        
+        # Переходим к подтверждению
+        logger.info(f"➡️ Переходим к подтверждению заявки для пользователя {user.id}")
+        await dialog_manager.switch_to(FirstStageSG.confirmation)
+        
+    except Exception as e:
+        logger.error(f"❌ Ошибка при обработке фотографии резюме: {e}")
+        await message.answer("Произошла ошибка при обработке фотографии. Попробуйте еще раз.")
+        return
+
+
+async def process_file_resume(message: Message, document: Document, dialog_manager: DialogManager):
+    """Обработка файлового резюме (любые типы файлов)"""
+    bot: Bot = dialog_manager.middleware_data["bot"]
     user = message.from_user
     
     logger.info(f"📄 Получен файл от пользователя {user.id} (@{user.username})")
-    
-    if not document:
-        logger.warning(f"⚠️ Пользователь {user.id} не прикрепил файл")
-        await message.answer("Пожалуйста, прикрепите файл резюме.")
-        return
 
     # Логируем информацию о файле
     logger.info(f"📋 Информация о файле:")
@@ -196,10 +386,8 @@ async def process_resume_file(message: Message, widget, dialog_manager: DialogMa
     logger.info(f"   - Отчество: {patronymic}")
 
     # Генерируем имя файла
-    # Безопасно получаем первые буквы имени и отчества
     name_initial = name[0].upper() if name and len(name) > 0 and name != "Unknown" else "U"
     
-    # Для инициалов: если отчества нет, используем только инициал имени
     if patronymic and patronymic.strip() != "" and patronymic != "Unknown":
         patronymic_initial = patronymic[0].upper()
         initials = f"{name_initial}{patronymic_initial}"
@@ -209,8 +397,7 @@ async def process_resume_file(message: Message, widget, dialog_manager: DialogMa
         logger.info(f"   📝 Инициалы (без отчества): {initials}")
     
     timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-    file_extension = os.path.splitext(document.file_name)[1] if document.file_name else ".pdf"
-    # Compose a human-friendly filename, then sanitize to ASCII for cross-platform safety
+    file_extension = os.path.splitext(document.file_name)[1] if document.file_name else ".bin"
     raw_filename = f"{surname}_{initials}_{user.username or user.id}_{timestamp}{file_extension}"
     new_filename = make_safe_filename(raw_filename)
     
@@ -228,105 +415,121 @@ async def process_resume_file(message: Message, widget, dialog_manager: DialogMa
         await bot.download_file(file.file_path, file_path)
         logger.info(f"✅ Файл резюме скачан локально: {file_path}")
         
-        # Проверяем настройки Google Drive
+        # Обрабатываем Google Drive загрузку
         config: Config = dialog_manager.middleware_data.get("config")
         google_file_url = None
         
-        # Google Drive загрузка (опциональная)
         if config and config.google and config.google.enable_drive:
-            logger.info(f"🔄 Google Drive включен, начинаем загрузку файла для пользователя {user.id}")
-            try:
-                from app.services.google_services import GoogleServicesManager
-                import asyncio
-                
-                # Создаем менеджер Google сервисов с параметрами из конфига
-                google_manager = GoogleServicesManager(
-                    credentials_path=config.google.credentials_path,
-                    spreadsheet_id=config.google.spreadsheet_id,
-                    drive_folder_id=config.google.drive_folder_id or "",
-                    enable_drive=config.google.enable_drive
-                )
-                
-                logger.info(f"🚀 Запускаем загрузку файла {new_filename} в Google Drive...")
-                
-                # Запускаем загрузку в отдельном потоке (так как метод синхронный)
-                loop = asyncio.get_event_loop()
-                google_file_url = await loop.run_in_executor(
-                    None, 
-                    google_manager.upload_file_to_drive,
-                    file_path,
-                    new_filename
-                )
-                
-                if google_file_url:
-                    logger.info(f"✅ Файл успешно загружен в Google Drive: {google_file_url}")
-                    dialog_manager.dialog_data["resume_google_url"] = google_file_url
-                else:
-                    logger.error("❌ Не удалось загрузить файл в Google Drive - получен пустой URL")
-                    dialog_manager.dialog_data["resume_google_error"] = "Не удалось получить URL файла в Google Drive"
-                
-            except Exception as e:
-                error_msg = str(e)
-                logger.error(f"❌ Ошибка загрузки резюме в Google Drive: {e}")
-                
-                # Определяем тип ошибки для более понятного сообщения пользователю
-                if "Service Accounts do not have storage quota" in error_msg:
-                    user_error_msg = "Необходимо настроить общий диск Google"
-                    logger.warning("⚠️ Google Drive: сервисный аккаунт не имеет квоты хранилища - нужен Shared Drive")
-                elif "storageQuotaExceeded" in error_msg:
-                    user_error_msg = "На Google Drive недостаточно места"
-                    logger.warning("⚠️ Google Drive: превышена квота хранилища")
-                elif "quotaExceeded" in error_msg:
-                    user_error_msg = "Превышены лимиты Google Drive API"
-                    logger.warning("⚠️ Google Drive: превышены лимиты API")
-                elif "403" in error_msg:
-                    user_error_msg = "Нет доступа к Google Drive"
-                    logger.warning("⚠️ Google Drive: ошибка доступа (403)")
-                elif "401" in error_msg:
-                    user_error_msg = "Ошибка авторизации Google Drive"
-                    logger.warning("⚠️ Google Drive: ошибка авторизации (401)")
-                elif "404" in error_msg:
-                    user_error_msg = "Папка на Google Drive не найдена"
-                    logger.warning("⚠️ Google Drive: папка не найдена (404)")
-                else:
-                    user_error_msg = f"Техническая ошибка Google Drive"
-                    logger.error(f"⚠️ Google Drive: неизвестная ошибка - {error_msg}")
-                
-                dialog_manager.dialog_data["resume_google_error"] = user_error_msg
-        else:
-            if not config:
-                logger.warning("⚠️ Конфигурация не найдена - Google Drive отключен")
-            elif not config.google:
-                logger.info("ℹ️ Google Services не настроены")
-            elif not config.google.enable_drive:
-                logger.info("ℹ️ Google Drive отключен в конфигурации")
+            google_file_url = await upload_to_google_drive(file_path, new_filename, config, user.id)
+            if google_file_url:
+                dialog_manager.dialog_data["resume_google_url"] = google_file_url
+            else:
+                dialog_manager.dialog_data["resume_google_error"] = "Не удалось получить URL файла в Google Drive"
         
         # Сохраняем информацию о файле в данных диалога
         dialog_manager.dialog_data["resume_file"] = new_filename
         
         # Подготавливаем сообщение пользователю
         message_text = f"✅ Резюме получено и сохранено как: {new_filename}\n"
-        """   
-        if google_file_url:
-            message_text += "📁 Файл также загружен в Google Drive\n"
-        elif config and config.google and config.google.enable_drive:
-            error = dialog_manager.dialog_data.get("resume_google_error", "")
-            message_text += f"⚠️ Файл сохранен локально, но не загружен в Google Drive: {error}\n"
-        else:
-            message_text += "📋 Файл сохранен локально (Google Drive отключен)\n
-        """
-            
         message_text += "Теперь ты можешь перейти к следующему шагу."
         
         await message.answer(message_text)
         
-        # ВАЖНО: Переходим к диалогу выбора вакансий
-        logger.info(f"➡️ Переходим к диалогу выбора вакансий для пользователя {user.id}")
+        # Переходим к подтверждению
+        logger.info(f"➡️ Переходим к подтверждению заявки для пользователя {user.id}")
         await dialog_manager.switch_to(FirstStageSG.confirmation)
         
     except Exception as e:
         logger.error(f"❌ Ошибка при обработке файла резюме: {e}")
         await message.answer("Произошла ошибка при обработке файла. Попробуйте еще раз.")
+        return
+
+
+async def upload_to_google_drive(file_path: str, filename: str, config: Config, user_id: int) -> str:
+    """Загружает файл в Google Drive и возвращает URL"""
+    logger.info(f"🔄 Google Drive включен, начинаем загрузку файла для пользователя {user_id}")
+    try:
+        from app.services.google_services import GoogleServicesManager
+        import asyncio
+        
+        # Создаем менеджер Google сервисов с параметрами из конфига
+        google_manager = GoogleServicesManager(
+            credentials_path=config.google.credentials_path,
+            spreadsheet_id=config.google.spreadsheet_id,
+            drive_folder_id=config.google.drive_folder_id or "",
+            enable_drive=config.google.enable_drive
+        )
+        
+        logger.info(f"🚀 Запускаем загрузку файла {filename} в Google Drive...")
+        
+        # Запускаем загрузку в отдельном потоке (так как метод синхронный)
+        loop = asyncio.get_event_loop()
+        google_file_url = await loop.run_in_executor(
+            None, 
+            google_manager.upload_file_to_drive,
+            file_path,
+            filename
+        )
+        
+        if google_file_url:
+            logger.info(f"✅ Файл успешно загружен в Google Drive: {google_file_url}")
+            return google_file_url
+        else:
+            logger.error("❌ Не удалось загрузить файл в Google Drive - получен пустой URL")
+            return ""
+        
+    except Exception as e:
+        error_msg = str(e)
+        logger.error(f"❌ Ошибка загрузки резюме в Google Drive: {e}")
+        
+        # Определяем тип ошибки для более понятного сообщения пользователю
+        if "Service Accounts do not have storage quota" in error_msg:
+            logger.warning("⚠️ Google Drive: сервисный аккаунт не имеет квоты хранилища - нужен Shared Drive")
+        elif "storageQuotaExceeded" in error_msg:
+            logger.warning("⚠️ Google Drive: превышена квота хранилища")
+        elif "quotaExceeded" in error_msg:
+            logger.warning("⚠️ Google Drive: превышены лимиты API")
+        elif "403" in error_msg:
+            logger.warning("⚠️ Google Drive: ошибка доступа (403)")
+        elif "401" in error_msg:
+            logger.warning("⚠️ Google Drive: ошибка авторизации (401)")
+        elif "404" in error_msg:
+            logger.warning("⚠️ Google Drive: папка не найдена (404)")
+        else:
+            logger.error(f"⚠️ Google Drive: неизвестная ошибка - {error_msg}")
+        
+        return ""
+
+
+async def process_resume_file(message: Message, widget, dialog_manager: DialogManager, **kwargs):
+    bot: Bot = dialog_manager.middleware_data["bot"]
+    document: Document = message.document
+    photo = message.photo
+    user = message.from_user
+    
+    logger.info(f"📄 Начинаем обработку резюме от пользователя {user.id} (@{user.username})")
+    
+    # Проверяем, что пришло: файл, фото или текст
+    if message.text and not document and not photo:
+        # Обработка текстового резюме
+        logger.info(f"📝 Получен текст резюме от пользователя {user.id} ({len(message.text)} символов)")
+        await process_text_resume(message, dialog_manager)
+        return
+    
+    if photo:
+        # Обработка фотографии
+        logger.info(f"📸 Получена фотография от пользователя {user.id}")
+        await process_photo_resume(message, photo, dialog_manager)
+        return
+    
+    if document:
+        # Обработка файлового резюме
+        await process_file_resume(message, document, dialog_manager)
+        return
+    
+    if not document and not photo and not message.text:
+        logger.warning(f"⚠️ Пользователь {user.id} не прикрепил файл, фото и не отправил текст")
+        await message.answer("Пожалуйста, прикрепите файл резюме, фото или отправьте текст резюме.")
         return
 
 
@@ -1145,7 +1348,7 @@ async def on_edit_motivation_input(message: Message, widget, dialog_manager: Dia
 async def on_edit_resume_uploaded(message: Message, widget, dialog_manager: DialogManager, **kwargs):
     """Обработка изменения резюме"""
     logger.info(f"✏️📎 Пользователь {message.from_user.id} загружает новое резюме")
-    # Используем существующую логику обработки резюме
+    # Используем расширенную логику обработки резюме (поддерживает файлы и текст)
     await process_resume_file(message, widget, dialog_manager, **kwargs)
     await message.answer("✅ Резюме успешно изменено!")
     await dialog_manager.switch_to(FirstStageSG.confirmation)
