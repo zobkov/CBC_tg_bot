@@ -110,6 +110,7 @@ async def get_departments_for_previous(dialog_manager: DialogManager, **kwargs) 
         "legacy_design": "Отдел дизайна",
         "legacy_logistics_it": "Логистика и ИТ",
         "legacy_cultural": "Культурно-экспертный отдел",
+        "legacy_volunteer": "Волонтер",
     }
 
     # Формируем элементы для Radio
