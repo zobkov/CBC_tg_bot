@@ -127,13 +127,15 @@ class UserFilesManager:
                     # Извлекаем номер файла и оригинальное название
                     filename = file_path.name
                     
-                    # Паттерн: фамилия_юзернейм_номер_оригинальное-название.расширение
-                    parts = filename.split('_')
-                    if len(parts) >= 4:
+                    # Паттерн: фамилия_имя_отчество_username_номер_оригинальное-название.расширение
+                    # Ищем номер файла в имени с помощью регулярного выражения
+                    match = re.search(r'_(\d+)_', filename)
+                    if match:
                         try:
-                            file_number = int(parts[2])  # номер файла
-                            # Оригинальное название - все после третьего подчеркивания
-                            original_part = '_'.join(parts[3:])
+                            file_number = int(match.group(1))
+                            # Находим позицию номера в строке и берем все после него
+                            number_pos = match.end()
+                            original_part = filename[number_pos:]
                             
                             files_info.append({
                                 "number": file_number,
@@ -147,6 +149,13 @@ class UserFilesManager:
                                 "original_name": filename,
                                 "file_path": str(file_path)
                             })
+                    else:
+                        # Если номер не найден, добавляем как есть
+                        files_info.append({
+                            "number": 0,
+                            "original_name": filename,
+                            "file_path": str(file_path)
+                        })
             
             # Сортируем по номеру файла
             files_info.sort(key=lambda x: x["number"])
