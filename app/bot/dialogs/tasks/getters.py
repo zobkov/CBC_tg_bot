@@ -188,3 +188,78 @@ async def get_task_3_info(dialog_manager: DialogManager, event_from_user: User, 
             "subdeparment_3": "",
             "position_3": ""
         }
+    
+async def get_tasks_files(dialog_manager: DialogManager, event_from_user: User, **kwargs) -> Dict[str, Any]:
+    """Получаем файлы заданий для всех трех приоритетов пользователя"""
+    
+    # Получаем доступ к базе данных из dialog_manager
+    db: DB = dialog_manager.middleware_data.get("db")
+    
+    if not db:
+        logger.error("Database connection not available in get_tasks_files")
+        return {
+            "task_1": None,
+            "task_2": None,
+            "task_3": None,
+        }
+
+    try:
+        # Получаем заявку пользователя
+        application: ApplicationsModel = await db.applications.get_application(user_id=event_from_user.id)
+        
+        if not application:
+            logger.warning(f"No application found for user {event_from_user.id}")
+            return {
+                "task_1": None,
+                "task_2": None,
+                "task_3": None,
+            }
+
+        # Импортируем функцию для получения файлов заданий
+        from app.utils.position_mapping import get_task_file_for_position
+        
+        # Получаем файлы для каждого приоритета
+        task_1_file = None
+        task_2_file = None
+        task_3_file = None
+        
+        # Первый приоритет
+        if application.department_1 and application.position_1:
+            task_1_file = get_task_file_for_position(
+                department=application.department_1,
+                subdepartment=application.subdepartment_1,
+                position=application.position_1
+            )
+        
+        # Второй приоритет
+        if application.department_2 and application.position_2:
+            task_2_file = get_task_file_for_position(
+                department=application.department_2,
+                subdepartment=application.subdepartment_2,
+                position=application.position_2
+            )
+        
+        # Третий приоритет
+        if application.department_3 and application.position_3:
+            task_3_file = get_task_file_for_position(
+                department=application.department_3,
+                subdepartment=application.subdepartment_3,
+                position=application.position_3
+            )
+
+        logger.info(f"Task files for user {event_from_user.id}: task_1={task_1_file}, task_2={task_2_file}, task_3={task_3_file}")
+
+        return {
+            "task_1": task_1_file,
+            "task_2": task_2_file,
+            "task_3": task_3_file,
+        }
+        
+    except Exception as e:
+        logger.error(f"Error getting task files for user {event_from_user.id}: {e}")
+        return {
+            "task_1": None,
+            "task_2": None,
+            "task_3": None,
+        }
+    
