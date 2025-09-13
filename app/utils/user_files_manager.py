@@ -22,13 +22,13 @@ class UserFilesManager:
         self.base_path.mkdir(parents=True, exist_ok=True)
         self.trash_path.mkdir(parents=True, exist_ok=True)
     
-    def _get_user_task_dir(self, user_id: int, task_number: int, department: str) -> Path:
-        """Получить путь к директории задания пользователя"""
+    def _get_user_directory(self, user_id: int, task_number: int, department: str) -> Path:
+        """Получает путь к директории пользователя в отделе: storage/solutions/department/user_id/"""
         # Очищаем название отдела от недопустимых символов
         safe_department = re.sub(r'[^\w\s-]', '', department).strip()
         safe_department = re.sub(r'[-\s]+', '_', safe_department)
         
-        user_dir = self.base_path / f"task_{task_number}" / safe_department / f"user_{user_id}"
+        user_dir = self.base_path / safe_department / str(user_id)
         user_dir.mkdir(parents=True, exist_ok=True)
         return user_dir
     
@@ -76,8 +76,8 @@ class UserFilesManager:
             str: Путь к сохраненному файлу
         """
         try:
-            # Получаем директорию пользователя
-            user_dir = self._get_user_task_dir(user_id, task_number, department)
+            # Получаем директорию пользователя: storage/solutions/department/user_id/
+            user_dir = self._get_user_directory(user_id, task_number, department)
             
             # Получаем следующий номер файла
             file_number = self._get_next_file_number(user_dir)
@@ -100,7 +100,7 @@ class UserFilesManager:
             # Копируем файл
             shutil.copy2(file_path, new_file_path)
             
-            logger.info(f"Сохранен файл пользователя {user_id}: {new_file_path}")
+            logger.info(f"Сохранен файл пользователя {user_id} в отделе {department}: {new_file_path}")
             return str(new_file_path)
             
         except Exception as e:
@@ -109,13 +109,13 @@ class UserFilesManager:
     
     def get_user_files_list(self, user_id: int, task_number: int, department: str) -> List[Dict[str, Any]]:
         """
-        Получить список файлов пользователя для задания
+        Получить список файлов пользователя для отдела
         
         Returns:
             List[Dict]: Список файлов с информацией [{"number": 1, "original_name": "name.ext", "file_path": "path"}, ...]
         """
         try:
-            user_dir = self._get_user_task_dir(user_id, task_number, department)
+            user_dir = self._get_user_directory(user_id, task_number, department)
             
             if not user_dir.exists():
                 return []
@@ -165,7 +165,7 @@ class UserFilesManager:
             bool: True если успешно
         """
         try:
-            user_dir = self._get_user_task_dir(user_id, task_number, department)
+            user_dir = self._get_user_directory(user_id, task_number, department)
             
             if not user_dir.exists():
                 return True
