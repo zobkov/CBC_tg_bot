@@ -275,4 +275,131 @@ async def get_tasks_files(dialog_manager: DialogManager, event_from_user: User, 
             "task_2": None,
             "task_3": None,
         }
+
+
+async def get_user_task_submission_status(dialog_manager: DialogManager, event_from_user: User, **kwargs) -> Dict[str, Any]:
+    """Получаем статус отправки заданий пользователя"""
+    
+    # Получаем доступ к базе данных из dialog_manager
+    db: DB = dialog_manager.middleware_data.get("db")
+    
+    if not db:
+        return {
+            "task_1_submitted": False,
+            "task_2_submitted": False,
+            "task_3_submitted": False
+        }
+
+    try:
+        # Получаем пользователя из БД
+        user = await db.users.get_user_record(user_id=event_from_user.id)
+        
+        if user:
+            return {
+                "task_1_submitted": user.task_1_submitted if hasattr(user, 'task_1_submitted') else False,
+                "task_2_submitted": user.task_2_submitted if hasattr(user, 'task_2_submitted') else False,
+                "task_3_submitted": user.task_3_submitted if hasattr(user, 'task_3_submitted') else False
+            }
+        else:
+            return {
+                "task_1_submitted": False,
+                "task_2_submitted": False,
+                "task_3_submitted": False
+            }
+        
+    except Exception as e:
+        logger.error(f"Error getting user task submission status {event_from_user.id}: {e}")
+        return {
+            "task_1_submitted": False,
+            "task_2_submitted": False,
+            "task_3_submitted": False
+        }
+
+
+async def get_user_files_info_task_1(dialog_manager: DialogManager, event_from_user: User, **kwargs) -> Dict[str, Any]:
+    """Получаем информацию о файлах пользователя для задания 1"""
+    return await _get_user_files_info(dialog_manager, event_from_user, task_number=1)
+
+
+async def get_user_files_info_task_2(dialog_manager: DialogManager, event_from_user: User, **kwargs) -> Dict[str, Any]:
+    """Получаем информацию о файлах пользователя для задания 2"""
+    return await _get_user_files_info(dialog_manager, event_from_user, task_number=2)
+
+
+async def get_user_files_info_task_3(dialog_manager: DialogManager, event_from_user: User, **kwargs) -> Dict[str, Any]:
+    """Получаем информацию о файлах пользователя для задания 3"""
+    return await _get_user_files_info(dialog_manager, event_from_user, task_number=3)
+
+
+async def _get_user_files_info(dialog_manager: DialogManager, event_from_user: User, task_number: int) -> Dict[str, Any]:
+    """Вспомогательная функция для получения информации о файлах пользователя"""
+    
+    # Получаем доступ к базе данных из dialog_manager
+    db: DB = dialog_manager.middleware_data.get("db")
+    
+    if not db:
+        return {
+            "files_list": [],
+            "files_count": 0,
+            "files_text": "Файлы не загружены"
+        }
+
+    try:
+        # Получаем заявку пользователя
+        application: ApplicationsModel = await db.applications.get_application(user_id=event_from_user.id)
+        
+        if not application:
+            return {
+                "files_list": [],
+                "files_count": 0,
+                "files_text": "Заявка не найдена"
+            }
+
+        # Определяем отдел для задания
+        department = None
+        if task_number == 1:
+            department = application.department_1
+        elif task_number == 2:
+            department = application.department_2
+        elif task_number == 3:
+            department = application.department_3
+        
+        if not department:
+            return {
+                "files_list": [],
+                "files_count": 0,
+                "files_text": "Отдел не определен"
+            }
+
+        # Получаем список файлов
+        from app.utils.user_files_manager import UserFilesManager
+        files_manager = UserFilesManager()
+        files_list = files_manager.get_user_files_list(
+            user_id=event_from_user.id,
+            task_number=task_number,
+            department=department
+        )
+        
+        # Формируем текст списка файлов
+        if files_list:
+            files_text_lines = []
+            for file_info in files_list:
+                files_text_lines.append(f"{file_info['number']}. {file_info['original_name']}")
+            files_text = "\n".join(files_text_lines)
+        else:
+            files_text = "Файлы не загружены"
+
+        return {
+            "files_list": files_list,
+            "files_count": len(files_list),
+            "files_text": files_text
+        }
+        
+    except Exception as e:
+        logger.error(f"Error getting user files info for task {task_number}, user {event_from_user.id}: {e}")
+        return {
+            "files_list": [],
+            "files_count": 0,
+            "files_text": "Ошибка загрузки информации о файлах"
+        }
     
