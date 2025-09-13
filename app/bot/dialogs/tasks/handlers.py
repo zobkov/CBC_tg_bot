@@ -196,11 +196,14 @@ async def on_delete_all_files_task_3(callback: CallbackQuery, button, dialog_man
 async def _handle_delete_all_files(callback: CallbackQuery, dialog_manager: DialogManager, task_number: int):
     """Общий обработчик удаления всех файлов"""
     
+    # Сначала отвечаем на callback
+    await callback.answer("⏳ Удаляем файлы...")
+    
     # Получаем доступ к базе данных
     db: DB = dialog_manager.middleware_data.get("db")
     
     if not db:
-        await callback.answer("❌ Ошибка системы")
+        await callback.message.answer("❌ Ошибка системы")
         return
     
     try:
@@ -208,7 +211,7 @@ async def _handle_delete_all_files(callback: CallbackQuery, dialog_manager: Dial
         application: ApplicationsModel = await db.applications.get_application(user_id=callback.from_user.id)
         
         if not application:
-            await callback.answer("❌ Заявка не найдена")
+            await callback.message.answer("❌ Заявка не найдена")
             return
         
         # Определяем отдел для задания
@@ -221,7 +224,7 @@ async def _handle_delete_all_files(callback: CallbackQuery, dialog_manager: Dial
             department = application.department_3
         
         if not department:
-            await callback.answer("❌ Отдел не определен")
+            await callback.message.answer("❌ Отдел не определен")
             return
         
         # Удаляем все файлы
@@ -233,15 +236,16 @@ async def _handle_delete_all_files(callback: CallbackQuery, dialog_manager: Dial
         )
         
         if success:
-            await callback.answer("✅ Все файлы удалены")
+            # Не отправляем дополнительные сообщения, диалог сам обновится
+            pass
         else:
-            await callback.answer("❌ Ошибка удаления файлов")
+            await callback.message.answer("❌ Ошибка удаления файлов")
         
         logger.info(f"Файлы пользователя {callback.from_user.id} для задания {task_number} удалены")
         
     except Exception as e:
         logger.error(f"Ошибка удаления файлов пользователя {callback.from_user.id}: {e}")
-        await callback.answer("❌ Ошибка удаления файлов")
+        await callback.message.answer("❌ Ошибка удаления файлов")
 
 
 async def on_confirm_upload_task_1(callback: CallbackQuery, button, dialog_manager: DialogManager):
@@ -262,11 +266,14 @@ async def on_confirm_upload_task_3(callback: CallbackQuery, button, dialog_manag
 async def _handle_confirm_upload(callback: CallbackQuery, dialog_manager: DialogManager, task_number: int):
     """Общий обработчик подтверждения отправки"""
     
+    # Сначала отвечаем на callback, чтобы избежать timeout
+    await callback.answer("⏳ Обрабатываем...")
+    
     # Получаем доступ к базе данных
     db: DB = dialog_manager.middleware_data.get("db")
     
     if not db:
-        await callback.answer("❌ Ошибка системы")
+        await callback.message.answer("❌ Ошибка системы")
         return
     
     try:
@@ -274,7 +281,7 @@ async def _handle_confirm_upload(callback: CallbackQuery, dialog_manager: Dialog
         application: ApplicationsModel = await db.applications.get_application(user_id=callback.from_user.id)
         
         if not application:
-            await callback.answer("❌ Заявка не найдена")
+            await callback.message.answer("❌ Заявка не найдена")
             return
         
         # Определяем отдел для задания
@@ -287,7 +294,7 @@ async def _handle_confirm_upload(callback: CallbackQuery, dialog_manager: Dialog
             department = application.department_3
         
         if not department:
-            await callback.answer("❌ Отдел не определен")
+            await callback.message.answer("❌ Отдел не определен")
             return
         
         # Проверяем, есть ли файлы
@@ -299,7 +306,7 @@ async def _handle_confirm_upload(callback: CallbackQuery, dialog_manager: Dialog
         )
         
         if files_count == 0:
-            await callback.answer("❌ Сначала загрузите файлы")
+            await callback.message.answer("❌ Сначала загрузите файлы")
             return
         
         # Обновляем статус отправки в БД
@@ -313,11 +320,11 @@ async def _handle_confirm_upload(callback: CallbackQuery, dialog_manager: Dialog
         elif task_number == 3:
             target_state = TasksSG.task_3_submitted
         
-        await callback.answer("✅ Задание отправлено!")
+        # Переходим к состоянию "отправлено"
         await dialog_manager.switch_to(state=target_state)
         
         logger.info(f"Пользователь {callback.from_user.id} подтвердил отправку задания {task_number}")
         
     except Exception as e:
         logger.error(f"Ошибка подтверждения отправки задания {task_number} пользователем {callback.from_user.id}: {e}")
-        await callback.answer("❌ Ошибка подтверждения отправки")
+        await callback.message.answer("❌ Ошибка подтверждения отправки")
