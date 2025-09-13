@@ -176,3 +176,7 @@ google_credentials.json
 test_unit
 summary_*.txt
 *.csv
+
+storage/solutions/*/*
+storage/temp/*
+storage/trash/*

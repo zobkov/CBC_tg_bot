@@ -88,6 +88,17 @@ Applications support 3-priority job selection:
 3. Store both local path and Drive URL in database
 4. Use `MediaFileUpload` with resumable uploads for large files
 
+### Solution Upload System
+- **File Storage Structure**: `storage/solutions/{department}/{user_id}/`
+- **File Naming Pattern**: `{surname}_{username}_{number}_{original_name}.{ext}`
+- **UserFilesManager**: Core utility class in `app/utils/user_files_manager.py`
+  - Department-based file organization
+  - Regex-based file number extraction: `r'_(\d+)_'`
+  - Sanitized filename handling with transliteration
+  - File count tracking and deletion operations
+- **Size Limits**: 100MB maximum per file upload
+- **Submission Tracking**: Database fields `task_1_submitted`, `task_2_submitted`, `task_3_submitted`
+
 ## Critical Integration Points
 
 ### Environment Configuration
@@ -143,5 +154,33 @@ python regenerate_task_file_ids.py  # Updates Telegram file IDs for task files
 - **State Transitions**: Always validate state changes in handlers before database updates
 - **Department Structure**: Handle both main departments and subdepartments in job selection
 - **MediaAttachment Objects**: Task files are returned as MediaAttachment objects with file_id from Telegram
+- **Callback Timeouts**: Always call `await callback.answer()` immediately in callback handlers to prevent "query is too old" errors
+- **File Number Display**: Use regex pattern `r'_(\d+)_'` for extracting file numbers from complex filenames with multiple underscores
 
-When modifying dialog flows, always test the complete conversation path including error states and back navigation.
+## Solution Upload System Implementation
+
+### Core Components
+- **UserFilesManager** (`app/utils/user_files_manager.py`):
+  - Handles file saving with department-based organization
+  - Provides file listing with proper number extraction
+  - Manages file deletion operations
+  - Uses transliteration for filename sanitization
+
+### Dialog Flow Pattern for Tasks
+```
+Task Selection → File Upload → File Management → Submission Confirmation
+```
+
+### File Organization Strategy
+- **Structure**: `storage/solutions/{department}/{user_id}/`
+- **Benefits**: Department-first organization for easier admin access
+- **Naming**: Includes user metadata for file identification
+- **Numbering**: Sequential numbering with regex-based extraction
+
+### Callback Handler Best Practices
+- **Immediate Response**: Call `callback.answer()` first to prevent timeouts
+- **Error Handling**: Use `callback.message.answer()` for error messages
+- **Long Operations**: Perform after initial callback response
+- **State Management**: Ensure proper dialog state transitions
+
+When implementing file upload features, always consider timeout prevention and proper file organization patterns.
