@@ -62,31 +62,31 @@ task_dialog = Dialog(
     # Тестовое задание 1
     Window(
         Format("<b>Тестовое задание</b> \n{deparment_1} \nВакансия {position_1}"),
-
+        DynamicMedia("task_1"),
         SwitchTo(Const("Назад"),id="back_to_menu_from_task1",state=TasksSG.main),
 
         state=TasksSG.task_1,
-        getter=get_task_1_info
+        getter=[get_task_1_info, get_tasks_files]
     ),
 
     # Тестовое задание 2
     Window(
         Format("<b>Тестовое задание</b> \n{deparment_2}\nВакансия {position_2}"),
-
+        DynamicMedia("task_2"),
         SwitchTo(Const("Назад"),id="back_to_menu_from_task2",state=TasksSG.main),
 
         state=TasksSG.task_2,
-        getter=get_task_2_info
+        getter=[get_task_2_info, get_tasks_files]
     ),
 
     # Тестовое задание 3
     Window(
         Format("<b>Тестовое задание</b> \n{deparment_3} \nВакансия {position_3}"),
-
+        DynamicMedia("task_3"),
         SwitchTo(Const("Назад"),id="back_to_menu_from_task3",state=TasksSG.main),
 
         state=TasksSG.task_3,
-        getter=get_task_3_info
+        getter=[get_task_3_info, get_tasks_files]
     ),
 
 )
