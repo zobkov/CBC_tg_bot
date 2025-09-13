@@ -190,7 +190,7 @@ async def get_task_3_info(dialog_manager: DialogManager, event_from_user: User, 
         }
     
 async def get_tasks_files(dialog_manager: DialogManager, event_from_user: User, **kwargs) -> Dict[str, Any]:
-    """Получаем файлы заданий для всех трех приоритетов пользователя"""
+    """Получаем файлы заданий для всех трех приоритетов пользователя в виде MediaAttachment объектов"""
     
     # Получаем доступ к базе данных из dialog_manager
     db: DB = dialog_manager.middleware_data.get("db")
@@ -215,13 +215,14 @@ async def get_tasks_files(dialog_manager: DialogManager, event_from_user: User, 
                 "task_3": None,
             }
 
-        # Импортируем функцию для получения файлов заданий
+        # Импортируем функции для получения файлов заданий
         from app.utils.position_mapping import get_task_file_for_position
+        from app.utils.task_file_id import get_task_file_id
         
         # Получаем файлы для каждого приоритета
-        task_1_file = None
-        task_2_file = None
-        task_3_file = None
+        task_1_media = None
+        task_2_media = None
+        task_3_media = None
         
         # Первый приоритет
         if application.department_1 and application.position_1:
@@ -230,6 +231,10 @@ async def get_tasks_files(dialog_manager: DialogManager, event_from_user: User, 
                 subdepartment=application.subdepartment_1,
                 position=application.position_1
             )
+            if task_1_file:
+                file_id = get_task_file_id(task_1_file)
+                if file_id:
+                    task_1_media = MediaAttachment(ContentType.DOCUMENT, file_id=MediaId(file_id))
         
         # Второй приоритет
         if application.department_2 and application.position_2:
@@ -238,6 +243,10 @@ async def get_tasks_files(dialog_manager: DialogManager, event_from_user: User, 
                 subdepartment=application.subdepartment_2,
                 position=application.position_2
             )
+            if task_2_file:
+                file_id = get_task_file_id(task_2_file)
+                if file_id:
+                    task_2_media = MediaAttachment(ContentType.DOCUMENT, file_id=MediaId(file_id))
         
         # Третий приоритет
         if application.department_3 and application.position_3:
@@ -246,13 +255,17 @@ async def get_tasks_files(dialog_manager: DialogManager, event_from_user: User, 
                 subdepartment=application.subdepartment_3,
                 position=application.position_3
             )
+            if task_3_file:
+                file_id = get_task_file_id(task_3_file)
+                if file_id:
+                    task_3_media = MediaAttachment(ContentType.DOCUMENT, file_id=MediaId(file_id))
 
-        logger.info(f"Task files for user {event_from_user.id}: task_1={task_1_file}, task_2={task_2_file}, task_3={task_3_file}")
+        logger.info(f"Task media files for user {event_from_user.id}: task_1={task_1_media is not None}, task_2={task_2_media is not None}, task_3={task_3_media is not None}")
 
         return {
-            "task_1": task_1_file,
-            "task_2": task_2_file,
-            "task_3": task_3_file,
+            "task_1": task_1_media,
+            "task_2": task_2_media,
+            "task_3": task_3_media,
         }
         
     except Exception as e:

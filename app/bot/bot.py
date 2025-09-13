@@ -141,6 +141,16 @@ async def main():
         logger.error(f"Error during photo file_id check: {e}")
         # Не останавливаем бота из-за ошибки с фотографиями
 
+    # Проверяем новые файлы заданий и обновляем file_id при старте
+    logger.info("Checking for new task files and updating file_ids...")
+    try:
+        from app.services.task_file_id_manager import startup_task_files_check
+        task_file_ids = await startup_task_files_check(bot)
+        logger.info(f"Task file_id check completed. Total task files: {len(task_file_ids)}")
+    except Exception as e:
+        logger.error(f"Error during task file_id check: {e}")
+        # Не останавливаем бота из-за ошибки с файлами заданий
+
     # Launch polling and broadcast scheduler
     try:
         scheduler = BroadcastScheduler(

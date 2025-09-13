@@ -51,6 +51,7 @@ config/
 - **Business Logic**: Modify JSON files in `config/` (departments, stages, etc.)
 - **Secrets**: Update environment variables, restart bot
 - **Photo Assets**: Update `photo_file_ids.json`, run `regenerate_photo_file_ids.py`
+- **Task File Assets**: Update `task_file_ids.json`, run `regenerate_task_file_ids.py`
 - **Position Mappings**: Update CSV, run `generate_position_file_mapping.py`, clear cache via `clear_mapping_cache()`
 
 ## Project-Specific Conventions
@@ -128,13 +129,19 @@ python3 main.py  # Runs with .env file
 python regenerate_photo_file_ids.py  # Updates Telegram file IDs
 ```
 
+### Task File Asset Management
+```bash
+python regenerate_task_file_ids.py  # Updates Telegram file IDs for task files
+```
+
 ## Common Gotchas
 
 - **Dialog Context**: Use `getter` functions to provide data to dialog windows
-- **Telegram File IDs**: Expire periodically, regenerate via `startup_photo_check()`
+- **Telegram File IDs**: Expire periodically, regenerate via `startup_photo_check()` and `startup_task_files_check()`
 - **Unicode Handling**: Bot handles UTF-8 explicitly for non-UTF locales
 - **Window Platform**: Uses `WindowsSelectorEventLoopPolicy()` on Windows
 - **State Transitions**: Always validate state changes in handlers before database updates
 - **Department Structure**: Handle both main departments and subdepartments in job selection
+- **MediaAttachment Objects**: Task files are returned as MediaAttachment objects with file_id from Telegram
 
 When modifying dialog flows, always test the complete conversation path including error states and back navigation.
