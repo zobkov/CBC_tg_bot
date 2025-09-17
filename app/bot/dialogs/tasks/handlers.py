@@ -1,7 +1,9 @@
 import os
 import logging
+import asyncio
+from typing import Dict, Set
 from aiogram.types import Message, CallbackQuery, Document
-from aiogram_dialog import DialogManager
+from aiogram_dialog import DialogManager, ShowMode
 
 from app.bot.states.first_stage import FirstStageSG
 from app.bot.states.main_menu import MainMenuSG
@@ -12,8 +14,43 @@ from app.infrastructure.database.models.applications import ApplicationsModel
 
 logger = logging.getLogger(__name__)
 
+# Глобальный словарь для отслеживания активных загрузок
+# Структура: {user_id: {task_number: set_of_active_uploads}}
+active_uploads: Dict[int, Dict[int, Set[str]]] = {}
+
 # Максимальный размер файла в байтах (100 МБ)
 MAX_FILE_SIZE = 100 * 1024 * 1024
+
+
+def _add_active_upload(user_id: int, task_number: int, upload_id: str) -> None:
+    """Добавляет активную загрузку для отслеживания"""
+    if user_id not in active_uploads:
+        active_uploads[user_id] = {}
+    if task_number not in active_uploads[user_id]:
+        active_uploads[user_id][task_number] = set()
+    active_uploads[user_id][task_number].add(upload_id)
+
+
+def _remove_active_upload(user_id: int, task_number: int, upload_id: str) -> bool:
+    """Удаляет активную загрузку и возвращает True, если это была последняя активная загрузка"""
+    if (user_id in active_uploads and 
+        task_number in active_uploads[user_id] and 
+        upload_id in active_uploads[user_id][task_number]):
+        
+        active_uploads[user_id][task_number].discard(upload_id)
+        
+        # Возвращаем True, если больше нет активных загрузок для этого задания
+        return len(active_uploads[user_id][task_number]) == 0
+    
+    return True  # Если загрузки не было в списке, считаем что это последняя
+
+
+def _get_active_uploads_count(user_id: int, task_number: int) -> int:
+    """Возвращает количество активных загрузок для пользователя и задания"""
+    if (user_id in active_uploads and 
+        task_number in active_uploads[user_id]):
+        return len(active_uploads[user_id][task_number])
+    return 0
 
 async def on_live_task_1_clicked(callback: CallbackQuery, button, dialog_manager: DialogManager):
     """Обработчик нажатия на кнопку 'Тестовое задание 1'"""
@@ -95,20 +132,29 @@ async def _handle_document_upload(message: Message, dialog_manager: DialogManage
         await message.answer(f"❌ Размер файла превышает лимит в 100 МБ. Размер вашего файла: {document.file_size / 1024 / 1024:.1f} МБ")
         return
     
+    # Создаем уникальный ID для этой загрузки
+    upload_id = f"{message.message_id}_{document.file_id}"
+    user_id = message.from_user.id
+    
+    # Добавляем загрузку в список активных
+    _add_active_upload(user_id, task_number, upload_id)
+    
     # Получаем доступ к базе данных и боту
     db: DB = dialog_manager.middleware_data.get("db")
     bot = dialog_manager.middleware_data.get("bot")
     
     if not db or not bot:
         await message.answer("❌ Ошибка системы, попробуйте позже")
+        _remove_active_upload(user_id, task_number, upload_id)
         return
     
     try:
         # Получаем заявку пользователя
-        application: ApplicationsModel = await db.applications.get_application(user_id=message.from_user.id)
+        application: ApplicationsModel = await db.applications.get_application(user_id=user_id)
         
         if not application:
             await message.answer("❌ Заявка не найдена")
+            _remove_active_upload(user_id, task_number, upload_id)
             return
         
         # Определяем отдел для задания
@@ -122,6 +168,7 @@ async def _handle_document_upload(message: Message, dialog_manager: DialogManage
         
         if not department:
             await message.answer("❌ Отдел не определен для этого задания")
+            _remove_active_upload(user_id, task_number, upload_id)
             return
         
         # Скачиваем файл
@@ -132,7 +179,7 @@ async def _handle_document_upload(message: Message, dialog_manager: DialogManage
         os.makedirs(temp_dir, exist_ok=True)
         
         # Временный путь для скачанного файла
-        temp_file_path = os.path.join(temp_dir, f"temp_{message.from_user.id}_{document.file_id}")
+        temp_file_path = os.path.join(temp_dir, f"temp_{user_id}_{document.file_id}")
         
         # Скачиваем файл
         await bot.download_file(file_info.file_path, temp_file_path)
@@ -140,12 +187,12 @@ async def _handle_document_upload(message: Message, dialog_manager: DialogManage
         # Сохраняем файл через менеджер
         files_manager = UserFilesManager()
         
-        full_name = application.full_name or f"User_{message.from_user.id}"
+        full_name = application.full_name or f"User_{user_id}"
         username = message.from_user.username or "no_username"
         
         saved_file_path = files_manager.save_user_file(
             file_path=temp_file_path,
-            user_id=message.from_user.id,
+            user_id=user_id,
             task_number=task_number,
             department=department,
             full_name=full_name,
@@ -159,21 +206,37 @@ async def _handle_document_upload(message: Message, dialog_manager: DialogManage
         
         # Получаем количество файлов
         files_count = files_manager.get_user_files_count(
-            user_id=message.from_user.id,
+            user_id=user_id,
             task_number=task_number,
             department=department
         )
         
+        # Отправляем сообщение о загрузке
         await message.answer(f"✅ Файл сохранен! Всего файлов: {files_count}")
         
-        logger.info(f"Файл пользователя {message.from_user.id} сохранен: {saved_file_path}")
+        logger.info(f"Файл пользователя {user_id} сохранен: {saved_file_path}")
+        
+        # Удаляем загрузку из активных и проверяем, была ли это последняя
+        is_last_upload = _remove_active_upload(user_id, task_number, upload_id)
+        
+        # Если это была последняя активная загрузка, обновляем диалог через небольшую задержку
+        if is_last_upload:
+            await asyncio.sleep(0.3)  # Даем время для завершения других возможных загрузок
+            
+            # Проверяем еще раз, что нет новых активных загрузок
+            if _get_active_uploads_count(user_id, task_number) == 0:
+                # Принудительно обновляем данные диалога без смены состояния
+                await dialog_manager.update(data={}, show_mode=ShowMode.EDIT)
         
     except Exception as e:
-        logger.error(f"Ошибка сохранения файла пользователя {message.from_user.id}: {e}")
+        logger.error(f"Ошибка сохранения файла пользователя {user_id}: {e}")
         await message.answer("❌ Ошибка сохранения файла, попробуйте еще раз")
         
+        # Удаляем из активных загрузок в случае ошибки
+        _remove_active_upload(user_id, task_number, upload_id)
+        
         # Удаляем временный файл в случае ошибки
-        temp_file_path = os.path.join("storage/temp", f"temp_{message.from_user.id}_{document.file_id}")
+        temp_file_path = os.path.join("storage/temp", f"temp_{user_id}_{document.file_id}")
         if os.path.exists(temp_file_path):
             os.remove(temp_file_path)
 
@@ -321,7 +384,7 @@ async def _handle_confirm_upload(callback: CallbackQuery, dialog_manager: Dialog
             target_state = TasksSG.task_3_submitted
         
         # Переходим к состоянию "отправлено"
-        await dialog_manager.switch_to(state=target_state)
+        await dialog_manager.switch_to(state=target_state, show_mode=ShowMode.DELETE_AND_SEND)
         
         logger.info(f"Пользователь {callback.from_user.id} подтвердил отправку задания {task_number}")
         
