@@ -219,14 +219,22 @@ async def _handle_document_upload(message: Message, dialog_manager: DialogManage
         # Удаляем загрузку из активных и проверяем, была ли это последняя
         is_last_upload = _remove_active_upload(user_id, task_number, upload_id)
         
-        # Если это была последняя активная загрузка, обновляем диалог через небольшую задержку
+        # Если это была последняя активная загрузка, переключаемся к окну загрузки через небольшую задержку
         if is_last_upload:
             await asyncio.sleep(0.3)  # Даем время для завершения других возможных загрузок
             
             # Проверяем еще раз, что нет новых активных загрузок
             if _get_active_uploads_count(user_id, task_number) == 0:
-                # Принудительно обновляем данные диалога без смены состояния
-                await dialog_manager.update(data={}, show_mode=ShowMode.EDIT)
+                # Определяем состояние загрузки для переключения
+                if task_number == 1:
+                    target_state = TasksSG.task_1_upload
+                elif task_number == 2:
+                    target_state = TasksSG.task_2_upload
+                elif task_number == 3:
+                    target_state = TasksSG.task_3_upload
+                
+                # Переключаемся к окну загрузки с полным обновлением
+                await dialog_manager.switch_to(state=target_state, show_mode=ShowMode.DELETE_AND_SEND)
         
     except Exception as e:
         logger.error(f"Ошибка сохранения файла пользователя {user_id}: {e}")
