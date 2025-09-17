@@ -298,7 +298,35 @@ async def get_form_summary(dialog_manager: DialogManager, **kwargs) -> Dict[str,
     else:
         resume_status = "❌ Не загружено"
     
-    return {
+    # Получаем исходные данные
+    experience = dialog_data.get("experience", "")
+    motivation = dialog_data.get("motivation", "")
+    
+    print(f"DEBUG: get_form_summary - original experience length: {len(experience)}")
+    print(f"DEBUG: get_form_summary - original motivation length: {len(motivation)}")
+    
+    # Усекаем длинные поля с умными ограничениями
+    def truncate_text(text: str, max_length: int) -> str:
+        """Усекает текст с добавлением троеточия если он превышает лимит"""
+        if len(text) <= max_length:
+            return text
+        # Пытаемся обрезать по последнему пробелу, чтобы не разрывать слова
+        truncated = text[:max_length-3]
+        last_space = truncated.rfind(' ')
+        if last_space > max_length * 0.7:  # Если пробел найден не слишком далеко от конца
+            truncated = truncated[:last_space]
+        return truncated + "..."
+    
+    # Предварительные лимиты для полей (будут скорректированы ниже)
+    experience_limit = 800
+    motivation_limit = 800
+    
+    # Усекаем поля
+    experience_truncated = truncate_text(experience, experience_limit)
+    motivation_truncated = truncate_text(motivation, motivation_limit)
+    
+    # Создаем предварительную структуру данных
+    summary_data = {
         "full_name": dialog_data.get("full_name", ""),
         "university": dialog_data.get("university", ""),
         "course_text": f"{course} курс",
@@ -307,10 +335,62 @@ async def get_form_summary(dialog_manager: DialogManager, **kwargs) -> Dict[str,
         "how_found_text": how_found_text,
         "previous_dept_text": previous_dept_text,
         "priorities_summary": priorities_summary,
-        "experience": dialog_data.get("experience", ""),
-        "motivation": dialog_data.get("motivation", ""),
+        "experience": experience_truncated,
+        "motivation": motivation_truncated,
         "resume_status": resume_status
     }
+    
+    # Проверяем общую длину сообщения
+    template = ("✅ <b>Проверь, что все данные заполнены верно. Если что-то нужно исправить — выбери пункт, в котором допустил ошибку, и обнови ответ.</b>\n\n"
+               "👤 <b>ФИО:</b> {full_name}\n"
+               "🏫 <b>Учебное заведение:</b> {university}\n"
+               "📱 <b>Телефон:</b> {phone}\n"
+               "📧 <b>Email:</b> {email}\n"
+               "📢 <b>Откуда узнали:</b> {how_found_text}{previous_dept_text}\n"
+               "💼 <b>Опыт:</b> {experience}\n"
+               "💭 <b>Мотивация:</b> {motivation}\n"
+               "📄 <b>Резюме:</b> {resume_status}\n"
+               "\n<b>Приоритеты вакансий:</b>\n{priorities_summary}")
+    
+    # Формируем сообщение для проверки длины
+    test_message = template.format(**summary_data)
+    
+    print(f"DEBUG: get_form_summary - initial message length: {len(test_message)}")
+    
+    # Telegram лимит 4096 символов, оставляем небольшой запас
+    max_telegram_length = 4000
+    
+    # Если сообщение слишком длинное, дополнительно сокращаем динамические поля
+    if len(test_message) > max_telegram_length:
+        print(f"DEBUG: get_form_summary - message too long, applying additional truncation")
+        # Рассчитываем избыточную длину
+        excess_length = len(test_message) - max_telegram_length
+        
+        # Сокращаем experience и motivation пропорционально их размеру
+        total_dynamic_length = len(experience_truncated) + len(motivation_truncated)
+        
+        if total_dynamic_length > 0:
+            # Распределяем сокращение пропорционально
+            exp_reduction = int(excess_length * len(experience_truncated) / total_dynamic_length)
+            mot_reduction = excess_length - exp_reduction
+            
+            # Применяем дополнительное сокращение
+            new_exp_limit = max(100, len(experience_truncated) - exp_reduction)
+            new_mot_limit = max(100, len(motivation_truncated) - mot_reduction)
+            
+            print(f"DEBUG: get_form_summary - reducing experience to {new_exp_limit}, motivation to {new_mot_limit}")
+            
+            summary_data["experience"] = truncate_text(experience, new_exp_limit)
+            summary_data["motivation"] = truncate_text(motivation, new_mot_limit)
+            
+            # Проверяем финальную длину
+            final_message = template.format(**summary_data)
+            print(f"DEBUG: get_form_summary - final message length: {len(final_message)}")
+    
+    print(f"DEBUG: get_form_summary - final experience length: {len(summary_data['experience'])}")
+    print(f"DEBUG: get_form_summary - final motivation length: {len(summary_data['motivation'])}")
+    
+    return summary_data
 
 
 async def get_edit_menu_data(dialog_manager: DialogManager, **kwargs) -> Dict[str, Any]:
