@@ -40,7 +40,7 @@ main_menu_dialog = Dialog(
         getter=[get_current_stage_info, get_application_status, get_main_menu_media]
     ),
     Window(
-        Format("Заявки ещё рассматриваются. Возвращайся в бота 22 сентября в 12:00 за результатами. В случае успеха мы отправим тебе тестовые задания."),
+        Format("Если твоя заявка пройдёт отбор, мы отправим тестовое задание прямо сюда. Возвращайся в бота в указанное время, чтобы узнать решение."),
         Back(Const("◀️ Назад")),
         state=MainMenuSG.locked_stage
     ),

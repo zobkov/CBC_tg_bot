@@ -91,7 +91,7 @@ async def get_current_stage_info(dialog_manager: DialogManager, **kwargs) -> Dic
         if "start_date" in current_stage_info and current_stage_info.get("status") == "upcoming":
             # Для будущих этапов показываем дату начала
             start_date = datetime.fromisoformat(current_stage_info["start_date"])
-            deadline_info = f"🚀 Начало: {start_date.strftime('%d.%m.%Y, %H:%M')}"
+            deadline_info = f"🚀 Результаты: {start_date.strftime('%d.%m.%Y, %H:%M')}"
             
             # Рассчитываем время до начала
             time_until = start_date - now
@@ -164,7 +164,7 @@ async def get_application_status(dialog_manager: DialogManager, **kwargs) -> Dic
         application_status = (user_record.submission_status if user_record else "not_submitted")
         status_text = {
             "not_submitted": "Заявка не подана",
-            "submitted": "Заявка подана"
+            "submitted": "Заявка на рассмотрении"
         }.get(application_status, "Неизвестный статус")
     except Exception as e:
         # В случае ошибки возвращаем значения по умолчанию
