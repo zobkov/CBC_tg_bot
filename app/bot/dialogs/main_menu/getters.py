@@ -164,7 +164,7 @@ async def get_application_status(dialog_manager: DialogManager, **kwargs) -> Dic
         application_status = (user_record.submission_status if user_record else "not_submitted")
         status_text = {
             "not_submitted": "Заявка не подана",
-            "submitted": "Заявка на рассмотрении"
+            "submitted": "Заявка на рассмотрении.\n\nМы уже изучаем твою заявку и держим за тебя кулачки! Если твоя заявка пройдёт отбор, мы отправим тестовое задание прямо сюда. Возвращайся в бота в указанное время, чтобы узнать решение."
         }.get(application_status, "Неизвестный статус")
     except Exception as e:
         # В случае ошибки возвращаем значения по умолчанию
