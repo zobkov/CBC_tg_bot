@@ -18,13 +18,13 @@ main_menu_dialog = Dialog(
             "media"
         ),
         Format("🏠 <b>Личный кабинет кандидата в команду КБК 2026</b>\n\n"
-               "📅 <b>Текущий этап:</b> {stage_name}\n"
+               "📅 <b>Следующий этап:</b> {stage_name}\n"
                "📝 <b>Статус заявки:</b> {status_text}\n\n"
                "{deadline_info}\n"
-               "{stage_description}"),
+               ),
         Row(
             Button(
-                Const("📋 Текущий этап отбора"),
+                Const("🔒 Текущий этап отбора"),
                 id="current_stage",
                 on_click=on_current_stage_clicked
             ),
@@ -38,6 +38,11 @@ main_menu_dialog = Dialog(
         ),
         state=MainMenuSG.main_menu,
         getter=[get_current_stage_info, get_application_status, get_main_menu_media]
+    ),
+    Window(
+        Format("Заявки ещё рассматриваются. Возвращайся в бота 22 сентября в 12:00 за результатами. В случае успеха мы отправим тебе тестовые задания."),
+        Back(Const("◀️ Назад")),
+        state=MainMenuSG.locked_stage
     ),
     Window(
         StaticMedia(

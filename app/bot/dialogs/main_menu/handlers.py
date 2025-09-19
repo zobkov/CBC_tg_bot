@@ -8,7 +8,7 @@ from app.bot.states.main_menu import MainMenuSG
 async def on_current_stage_clicked(callback: CallbackQuery, button, dialog_manager: DialogManager):
     """Обработчик нажатия на кнопку 'Текущий этап отбора'"""
     # Переходим к диалогу с информацией о текущем этапе
-    await dialog_manager.start(state=FirstStageSG.stage_info)
+    await dialog_manager.start(state=MainMenuSG.locked_stage)
 
 
 async def on_support_clicked(callback: CallbackQuery, button, dialog_manager: DialogManager):

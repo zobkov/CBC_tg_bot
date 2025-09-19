@@ -19,7 +19,7 @@ async def get_user_info(dialog_manager: DialogManager, event_from_user: User, **
         "username": event_from_user.username or "",
         "first_name": event_from_user.first_name or "",
         "last_name": event_from_user.last_name or "",
-    }
+    } 
 
 
 async def get_current_stage_info(dialog_manager: DialogManager, **kwargs) -> Dict[str, Any]:
