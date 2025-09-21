@@ -105,31 +105,60 @@ async def on_live_task_3_clicked(callback: CallbackQuery, button, dialog_manager
 
 async def on_document_upload_task_1(message: Message, message_input, dialog_manager: DialogManager):
     """Обработчик загрузки документа для задания 1"""
+    current_state = dialog_manager.current_context().state
+    user_id = message.from_user.id
+    active_count = _get_active_uploads_count(user_id, 1)
+    
+    logger.debug(f"Current state: {current_state}, Active uploads: {active_count}")
+    
+    # Переключаемся в состояние обработки только если не обрабатываем файлы
+    if active_count == 0 and current_state != TasksSG.task_1_processing:
+        logger.debug(f"Switching to task_1_processing from {current_state}")
+        await dialog_manager.switch_to(TasksSG.task_1_processing, show_mode=ShowMode.EDIT)
+    else:
+        logger.debug(f"Skip switching - already processing files or in processing state")
+    
     await _handle_document_upload(message, dialog_manager, task_number=1)
 
 
 async def on_document_upload_task_2(message: Message, message_input, dialog_manager: DialogManager):
     """Обработчик загрузки документа для задания 2"""
+    current_state = dialog_manager.current_context().state
+    user_id = message.from_user.id
+    active_count = _get_active_uploads_count(user_id, 2)
+    
+    # Переключаемся в состояние обработки только если не обрабатываем файлы
+    if active_count == 0 and current_state != TasksSG.task_2_processing:
+        await dialog_manager.switch_to(TasksSG.task_2_processing, show_mode=ShowMode.EDIT)
+    
     await _handle_document_upload(message, dialog_manager, task_number=2)
 
 
 async def on_document_upload_task_3(message: Message, message_input, dialog_manager: DialogManager):
     """Обработчик загрузки документа для задания 3"""
+    current_state = dialog_manager.current_context().state
+    user_id = message.from_user.id
+    active_count = _get_active_uploads_count(user_id, 3)
+    
+    # Переключаемся в состояние обработки только если не обрабатываем файлы
+    if active_count == 0 and current_state != TasksSG.task_3_processing:
+        await dialog_manager.switch_to(TasksSG.task_3_processing, show_mode=ShowMode.EDIT)
+    
     await _handle_document_upload(message, dialog_manager, task_number=3)
 
 
 async def _handle_document_upload(message: Message, dialog_manager: DialogManager, task_number: int):
     """Общий обработчик загрузки документов"""
-    
+    service_message = await message.answer("⚙️ Начинаем обработку файла")
     if not message.document:
-        await message.answer("❌ Пожалуйста, отправьте файл как документ")
+        await service_message.edit_text("❌ Пожалуйста, отправьте файл как документ")
         return
 
     document: Document = message.document
     
     # Проверяем размер файла
     if document.file_size > MAX_FILE_SIZE:
-        await message.answer(f"❌ Размер файла превышает лимит в 100 МБ. Размер вашего файла: {document.file_size / 1024 / 1024:.1f} МБ")
+        await service_message.edit_text(f"❌ Размер файла превышает лимит в 100 МБ. Размер вашего файла: {document.file_size / 1024 / 1024:.1f} МБ")
         return
     
     # Создаем уникальный ID для этой загрузки
@@ -144,7 +173,7 @@ async def _handle_document_upload(message: Message, dialog_manager: DialogManage
     bot = dialog_manager.middleware_data.get("bot")
     
     if not db or not bot:
-        await message.answer("❌ Ошибка системы, попробуйте позже")
+        await service_message.edit_text("❌ Ошибка системы, попробуйте позже")
         _remove_active_upload(user_id, task_number, upload_id)
         return
     
@@ -153,7 +182,7 @@ async def _handle_document_upload(message: Message, dialog_manager: DialogManage
         application: ApplicationsModel = await db.applications.get_application(user_id=user_id)
         
         if not application:
-            await message.answer("❌ Заявка не найдена")
+            await service_message.edit_text("❌ Заявка не найдена")
             _remove_active_upload(user_id, task_number, upload_id)
             return
         
@@ -167,7 +196,7 @@ async def _handle_document_upload(message: Message, dialog_manager: DialogManage
             department = application.department_3
         
         if not department:
-            await message.answer("❌ Отдел не определен для этого задания")
+            await service_message.edit_text("❌ Отдел не определен для этого задания")
             _remove_active_upload(user_id, task_number, upload_id)
             return
         
@@ -212,33 +241,27 @@ async def _handle_document_upload(message: Message, dialog_manager: DialogManage
         )
         
         # Отправляем сообщение о загрузке
-        await message.answer(f"✅ Файл сохранен! Всего файлов: {files_count}")
+        await service_message.edit_text(f"✅ Файл сохранен! Всего файлов: {files_count}")
         
         logger.info(f"Файл пользователя {user_id} сохранен: {saved_file_path}")
         
-        # Удаляем загрузку из активных и проверяем, была ли это последняя
+        # Удаляем загрузку из активных
         is_last_upload = _remove_active_upload(user_id, task_number, upload_id)
-        
-        # Если это была последняя активная загрузка, переключаемся к окну загрузки через небольшую задержку
         if is_last_upload:
-            await asyncio.sleep(0.3)  # Даем время для завершения других возможных загрузок
-            
-            # Проверяем еще раз, что нет новых активных загрузок
-            if _get_active_uploads_count(user_id, task_number) == 0:
-                # Определяем состояние загрузки для переключения
-                if task_number == 1:
-                    target_state = TasksSG.task_1_upload
-                elif task_number == 2:
-                    target_state = TasksSG.task_2_upload
-                elif task_number == 3:
-                    target_state = TasksSG.task_3_upload
-                
-                # Переключаемся к окну загрузки с полным обновлением
-                await dialog_manager.switch_to(state=target_state, show_mode=ShowMode.DELETE_AND_SEND)
+            # Переключаемся обратно в состояние загрузки для конкретного задания
+            if task_number == 1:
+                await dialog_manager.switch_to(TasksSG.task_1_upload, show_mode=ShowMode.DELETE_AND_SEND)
+            elif task_number == 2:
+                await dialog_manager.switch_to(TasksSG.task_2_upload, show_mode=ShowMode.DELETE_AND_SEND)
+            elif task_number == 3:
+                await dialog_manager.switch_to(TasksSG.task_3_upload, show_mode=ShowMode.DELETE_AND_SEND)
+        
+        logger.info(f"Файл пользователя {user_id} обработан. Активных загрузок: {_get_active_uploads_count(user_id, task_number)}")
+        
         
     except Exception as e:
         logger.error(f"Ошибка сохранения файла пользователя {user_id}: {e}")
-        await message.answer("❌ Ошибка сохранения файла, попробуйте еще раз")
+        await service_message.edit_text("❌ Ошибка сохранения файла, попробуйте еще раз")
         
         # Удаляем из активных загрузок в случае ошибки
         _remove_active_upload(user_id, task_number, upload_id)
@@ -311,6 +334,8 @@ async def _handle_delete_all_files(callback: CallbackQuery, dialog_manager: Dial
             pass
         else:
             await callback.message.answer("❌ Ошибка удаления файлов")
+        
+        await callback.answer("♻️ Все загруженные файлы удалены.", show_alert=True)
         
         logger.info(f"Файлы пользователя {callback.from_user.id} для задания {task_number} удалены")
         
@@ -399,3 +424,35 @@ async def _handle_confirm_upload(callback: CallbackQuery, dialog_manager: Dialog
     except Exception as e:
         logger.error(f"Ошибка подтверждения отправки задания {task_number} пользователем {callback.from_user.id}: {e}")
         await callback.message.answer("❌ Ошибка подтверждения отправки")
+
+
+async def on_wrong_content_type(message: Message, message_input, dialog_manager: DialogManager):
+    """Обработчик неправильного типа контента (не файл)"""
+    try:
+        # Определяем текущее состояние загрузки
+        current_state = dialog_manager.current_context().state
+        current_upload_state = None
+        
+        if current_state == TasksSG.task_1_upload:
+            current_upload_state = TasksSG.task_1_upload
+        elif current_state == TasksSG.task_2_upload:
+            current_upload_state = TasksSG.task_2_upload
+        elif current_state == TasksSG.task_3_upload:
+            current_upload_state = TasksSG.task_3_upload
+        
+        # Отправляем сообщение об ошибке
+        await message.answer(
+            "Не правильно отправлен файл 😢 \n"
+            "Ты можешь отправить любой тип файла, но именно как файл. \n\n"
+            "Техническая поддержка: @zobko"
+        )
+        
+        # Переключаемся обратно в состояние загрузки с удалением и отправкой
+        if current_upload_state:
+            await dialog_manager.switch_to(current_upload_state, show_mode=ShowMode.DELETE_AND_SEND)
+        
+        logger.info(f"Пользователь {message.from_user.id} отправил неправильный тип контента")
+        
+    except Exception as e:
+        logger.error(f"Ошибка обработки неправильного типа контента: {e}")
+        await message.answer("❌ Произошла ошибка. Обратитесь в техподдержку @zobko")

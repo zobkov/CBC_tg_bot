@@ -117,6 +117,10 @@ task_dialog = Dialog(
             on_document_upload_task_1, 
             content_types=[ContentType.DOCUMENT]
         ),
+        MessageInput(
+            on_wrong_content_type,
+            content_types=[ContentType.TEXT, ContentType.PHOTO, ContentType.VIDEO, ContentType.AUDIO, ContentType.VOICE, ContentType.STICKER, ContentType.ANIMATION, ContentType.VIDEO_NOTE, ContentType.LOCATION, ContentType.CONTACT]
+        ),
 
         state=TasksSG.task_1_upload,
         getter=[get_task_1_info, get_user_files_info_task_1]
@@ -146,6 +150,10 @@ task_dialog = Dialog(
             on_document_upload_task_2, 
             content_types=[ContentType.DOCUMENT]
         ),
+        MessageInput(
+            on_wrong_content_type,
+            content_types=[ContentType.TEXT, ContentType.PHOTO, ContentType.VIDEO, ContentType.AUDIO, ContentType.VOICE, ContentType.STICKER, ContentType.ANIMATION, ContentType.VIDEO_NOTE, ContentType.LOCATION, ContentType.CONTACT]
+        ),
 
         state=TasksSG.task_2_upload,
         getter=[get_task_2_info, get_user_files_info_task_2]
@@ -174,6 +182,10 @@ task_dialog = Dialog(
         MessageInput(
             on_document_upload_task_3, 
             content_types=[ContentType.DOCUMENT]
+        ),
+        MessageInput(
+            on_wrong_content_type,
+            content_types=[ContentType.TEXT, ContentType.PHOTO, ContentType.VIDEO, ContentType.AUDIO, ContentType.VOICE, ContentType.STICKER, ContentType.ANIMATION, ContentType.VIDEO_NOTE, ContentType.LOCATION, ContentType.CONTACT]
         ),
 
         state=TasksSG.task_3_upload,
@@ -206,5 +218,37 @@ task_dialog = Dialog(
         SwitchTo(Const("⬅️ Назад"), id="back_from_submitted_3", state=TasksSG.main),
         state=TasksSG.task_3_submitted
     ),
+
+    # Обработка файлов для задания 1
+    Window(
+        Const("⏳ <b>Обработка файлов...</b>\n\n"
+              "Пожалуйста, подождите. Ваши файлы обрабатываются.\n"
+              "Когда все файлы будут обработаны, нажмите кнопку ниже чтобы продолжить."),
+        SwitchTo(Const("📥 Продолжить загрузку"), id="back_to_upload_1", state=TasksSG.task_1_upload),
+        state=TasksSG.task_1_processing
+    ),
+
+    # Обработка файлов для задания 2
+    Window(
+        Const("⏳ <b>Обработка файлов...</b>\n\n"
+              "Пожалуйста, подождите. Ваши файлы обрабатываются.\n"
+              "Когда все файлы будут обработаны, нажмите кнопку ниже чтобы продолжить."),
+        SwitchTo(Const("📥 Продолжить загрузку"), id="back_to_upload_2", state=TasksSG.task_2_upload),
+        state=TasksSG.task_2_processing
+    ),
+
+    # Обработка файлов для задания 3
+    Window(
+        Const("⏳ <b>Обработка файлов...</b>\n\n"
+              "Пожалуйста, подождите. Ваши файлы обрабатываются.\n"
+              "Когда все файлы будут обработаны, нажмите кнопку ниже чтобы продолжить."),
+        SwitchTo(Const("📥 Продолжить загрузку"), id="back_to_upload_3", state=TasksSG.task_3_upload),
+        state=TasksSG.task_3_processing
+    ),
+
+    Window(
+        Const("⚙️ Файлы обрабатываются..."),
+        state=TasksSG.file_processing,
+    )
 
 )

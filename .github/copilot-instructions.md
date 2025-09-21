@@ -172,6 +172,8 @@ python run_applications_migrations.py  # Applies numbered SQL migrations from mi
 - **MediaAttachment Objects**: Task files are returned as MediaAttachment objects with file_id from Telegram
 - **Callback Timeouts**: Always call `await callback.answer()` immediately in callback handlers to prevent "query is too old" errors
 - **File Number Display**: Use regex pattern `r'_(\d+)_'` for extracting file numbers from complex filenames with multiple underscores
+- **File Upload Processing**: System uses intermediate processing states (`task_X_processing`) to prevent user actions during file handling
+- **Content Type Validation**: MessageInput handlers check content types; non-document types trigger error messages and redirect back to upload state
 
 ## Solution Upload System Implementation
 
@@ -198,5 +200,11 @@ Task Selection → File Upload → File Management → Submission Confirmation
 - **Error Handling**: Use `callback.message.answer()` for error messages
 - **Long Operations**: Perform after initial callback response
 - **State Management**: Ensure proper dialog state transitions
+
+### File Upload State Management
+- **Processing States**: `task_X_processing` states prevent user interactions during file handling
+- **Content Validation**: Separate MessageInput handlers for documents vs other content types
+- **Upload Tracking**: Global dictionary tracks active uploads per user/task to ensure all files are processed before returning to upload interface
+- **Error Recovery**: Invalid content types show helpful error message and redirect to upload state with `ShowMode.DELETE_AND_SEND`
 
 When implementing file upload features, always consider timeout prevention and proper file organization patterns.
