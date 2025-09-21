@@ -6,10 +6,10 @@ This is a Telegram bot for managing a multi-stage selection process for the Chin
 ## Architecture & Core Components
 
 ### Data Flow & Database Structure
-- **Two PostgreSQL databases**: Main DB (legacy) + Applications DB (active recruitment data)
+- **Single PostgreSQL database**: Applications DB (legacy main DB consolidated)
 - **Redis**: FSM state storage and APScheduler job store  
 - **Google Sheets/Drive**: Resume export and external data sync
-- **Applications table**: Core entity tracking user submissions through selection stages
+- **Applications table**: Core entity with priority system (3 department/position choices + subdepartments)
 
 ### Key Service Boundaries
 - `app/bot/`: Telegram bot logic (handlers, dialogs, FSM states)
@@ -21,7 +21,7 @@ This is a Telegram bot for managing a multi-stage selection process for the Chin
 - Multi-window form flows in `app/bot/dialogs/`
 - Each dialog: `dialogs.py` (window definitions) + `getters.py` (data) + `handlers.py` (callbacks)
 - FSM states in `app/bot/states/` define conversation flows
-- Example: `first_stage/` handles application form with photo uploads, department selection
+- Current dialogs: `first_stage/`, `job_selection/`, `main_menu/`, `start/`, `settings/`
 
 ## Critical Development Patterns
 
@@ -32,24 +32,45 @@ config = load_config()  # Combines .env + selection_config.json + departments.js
 ```
 - **Secret data**: Environment variables (BOT_TOKEN, DB credentials)
 - **Business rules**: JSON files (`selection_config.json`, `departments.json`)
-- **departments.json** has nested subdepartments structure for complex org hierarchy
+- **departments.json** supports nested subdepartments with complex hierarchy:
+```json
+"creative": {
+  "subdepartments": {
+    "stage": {"positions": ["Хореограф", "Сценарист"]},
+    "workshops": {"positions": ["Ведущий мастер-класса"]}
+  }
+}
+```
 
 ### Database Operations
 ```python
-# Always use connection pools, not direct connections
-dp["db_applications"] = await get_pg_pool(...)
-# DB class wraps specialized repositories
+# Single database setup (users table moved to applications DB)
 db = DB(users_connection=conn, applications_connection=conn)
+# Priority system: department_1/position_1/subdepartment_1, _2, _3
+await db.applications.update_application(user_id, department_1="creative", subdepartment_1="stage")
+```
+
+### Photo/Media File Management
+- **PhotoFileIdManager**: Manages Telegram file_id for assets in `app/bot/assets/images/`
+- **Startup validation**: `startup_photo_check()` validates file_ids on bot startup
+- **File_id storage**: `config/photo_file_ids.json` maps relative paths to Telegram file_ids
+```python
+# Get file_id for dialog media
+from app.utils.optimized_dialog_widgets import get_file_id_for_path
+file_id = get_file_id_for_path("department/creative.jpg")
 ```
 
 ### Dialog State Management
 - Use `dp["config"]`, `dp["bot"]`, `dp["db_applications"]` for dependency injection
 - Dialog handlers must be async and handle FSM transitions
-- Media management via `DynamicMedia` with file_id caching in `photo_file_ids.json`
+- **File upload patterns**: `process_resume_file()` handles document uploads with filename generation
+- **Resume storage**: Files saved to `app/storage/resumes/` with format `{surname}_{initials}_{username}_{timestamp}.ext`
+- **Priority selection system**: Users select 3 department/position combos with conflict validation
 
 ### Migration System
-- SQL files in `migrations/` with sequential numbering
+- SQL files in `migrations/` with sequential numbering (000-007 applied)
 - Run via `run_applications_migrations.py` for applications DB
+- **Latest migration 007**: Added subdepartment support (subdepartment_1, _2, _3 columns)
 - Track applied migrations in dedicated table
 
 ## Development Workflows
@@ -76,6 +97,7 @@ python main.py
 ### Background Services
 - **BroadcastScheduler**: APScheduler with Redis persistence for time-based messaging
 - **Photo file_id regeneration**: Telegram file_id validation on startup
+- **Task management**: Current system supports task dialogs (placeholder for future task assignments)
 
 ## Integration Points
 
@@ -99,6 +121,7 @@ python main.py
 - Dialog testing via specific test dialogs in `app/bot/dialogs/test/`
 - Error logging to `app/logs/` with structured JSON error reports
 - Use `generate_timeseries_stats.py` for application analytics
+- **Photo regeneration**: Use `regenerate_photo_file_ids.py` for manual file_id updates
 
 ## Common Gotchas
 - File paths in dialogs use absolute paths from project root
@@ -106,3 +129,4 @@ python main.py
 - Department selection supports both flat positions and nested subdepartments
 - Google integration is optional - bot works without it if env vars missing
 - Redis connection is mandatory - implement proper connection error handling
+- Photo file_ids must be validated on startup or regenerated if Telegram invalidates them
