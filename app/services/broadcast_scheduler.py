@@ -22,7 +22,7 @@ logger = logging.getLogger(__name__)
 # Московский часовой пояс (UTC+3)
 MOSCOW_TZ = timezone(timedelta(hours=3))
 
-UserGroup = Literal["not_submitted", "submitted"]
+UserGroup = Literal["not_submitted", "submitted", "accepted", "not_accepted"]
 
 
 @dataclass
@@ -46,7 +46,7 @@ class BroadcastItem:
         if not text:
             raise ValueError("Broadcast item missing text")
         groups = d.get("groups") or []
-        groups = [g for g in groups if g in ("not_submitted", "submitted")]
+        groups = [g for g in groups if g in ("not_submitted", "submitted", "accepted", "not_accepted")]
         if not groups:
             raise ValueError("Broadcast item must have at least one valid group")
         return BroadcastItem(when=dt, text=text, groups=groups)

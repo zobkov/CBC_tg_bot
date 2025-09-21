@@ -11,6 +11,8 @@ This is a **Telegram bot for managing recruitment applications** built with aiog
 - **Database**: PostgreSQL with psycopg3 connection pooling
 - **Config**: Environment variables + JSON files for business logic
 - **External APIs**: Google Sheets API, Google Drive API (optional)
+- **Scheduling**: APScheduler with Redis/Memory jobstore for broadcast scheduling
+- **File Management**: Local storage with optional Google Drive sync
 
 ### Key Architecture Patterns
 
@@ -31,6 +33,9 @@ config/
 ├── config.py          # Environment variables + dataclasses
 ├── departments.json    # Business data with subdepartments  
 ├── selection_config.json # Stages, deadlines, form options
+├── broadcasts.json     # Scheduled message configuration
+├── position_id_mapping.json # Static position ID mappings
+├── position-file_map.json # Generated position-to-file mappings
 └── *.json.example     # Template files
 ```
 
@@ -53,6 +58,16 @@ config/
 - **Photo Assets**: Update `photo_file_ids.json`, run `regenerate_photo_file_ids.py`
 - **Task File Assets**: Update `task_file_ids.json`, run `regenerate_task_file_ids.py`
 - **Position Mappings**: Update CSV, run `generate_position_file_mapping.py`, clear cache via `clear_mapping_cache()`
+- **Broadcasts**: Configure scheduled messages in `config/broadcasts.json` for `BroadcastScheduler`
+
+### Broadcast Groups System
+Applications support 4 user groups for targeted messaging:
+- `not_submitted` - Users who haven't submitted their application
+- `submitted` - Users who have submitted their application  
+- `accepted` - Users accepted to stage 2 (any of `accepted_1/2/3` = true in `evaluated_applications`)
+- `not_accepted` - Users not accepted (all `accepted_1/2/3` = false in `evaluated_applications`)
+
+**Group Logic**: Groups `accepted`/`not_accepted` based on `evaluated_applications` table; `submitted`/`not_submitted` based on `users.submission_status`.
 
 ## Project-Specific Conventions
 
@@ -135,14 +150,15 @@ python3 main.py  # Runs with .env file
 - Error reports in `error_reports.json`
 - Google API errors include diagnostic suggestions
 
-### Photo Asset Management
+### Asset Management
 ```bash
 python regenerate_photo_file_ids.py  # Updates Telegram file IDs
+python regenerate_task_file_ids.py  # Updates Telegram file IDs for task files
 ```
 
-### Task File Asset Management
+### Migration & Database Updates
 ```bash
-python regenerate_task_file_ids.py  # Updates Telegram file IDs for task files
+python run_applications_migrations.py  # Applies numbered SQL migrations from migrations/
 ```
 
 ## Common Gotchas

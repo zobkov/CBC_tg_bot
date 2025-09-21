@@ -118,14 +118,46 @@ class _UsersDB:
         )
 
     async def list_user_ids_by_group(self, *, group: str) -> list[int]:
-        cursor: AsyncCursor = await self.connection.execute(
-            """
-            SELECT user_id FROM users WHERE submission_status = %s AND is_blocked = FALSE
-        """,
-            (group,),
-        )
-        rows = await cursor.fetchall()
-        return [r[0] for r in rows]
+        if group in ("not_submitted", "submitted"):
+            # Старая логика на основе submission_status
+            cursor: AsyncCursor = await self.connection.execute(
+                """
+                SELECT user_id FROM users WHERE submission_status = %s AND is_blocked = FALSE
+            """,
+                (group,),
+            )
+            rows = await cursor.fetchall()
+            return [r[0] for r in rows]
+        
+        elif group == "accepted":
+            # Пользователи, принятые хотя бы по одному заданию (любая из трех колонок = true)
+            cursor: AsyncCursor = await self.connection.execute(
+                """
+                SELECT u.user_id FROM users u
+                INNER JOIN evaluated_applications ea ON u.user_id = ea.user_id
+                WHERE u.is_blocked = FALSE 
+                AND (ea.accepted_1 = TRUE OR ea.accepted_2 = TRUE OR ea.accepted_3 = TRUE)
+            """,
+            )
+            rows = await cursor.fetchall()
+            return [r[0] for r in rows]
+        
+        elif group == "not_accepted":
+            # Пользователи, НЕ принятые ни по одному заданию (все три колонки = false)
+            cursor: AsyncCursor = await self.connection.execute(
+                """
+                SELECT u.user_id FROM users u
+                INNER JOIN evaluated_applications ea ON u.user_id = ea.user_id
+                WHERE u.is_blocked = FALSE 
+                AND ea.accepted_1 = FALSE AND ea.accepted_2 = FALSE AND ea.accepted_3 = FALSE
+            """,
+            )
+            rows = await cursor.fetchall()
+            return [r[0] for r in rows]
+        
+        else:
+            logger.warning("Unknown group '%s', returning empty list", group)
+            return []
 
     async def set_task_submission_status(self, *, user_id: int, task_number: int, submitted: bool = True) -> None:
         """Устанавливает статус отправки конкретного задания"""
