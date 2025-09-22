@@ -57,10 +57,7 @@ class _UsersDB:
              language,
              is_alive,
              is_blocked,
-             submission_status,
-             task_1_submitted,
-             task_2_submitted,
-             task_3_submitted
+             submission_status
             FROM users
             WHERE users.user_id = %s
         """,
@@ -126,36 +123,3 @@ class _UsersDB:
         )
         rows = await cursor.fetchall()
         return [r[0] for r in rows]
-
-    async def set_task_submission_status(self, *, user_id: int, task_number: int, submitted: bool = True) -> None:
-        """Устанавливает статус отправки конкретного задания"""
-        column_name = f"task_{task_number}_submitted"
-        await self.connection.execute(
-            f"""
-            UPDATE users
-            SET {column_name} = %s
-            WHERE user_id = %s
-        """,
-            (submitted, user_id),
-        )
-        logger.info(
-            "User task submission updated. db='%s', user_id=%d, task=%d, submitted=%s",
-            self.__tablename__,
-            user_id,
-            task_number,
-            submitted,
-        )
-
-    async def get_task_submission_status(self, *, user_id: int, task_number: int) -> bool:
-        """Получает статус отправки конкретного задания"""
-        column_name = f"task_{task_number}_submitted"
-        cursor: AsyncCursor = await self.connection.execute(
-            f"""
-            SELECT {column_name}
-            FROM users
-            WHERE user_id = %s
-        """,
-            (user_id,),
-        )
-        result = await cursor.fetchone()
-        return result[0] if result else False

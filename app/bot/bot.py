@@ -28,8 +28,6 @@ from app.bot.dialogs.start.dialogs import start_dialog
 from app.bot.dialogs.main_menu.dialogs import main_menu_dialog
 from app.bot.dialogs.first_stage.dialogs import first_stage_dialog
 from app.bot.dialogs.job_selection.dialogs import job_selection_dialog
-from app.bot.dialogs.tasks.dialogs import task_dialog
-
 from app.services.broadcast_scheduler import BroadcastScheduler
 from app.services.photo_file_id_manager import startup_photo_check
 from pathlib import Path
@@ -119,8 +117,7 @@ async def main():
         start_dialog,
         main_menu_dialog,
         first_stage_dialog,
-        job_selection_dialog,
-        task_dialog
+        job_selection_dialog
                        )
 
     logger.info("Including middlewares")
@@ -140,16 +137,6 @@ async def main():
     except Exception as e:
         logger.error(f"Error during photo file_id check: {e}")
         # Не останавливаем бота из-за ошибки с фотографиями
-
-    # Проверяем новые файлы заданий и обновляем file_id при старте
-    logger.info("Checking for new task files and updating file_ids...")
-    try:
-        from app.services.task_file_id_manager import startup_task_files_check
-        task_file_ids = await startup_task_files_check(bot)
-        logger.info(f"Task file_id check completed. Total task files: {len(task_file_ids)}")
-    except Exception as e:
-        logger.error(f"Error during task file_id check: {e}")
-        # Не останавливаем бота из-за ошибки с файлами заданий
 
     # Launch polling and broadcast scheduler
     try:
