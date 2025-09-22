@@ -77,8 +77,9 @@ async def get_task_1_info(dialog_manager: DialogManager, event_from_user: User, 
         logger.error("Database connection not available in get_task_1_info")
         return {
             "deparment_1": "",
-            "subdeparment_1": "",
-            "position_1": ""
+            "subdepartment_1": "",
+            "position_1": "",
+            "task_1_header": "База данных недоступна"
         }
 
     try:
@@ -89,22 +90,27 @@ async def get_task_1_info(dialog_manager: DialogManager, event_from_user: User, 
             logger.warning(f"No application found for user {event_from_user.id}")
             return {
                 "deparment_1": "",
-                "subdeparment_1": "",
-                "position_1": ""
+                "subdepartment_1": "",
+                "position_1": "",
+                "task_1_header": "Заявка не найдена"
             }
 
         return {
             "deparment_1": application.department_1 or "",
-            "subdeparment_1": application.subdepartment_1 or "",
-            "position_1": application.position_1 or ""
+            "subdepartment_1": application.subdepartment_1 or "",
+            "position_1": application.position_1 or "",
+            "task_1_header": f"{application.department_1 or ''}" + 
+                           (f" – {application.subdepartment_1}" if application.subdepartment_1 else "") + 
+                           f" – {application.position_1 or ''}"
         }
         
     except Exception as e:
         logger.error(f"Error getting task 1 info for user {event_from_user.id}: {e}")
         return {
             "deparment_1": "",
-            "subdeparment_1": "",
-            "position_1": ""
+            "subdepartment_1": "",
+            "position_1": "",
+            "task_1_header": "Ошибка загрузки"
         }
 
 async def get_task_2_info(dialog_manager: DialogManager, event_from_user: User, **kwargs) -> Dict[str, Any]:
@@ -118,8 +124,9 @@ async def get_task_2_info(dialog_manager: DialogManager, event_from_user: User, 
         logger.error("Database connection not available in get_task_2_info")
         return {
             "deparment_2": "",
-            "subdeparment_2": "",
-            "position_2": ""
+            "subdepartment_2": "",
+            "position_2": "",
+            "task_2_header": "База данных недоступна"
         }
 
     try:
@@ -130,22 +137,27 @@ async def get_task_2_info(dialog_manager: DialogManager, event_from_user: User, 
             logger.warning(f"No application found for user {event_from_user.id}")
             return {
                 "deparment_2": "",
-                "subdeparment_2": "",
-                "position_2": ""
+                "subdepartment_2": "",
+                "position_2": "",
+                "task_2_header": "Заявка не найдена"
             }
 
         return {
             "deparment_2": application.department_2 or "",
-            "subdeparment_2": application.subdepartment_2 or "",
-            "position_2": application.position_2 or ""
+            "subdepartment_2": application.subdepartment_2 or "",
+            "position_2": application.position_2 or "",
+            "task_2_header": f"{application.department_2 or ''}" + 
+                           (f" – {application.subdepartment_2}" if application.subdepartment_2 else "") + 
+                           f" – {application.position_2 or ''}"
         }
         
     except Exception as e:
         logger.error(f"Error getting task 2 info for user {event_from_user.id}: {e}")
         return {
             "deparment_2": "",
-            "subdeparment_2": "",
-            "position_2": ""
+            "subdepartment_2": "",
+            "position_2": "",
+            "task_2_header": "Ошибка загрузки"
         }
 
 async def get_task_3_info(dialog_manager: DialogManager, event_from_user: User, **kwargs) -> Dict[str, Any]:
@@ -159,8 +171,9 @@ async def get_task_3_info(dialog_manager: DialogManager, event_from_user: User, 
         logger.error("Database connection not available in get_task_3_info")
         return {
             "deparment_3": "",
-            "subdeparment_3": "",
-            "position_3": ""
+            "subdepartment_3": "",
+            "position_3": "",
+            "task_3_header": "База данных недоступна"
         }
 
     try:
@@ -171,22 +184,27 @@ async def get_task_3_info(dialog_manager: DialogManager, event_from_user: User, 
             logger.warning(f"No application found for user {event_from_user.id}")
             return {
                 "deparment_3": "",
-                "subdeparment_3": "",
-                "position_3": ""
+                "subdepartment_3": "",
+                "position_3": "",
+                "task_3_header": "Заявка не найдена"
             }
 
         return {
             "deparment_3": application.department_3 or "",
-            "subdeparment_3": application.subdepartment_3 or "",
-            "position_3": application.position_3 or ""
+            "subdepartment_3": application.subdepartment_3 or "",
+            "position_3": application.position_3 or "",
+            "task_3_header": f"{application.department_3 or ''}" + 
+                           (f" – {application.subdepartment_3}" if application.subdepartment_3 else "") + 
+                           f" – {application.position_3 or ''}"
         }
         
     except Exception as e:
         logger.error(f"Error getting task 3 info for user {event_from_user.id}: {e}")
         return {
             "deparment_3": "",
-            "subdeparment_3": "",
-            "position_3": ""
+            "subdepartment_3": "",
+            "position_3": "",
+            "task_3_header": "Ошибка загрузки"
         }
     
 async def get_tasks_files(dialog_manager: DialogManager, event_from_user: User, **kwargs) -> Dict[str, Any]:
