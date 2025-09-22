@@ -19,7 +19,7 @@ async def get_user_info(dialog_manager: DialogManager, event_from_user: User, **
         "username": event_from_user.username or "",
         "first_name": event_from_user.first_name or "",
         "last_name": event_from_user.last_name or "",
-    }
+    } 
 
 
 async def get_current_stage_info(dialog_manager: DialogManager, **kwargs) -> Dict[str, Any]:
@@ -91,7 +91,7 @@ async def get_current_stage_info(dialog_manager: DialogManager, **kwargs) -> Dic
         if "start_date" in current_stage_info and current_stage_info.get("status") == "upcoming":
             # Для будущих этапов показываем дату начала
             start_date = datetime.fromisoformat(current_stage_info["start_date"])
-            deadline_info = f"🚀 Начало: {start_date.strftime('%d.%m.%Y, %H:%M')}"
+            deadline_info = f"🚀 Результаты: {start_date.strftime('%d.%m.%Y, %H:%M')}"
             
             # Рассчитываем время до начала
             time_until = start_date - now
@@ -164,7 +164,7 @@ async def get_application_status(dialog_manager: DialogManager, **kwargs) -> Dic
         application_status = (user_record.submission_status if user_record else "not_submitted")
         status_text = {
             "not_submitted": "Заявка не подана",
-            "submitted": "Заявка подана"
+            "submitted": "Заявка на рассмотрении.\n\nМы изучаем твою заявку и надеемся на лучший результат! Если твоя заявка пройдёт отбор, мы отправим тестовое задание прямо сюда. Возвращайся в бота в указанное время, чтобы узнать решение."
         }.get(application_status, "Неизвестный статус")
     except Exception as e:
         # В случае ошибки возвращаем значения по умолчанию

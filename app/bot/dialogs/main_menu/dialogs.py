@@ -17,11 +17,11 @@ main_menu_dialog = Dialog(
         DynamicMedia(
             "media"
         ),
-        Format("🏠 <b>Личный кабинет кандидата в команду КБК 2026</b> - тест второго этапа\n\n"
-               "📅 <b>Текущий этап:</b> {stage_name}\n"
-               "📝 <b>Статус заявки:</b> {status_text}\n\n"
+        Format("🏠 <b>Личный кабинет кандидата в команду КБК 2026</b>\n\n"
+               "📅 <b>Следующий этап:</b> {stage_name}\n"
+               "📌 <b>Статус:</b> {status_text}\n\n"
                "{deadline_info}\n"
-               "{stage_description}"),
+               ),
         Row(
             Button(
                 Const("📋 Тестовые задания"),
@@ -38,6 +38,11 @@ main_menu_dialog = Dialog(
         ),
         state=MainMenuSG.main_menu,
         getter=[get_current_stage_info, get_application_status, get_main_menu_media]
+    ),
+    Window(
+        Format("Если твоя заявка пройдёт отбор, мы отправим тестовое задание прямо сюда. Возвращайся в бота в указанное время, чтобы узнать решение."),
+        Back(Const("◀️ Назад")),
+        state=MainMenuSG.locked_stage
     ),
     Window(
         StaticMedia(
