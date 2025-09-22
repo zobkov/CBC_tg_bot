@@ -175,7 +175,11 @@ google_credentials.jsonconfig/google_credentials.json
 google_credentials.json
 test_unit
 summary_*.txt
+*.csv
 
+storage/solutions/*/*
+storage/temp/*
+storage/trash/*
 storage/
 eval_applications_*.csv
 position-file_mapping.csv

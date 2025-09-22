@@ -12,3 +12,6 @@ class UsersModel(BaseModel):
     is_alive: bool
     is_blocked: bool
     submission_status: str  # "not_submitted" | "submitted"
+    task_1_submitted: bool = False
+    task_2_submitted: bool = False
+    task_3_submitted: bool = False

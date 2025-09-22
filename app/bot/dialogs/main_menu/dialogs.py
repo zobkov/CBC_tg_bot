@@ -24,7 +24,7 @@ main_menu_dialog = Dialog(
                ),
         Row(
             Button(
-                Const("🔒 Текущий этап отбора"),
+                Const("📋 Тестовые задания"),
                 id="current_stage",
                 on_click=on_current_stage_clicked
             ),
