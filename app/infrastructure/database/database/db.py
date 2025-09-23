@@ -3,6 +3,7 @@ from psycopg import AsyncConnection
 from app.infrastructure.database.database.users import _UsersDB
 from app.infrastructure.database.database.applications import _ApplicationsDB
 from app.infrastructure.database.database.evaluated_applications import _EvaluatedApplicationsDB
+from app.infrastructure.database.database.task_statistics import _TaskStatisticsDB
 
 
 class DB:
@@ -11,3 +12,4 @@ class DB:
         self.users = _UsersDB(connection=applications_connection)
         self.applications = _ApplicationsDB(connection=applications_connection)
         self.evaluated_applications = _EvaluatedApplicationsDB(connection=applications_connection)
+        self.task_statistics = _TaskStatisticsDB(connection=applications_connection)

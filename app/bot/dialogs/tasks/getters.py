@@ -10,6 +10,7 @@ from aiogram.enums import ContentType
 from config.config import Config
 from app.infrastructure.database.database.db import DB
 from app.utils.optimized_dialog_widgets import get_file_id_for_path
+from app.utils.task_statistics import record_task_statistics
 
 from app.infrastructure.database.models.applications import ApplicationsModel
 
@@ -57,7 +58,17 @@ async def get_live_tasks_info(dialog_manager: DialogManager, event_from_user: Us
         }
 
 async def get_user_info(dialog_manager: DialogManager, event_from_user: User, **kwargs) -> Dict[str, Any]:
-    """Получаем информацию о пользователе"""
+    """Получаем информацию о пользователе и записываем статистику посещения TaskSG.main"""
+    
+    # Получаем доступ к базе данных из dialog_manager
+    db: DB = dialog_manager.middleware_data.get("db")
+    
+    # Записываем статистику посещения TaskSG.main (только при первом заходе)
+    if db:
+        try:
+            await record_task_statistics(db, event_from_user)
+        except Exception as e:
+            logger.error(f"Error recording task statistics for user {event_from_user.id}: {e}")
     
     return {
         "user_id": event_from_user.id,
