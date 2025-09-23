@@ -9,7 +9,7 @@ from aiogram.enums import ContentType
 from app.utils.optimized_dialog_widgets import get_file_id_for_path
 from app.bot.states.main_menu import MainMenuSG
 from app.bot.states.first_stage import FirstStageSG
-from .getters import get_current_stage_info, get_application_status, get_support_contacts, get_main_menu_media
+from .getters import get_current_stage_info, get_application_status, get_support_contacts, get_main_menu_media, get_task_button_info
 from .handlers import on_current_stage_clicked, on_support_clicked
 
 main_menu_dialog = Dialog(
@@ -20,12 +20,12 @@ main_menu_dialog = Dialog(
         Format("🏠 <b>Личный кабинет кандидата в команду КБК 2026</b>\n\n"
                "📅 <b>Текущий этап:</b> {stage_name}\n"
                "📍 <b>Статус заявки:</b> {status_text}\n\n"
-               "⏰ Дедлайн: 28.09.2025, 23:59"
+               "⏰ <b>Дедлайн:</b> 28.09.2025, 23:59"
                "{deadline_info}\n"
                "{stage_description}"),
         Row(
             Button(
-                Const("📋 Тестовые задания"),
+                Format("{task_button_emoji} Тестовые задания"),
                 id="current_stage",
                 on_click=on_current_stage_clicked
             ),
@@ -38,7 +38,7 @@ main_menu_dialog = Dialog(
             ),
         ),
         state=MainMenuSG.main_menu,
-        getter=[get_current_stage_info, get_application_status, get_main_menu_media]
+        getter=[get_current_stage_info, get_application_status, get_main_menu_media, get_task_button_info]
     ),
     Window(
         StaticMedia(

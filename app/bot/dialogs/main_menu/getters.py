@@ -190,6 +190,39 @@ async def get_support_contacts(dialog_manager: DialogManager, **kwargs) -> Dict[
     }
 
 
+async def get_task_button_info(dialog_manager: DialogManager, **kwargs) -> Dict[str, Any]:
+    """Получаем информацию для кнопки тестовых заданий"""
+    event_from_user: User = dialog_manager.event.from_user
+    db: DB = dialog_manager.middleware_data.get("db")
+    
+    # По умолчанию доступ разрешен (для случаев ошибок или отсутствия данных)
+    is_first_stage_passed = True
+    button_emoji = "📋"
+    
+    if db:
+        try:
+            # Получаем данные оценки пользователя
+            evaluation = await db.evaluated_applications.get_evaluation(user_id=event_from_user.id)
+            
+            if evaluation:
+                # Проверяем, прошел ли пользователь первый этап
+                # Если все accepted_1, accepted_2, accepted_3 = False, значит не прошел
+                is_first_stage_passed = evaluation.accepted_1 or evaluation.accepted_2 or evaluation.accepted_3
+                
+                if not is_first_stage_passed:
+                    button_emoji = "🔒"
+        except Exception as e:
+            # В случае ошибки логируем и разрешаем доступ
+            import logging
+            logger = logging.getLogger(__name__)
+            logger.error(f"Error checking first stage status for user {event_from_user.id}: {e}")
+    
+    return {
+        "task_button_emoji": button_emoji,
+        "is_first_stage_passed": is_first_stage_passed
+    }
+
+
 async def get_main_menu_media(dialog_manager: DialogManager, **kwargs) -> Dict[str, Any]:
     """Получаем медиа для главного меню"""
     file_id = get_file_id_for_path("main_menu/main_menu.jpg")
