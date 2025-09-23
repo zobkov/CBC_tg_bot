@@ -1,5 +1,5 @@
 from aiogram_dialog import Dialog, Window
-from aiogram_dialog.widgets.kbd import Button, Row, Back, Start
+from aiogram_dialog.widgets.kbd import Button, Row, Back, Start, SwitchTo
 from aiogram_dialog.widgets.text import Format, Const
 from aiogram_dialog.widgets.media import StaticMedia, DynamicMedia
 from aiogram_dialog.api.entities import MediaAttachment, MediaId
@@ -19,7 +19,8 @@ main_menu_dialog = Dialog(
         ),
         Format("🏠 <b>Личный кабинет кандидата в команду КБК 2026</b>\n\n"
                "📅 <b>Текущий этап:</b> {stage_name}\n"
-               "📝 <b>Статус заявки:</b> {status_text}\n\n"
+               "📍 <b>Статус заявки:</b> {status_text}\n\n"
+               "⏰ Дедлайн: 28.09.2025, 23:59"
                "{deadline_info}\n"
                "{stage_description}"),
         Row(
@@ -50,6 +51,12 @@ main_menu_dialog = Dialog(
                ),
         Back(Const("◀️ Назад")),
         state=MainMenuSG.support,
+        getter=get_support_contacts
+    ),
+    Window(
+        Format("📞 <b>Тут скоро будут тестовые задания</b>\n\nМы почти готовы рассылать тестовые задания. Если ты прошел первый этап отбора, то возвращайся в бота завтра, чтобы забрать файлы для своих заданий!\n\n"),
+        SwitchTo(Const("◀️ Назад"), state=MainMenuSG.main_menu, id="to_main_menu_from_bot_aval"),
+        state=MainMenuSG.not_availabe,
         getter=get_support_contacts
     ),
 )

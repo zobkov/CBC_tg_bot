@@ -94,12 +94,6 @@ async def get_current_stage_info(dialog_manager: DialogManager, **kwargs) -> Dic
             deadline_info = f"🚀 Начало: {start_date.strftime('%d.%m.%Y, %H:%M')}"
             
             # Рассчитываем время до начала
-            time_until = start_date - now
-            if time_until.days > 0:
-                deadline_info += f"\n⏳ До начала: {time_until.days} дн."
-            elif time_until.seconds > 3600:
-                hours_until = time_until.seconds // 3600
-                deadline_info += f"\n⏳ До начала: {hours_until} ч."
         elif "end_date" in current_stage_info:
             # Для текущих этапов показываем дедлайн или результаты в зависимости от статуса заявки
             end_date = datetime.fromisoformat(current_stage_info["end_date"])
@@ -107,10 +101,10 @@ async def get_current_stage_info(dialog_manager: DialogManager, **kwargs) -> Dic
             if application_submitted and "results_date" in current_stage_info:
                 # Если заявка подана, показываем когда придут результаты
                 results_date = datetime.fromisoformat(current_stage_info["results_date"])
-                deadline_info = f"Готово! Твоя заявка отправлена. Результаты придут: <b>{results_date.strftime('%d.%m.%Y, %H:%M')}</b>"
+                deadline_info = f""
             else:
                 # Если заявка не подана, показываем дедлайн
-                deadline_info = f"Подай заявку до <b>{end_date.strftime('%d.%m.%Y, %H:%M')}</b>, чтобы перейти к следующему этапу"
+                deadline_info = f""
             
             # Рассчитываем оставшееся время
             """ Убрал "Осталоь ... дн" так как динамическая информация в статическом сообщении
@@ -130,9 +124,9 @@ async def get_current_stage_info(dialog_manager: DialogManager, **kwargs) -> Dic
     
     # Добавляем информацию о следующем этапе
     next_stage_text = ""
-    if next_stage_info and current_stage_info.get("status") != "upcoming":
-        next_start = datetime.fromisoformat(next_stage_info["start_date"])
-        next_stage_text = f"\n\n📋 <b>Следующий этап:</b> {next_stage_info['name']}\n🚀 <b>Начало:</b> {next_start.strftime('%d.%m.%Y, %H:%M')}"
+    #if next_stage_info and current_stage_info.get("status") != "upcoming":
+     #   next_start = datetime.fromisoformat(next_stage_info["start_date"])
+    #    next_stage_text = f"\n\n📋 <b>Следующий этап:</b> {next_stage_info['name']}\n🚀 <b>Начало:</b> {next_start.strftime('%d.%m.%Y, %H:%M')}"
     
     return {
         "current_stage": current_stage or "completed",

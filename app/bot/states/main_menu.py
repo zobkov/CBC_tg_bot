@@ -5,3 +5,4 @@ class MainMenuSG(StatesGroup):
     main_menu = State()
     current_stage_info = State()
     support = State()
+    not_availabe = State()
