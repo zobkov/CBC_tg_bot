@@ -163,6 +163,7 @@ async def main():
             bot,
             bg_factory=bg_factory,
             _db_applications_pool=db_applications_pool,
+            skip_updates=True,
         )
     except Exception as e:
         logger.exception(e)
