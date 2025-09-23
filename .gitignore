@@ -180,3 +180,4 @@ summary_*.txt
 storage/solutions/*/*
 storage/temp/*
 storage/trash/*
+app/bot/assets/tasks/*
