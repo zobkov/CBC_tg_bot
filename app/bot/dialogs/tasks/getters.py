@@ -265,6 +265,10 @@ async def get_tasks_files(dialog_manager: DialogManager, event_from_user: User, 
                 file_id = get_task_file_id(task_2_file)
                 if file_id:
                     task_2_media = MediaAttachment(ContentType.DOCUMENT, file_id=MediaId(file_id))
+                else:
+                    logger.error(f"file_id не найден для task_2_file: '{task_2_file}' (пользователь {event_from_user.id})")
+            else:
+                logger.error(f"Файл задания не найден для приоритета 2: {application.department_2}/{application.subdepartment_2}/{application.position_2} (пользователь {event_from_user.id})")
         
         # Третий приоритет
         if application.department_3 and application.position_3:
@@ -279,6 +283,14 @@ async def get_tasks_files(dialog_manager: DialogManager, event_from_user: User, 
                     task_3_media = MediaAttachment(ContentType.DOCUMENT, file_id=MediaId(file_id))
 
         logger.info(f"Task media files for user {event_from_user.id}: task_1={task_1_media is not None}, task_2={task_2_media is not None}, task_3={task_3_media is not None}")
+        
+        # Дополнительная диагностическая информация
+        if not task_1_media and application.department_1 and application.position_1:
+            logger.warning(f"Task 1 media missing for user {event_from_user.id}: {application.department_1}/{application.subdepartment_1}/{application.position_1}")
+        if not task_2_media and application.department_2 and application.position_2:
+            logger.warning(f"Task 2 media missing for user {event_from_user.id}: {application.department_2}/{application.subdepartment_2}/{application.position_2}")
+        if not task_3_media and application.department_3 and application.position_3:
+            logger.warning(f"Task 3 media missing for user {event_from_user.id}: {application.department_3}/{application.subdepartment_3}/{application.position_3}")
 
         return {
             "task_1": task_1_media,
