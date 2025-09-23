@@ -159,11 +159,11 @@ async def main():
             json_path=Path("config/broadcasts.json")
         )
         await scheduler.start()
+        await bot.delete_webhook(drop_pending_updates=True)
         await dp.start_polling(
             bot,
             bg_factory=bg_factory,
             _db_applications_pool=db_applications_pool,
-            skip_updates=True,
         )
     except Exception as e:
         logger.exception(e)

@@ -211,6 +211,10 @@ async def get_task_button_info(dialog_manager: DialogManager, **kwargs) -> Dict[
                 
                 if not is_first_stage_passed:
                     button_emoji = "🔒"
+            else:
+                # Если пользователя нет в evaluated_applications, значит он не отправлял заявку
+                button_emoji = "🔒"
+                is_first_stage_passed = False
         except Exception as e:
             # В случае ошибки логируем и разрешаем доступ
             import logging
