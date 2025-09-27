@@ -6,6 +6,7 @@ from typing import List, Dict, Any, Optional
 import gspread
 from google.oauth2.service_account import Credentials
 import asyncio
+import time
 from datetime import datetime
 
 logger = logging.getLogger(__name__)
@@ -226,43 +227,132 @@ class GoogleSyncService:
                         worksheet.append_row(headers)
                         logger.info(f"✅ Добавлены заголовки для листа {sheet_name}")
                     
-                    # Очищаем все данные кроме заголовков
-                    if worksheet.row_count > 1:
-                        worksheet.delete_rows(2, worksheet.row_count)
-                        logger.info(f"🧹 Очищены старые данные в листе {sheet_name}")
+                    # Получаем все существующие данные для сравнения
+                    all_values = worksheet.get_all_records()
+                    existing_data = {}
                     
-                    # Подготавливаем данные для вставки
-                    rows_to_insert = []
+                    # Создаем индекс существующих записей по ID телеграма
+                    for i, record in enumerate(all_values):
+                        user_id = str(record.get('ID', '')).strip()
+                        position = str(record.get('Вакансия', '')).strip()
+                        if user_id and position:
+                            key = f"{user_id}_{position}"
+                            existing_data[key] = {
+                                'row_index': i + 2,  # +2 потому что нумерация с 1 + заголовок
+                                'comment': record.get('Комментарий', ''),
+                                'rating': record.get('Оценка', ''),
+                                'task_submitted': record.get('ТЗ сдано', '')
+                            }
+                    
+                    logger.info(f"📋 Найдено {len(existing_data)} существующих записей в листе {sheet_name}")
+                    
+                    updated_count = 0
+                    added_count = 0
+                    
+                    # Подготавливаем данные для batch-операций
+                    rows_to_add = []
+                    batch_updates = []
+                    
+                    # Обрабатываем каждую заявку
                     for app in apps:
                         # Определяем название подотдела
                         subdept_display = ""
                         if app['subdepartment']:
                             subdept_display = self._get_subdepartment_display_name(app['subdepartment'])
                         
-                        row = [
-                            str(app['user_id']),  # ID
-                            app['username'],       # Username
-                            app['full_name'],      # ФИО
-                            subdept_display,       # Подотдел
-                            app['position'],       # Вакансия
-                            'True' if app['task_submitted'] else 'False',  # ТЗ сдано
-                            '',  # Комментарий (пустой)
-                            ''   # Оценка (пустая)
-                        ]
-                        rows_to_insert.append(row)
+                        user_id = str(app['user_id'])
+                        position = app['position']
+                        key = f"{user_id}_{position}"
+                        task_submitted_str = 'True' if app['task_submitted'] else 'False'
+                        
+                        if key in existing_data:
+                            # Проверяем существующую запись на необходимость обновления
+                            existing_record = existing_data[key]
+                            row_index = existing_record['row_index']
+                            
+                            # Проверяем, нужно ли обновить статус ТЗ
+                            if existing_record['task_submitted'] != task_submitted_str:
+                                batch_updates.append({
+                                    'range': f'F{row_index}',  # Колонка "ТЗ сдано"
+                                    'values': [[task_submitted_str]]
+                                })
+                                logger.debug(f"🔄 Запланировано обновление статуса ТЗ для {user_id} в позиции {position}")
+                                updated_count += 1
+                        else:
+                            # Добавляем новую запись в batch
+                            new_row = [
+                                user_id,              # ID
+                                app['username'],       # Username
+                                app['full_name'],      # ФИО
+                                subdept_display,       # Подотдел
+                                position,              # Вакансия
+                                task_submitted_str,    # ТЗ сдано
+                                '',                    # Комментарий (пустой)
+                                ''                     # Оценка (пустая)
+                            ]
+                            rows_to_add.append(new_row)
+                            logger.debug(f"➕ Запланировано добавление записи для {user_id} в позиции {position}")
+                            added_count += 1
                     
-                    # Вставляем все данные одним запросом
-                    if rows_to_insert:
-                        worksheet.append_rows(rows_to_insert)
-                        logger.info(f"✅ Добавлено {len(rows_to_insert)} записей в лист {sheet_name}")
+                    # Выполняем batch-обновления
+                    if batch_updates:
+                        try:
+                            logger.info(f"🔄 Выполняем {len(batch_updates)} batch-обновлений...")
+                            worksheet.batch_update(batch_updates)
+                            logger.info(f"✅ Batch-обновления выполнены успешно")
+                            time.sleep(1)  # Задержка после batch операции
+                        except Exception as api_error:
+                            if "429" in str(api_error) or "Quota exceeded" in str(api_error):
+                                logger.warning(f"⚠️ Превышена квота API при batch-обновлении, ждем 60 секунд...")
+                                time.sleep(60)
+                                worksheet.batch_update(batch_updates)
+                            else:
+                                logger.error(f"Ошибка при batch-обновлении: {api_error}")
+                                # Откатываемся на обычные обновления
+                                for update in batch_updates:
+                                    try:
+                                        range_cell = update['range']
+                                        value = update['values'][0][0]
+                                        worksheet.update(range_cell, [[value]])
+                                        time.sleep(0.2)
+                                    except Exception as e:
+                                        logger.error(f"Ошибка обновления {range_cell}: {e}")
                     
-                    sync_stats[sheet_name] = len(rows_to_insert)
+                    # Выполняем добавление новых записей
+                    if rows_to_add:
+                        try:
+                            logger.info(f"➕ Добавляем {len(rows_to_add)} новых записей...")
+                            worksheet.append_rows(rows_to_add)
+                            logger.info(f"✅ Новые записи добавлены успешно")
+                            time.sleep(1)  # Задержка после добавления
+                        except Exception as api_error:
+                            if "429" in str(api_error) or "Quota exceeded" in str(api_error):
+                                logger.warning(f"⚠️ Превышена квота API при добавлении записей, ждем 60 секунд...")
+                                time.sleep(60)
+                                worksheet.append_rows(rows_to_add)
+                            else:
+                                logger.error(f"Ошибка при добавлении записей: {api_error}")
+                                # Откатываемся на добавление по одной записи
+                                for row in rows_to_add:
+                                    try:
+                                        worksheet.append_row(row)
+                                        time.sleep(0.2)
+                                    except Exception as e:
+                                        logger.error(f"Ошибка добавления записи: {e}")
+                    
+                    logger.info(f"✅ Лист {sheet_name}: обновлено {updated_count} записей, добавлено {added_count} записей")
+                    sync_stats[sheet_name] = updated_count + added_count
                     
                 except Exception as e:
                     logger.error(f"Ошибка обработки листа {sheet_name}: {e}")
                     sync_stats[sheet_name] = 0
+                
+                # Добавляем задержку между обработкой отделов
+                time.sleep(2)
             
-            logger.info(f"🎉 Синхронизация завершена. Статистика: {sync_stats}")
+            total_changes = sum(sync_stats.values())
+            logger.info(f"🎉 Синхронизация завершена. Всего изменений: {total_changes}")
+            logger.info(f"📊 Статистика изменений по отделам: {sync_stats}")
             return sync_stats
             
         except Exception as e:

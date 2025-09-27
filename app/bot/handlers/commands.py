@@ -86,14 +86,21 @@ async def process_sync_to_google_command(message: Message, **middleware_data):
         
         # Формируем отчет о синхронизации
         report_lines = ["✅ Синхронизация завершена успешно!\n"]
-        report_lines.append("📊 Статистика по отделам:")
+        report_lines.append("📊 Статистика изменений по отделам:")
         
-        total_records = 0
+        total_changes = 0
         for sheet_name, count in sync_stats.items():
-            report_lines.append(f"• {sheet_name}: {count} записей")
-            total_records += count
+            if count > 0:
+                report_lines.append(f"• {sheet_name}: {count} изменений")
+            else:
+                report_lines.append(f"• {sheet_name}: без изменений")
+            total_changes += count
         
-        report_lines.append(f"\n📈 Общее количество записей: {total_records}")
+        if total_changes > 0:
+            report_lines.append(f"\n📈 Общее количество изменений: {total_changes}")
+        else:
+            report_lines.append(f"\n📈 Все данные актуальны, изменений не требуется")
+        
         report_lines.append(f"🔗 Ссылка на таблицу: https://docs.google.com/spreadsheets/d/{config.google.spreadsheet_id}")
         
         await status_msg.edit_text("\n".join(report_lines))
