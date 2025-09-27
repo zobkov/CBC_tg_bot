@@ -181,3 +181,4 @@ storage/solutions/*/*
 storage/temp/*
 storage/trash/*
 app/bot/assets/tasks/*
+app/bot/assets/tasks_old/*
