@@ -34,7 +34,7 @@ async def process_command_test(message: Message, dialog_manager: DialogManager):
 @router.message(Command(commands=['sync_to_google']))
 async def process_sync_to_google_command(message: Message, **middleware_data):
     """Хендлер команды /sync_to_google для синхронизации одобренных заявок с Google Sheets"""
-    
+    ADMIN_IDS = [257026813, 1905792261]
     # Получаем конфигурацию из middleware_data или загружаем заново
     config = middleware_data.get("config")
     if not config:
@@ -42,7 +42,7 @@ async def process_sync_to_google_command(message: Message, **middleware_data):
         config = load_config()
     
     # Проверяем права доступа (только для админов)
-    if not config.admin_ids or message.from_user.id not in config.admin_ids:
+    if  message.from_user.id not in ADMIN_IDS:
         await message.answer("❌ У вас нет прав для выполнения этой команды")
         return
     
