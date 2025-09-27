@@ -19,12 +19,14 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 
-async def populate_evaluated_applications(csv_file_path: str):
+async def populate_evaluated_applications(csv_file_path: str, incremental: bool = False):
     """
     Заполняет таблицу evaluated_applications данными из CSV файла
     
     Args:
         csv_file_path: Путь к CSV файлу с данными
+        incremental: Если True, добавляет только отсутствующих пользователей.
+                    Если False, очищает таблицу и заполняет заново.
         
     CSV должен содержать столбцы:
     user_id, username, full_name, dep_1, subdep_1, pos_1, accepted_1,
@@ -87,17 +89,33 @@ async def populate_evaluated_applications(csv_file_path: str):
                 logger.error("Таблица evaluated_applications не существует. Запустите миграцию 008_create_evaluated_applications_table.sql")
                 return False
             
-            # Очищаем таблицу перед заполнением (опционально)
-            logger.info("Очистка таблицы evaluated_applications")
-            await cur.execute("DELETE FROM evaluated_applications")
+            # Опционально очищаем таблицу перед заполнением
+            if not incremental:
+                logger.info("Очистка таблицы evaluated_applications (полное обновление)")
+                await cur.execute("DELETE FROM evaluated_applications")
+            else:
+                logger.info("Инкрементальное обновление - очистка не выполняется")
             
             # Подготавливаем данные для вставки
             successful_inserts = 0
             failed_inserts = 0
+            skipped_existing = 0
+            
+            # В режиме инкрементального обновления сначала получаем список существующих пользователей
+            existing_users = set()
+            if incremental:
+                await cur.execute("SELECT user_id FROM evaluated_applications")
+                existing_users = set(row[0] for row in await cur.fetchall())
+                logger.info(f"В таблице уже есть {len(existing_users)} пользователей")
             
             for index, row in enumerate(csv_data):
                 try:
                     user_id = int(row['user_id'])
+                    
+                    # В режиме инкрементального обновления пропускаем существующих пользователей
+                    if incremental and user_id in existing_users:
+                        skipped_existing += 1
+                        continue
                     
                     # Преобразуем строковые значения в boolean
                     def to_bool(value):
@@ -115,20 +133,29 @@ async def populate_evaluated_applications(csv_file_path: str):
                     
                     if not user_exists:
                         logger.warning(f"Пользователь {user_id} не найден в таблице users, пропускаем")
+                        logger.warning(f"  Данные пользователя: username='{row.get('username', 'N/A')}', full_name='{row.get('full_name', 'N/A')}'")
                         failed_inserts += 1
                         continue
                     
                     # Вставляем запись в evaluated_applications
-                    await cur.execute("""
-                        INSERT INTO evaluated_applications (user_id, accepted_1, accepted_2, accepted_3)
-                        VALUES (%s, %s, %s, %s)
-                        ON CONFLICT (user_id) 
-                        DO UPDATE SET 
-                            accepted_1 = EXCLUDED.accepted_1,
-                            accepted_2 = EXCLUDED.accepted_2,
-                            accepted_3 = EXCLUDED.accepted_3,
-                            updated = NOW()
-                    """, (user_id, accepted_1, accepted_2, accepted_3))
+                    if incremental:
+                        # В инкрементальном режиме только INSERT
+                        await cur.execute("""
+                            INSERT INTO evaluated_applications (user_id, accepted_1, accepted_2, accepted_3)
+                            VALUES (%s, %s, %s, %s)
+                        """, (user_id, accepted_1, accepted_2, accepted_3))
+                    else:
+                        # В режиме полного обновления используем UPSERT
+                        await cur.execute("""
+                            INSERT INTO evaluated_applications (user_id, accepted_1, accepted_2, accepted_3)
+                            VALUES (%s, %s, %s, %s)
+                            ON CONFLICT (user_id) 
+                            DO UPDATE SET 
+                                accepted_1 = EXCLUDED.accepted_1,
+                                accepted_2 = EXCLUDED.accepted_2,
+                                accepted_3 = EXCLUDED.accepted_3,
+                                updated = NOW()
+                        """, (user_id, accepted_1, accepted_2, accepted_3))
                     
                     successful_inserts += 1
                     
@@ -143,9 +170,11 @@ async def populate_evaluated_applications(csv_file_path: str):
             # Фиксируем транзакцию
             await conn.commit()
             
-            logger.info(f"Заполнение completed:")
+            logger.info(f"Заполнение завершено:")
             logger.info(f"  Успешно вставлено: {successful_inserts}")
             logger.info(f"  Ошибок: {failed_inserts}")
+            if incremental:
+                logger.info(f"  Пропущено (уже существуют): {skipped_existing}")
             
             # Проверяем итоговое количество записей
             await cur.execute("SELECT COUNT(*) FROM evaluated_applications")
@@ -156,13 +185,24 @@ async def populate_evaluated_applications(csv_file_path: str):
 
 
 async def main():
-    if len(sys.argv) != 2:
-        print("Использование: python populate_evaluated_applications.py <путь_к_csv_файлу>")
+    if len(sys.argv) < 2 or len(sys.argv) > 3:
+        print("Использование: python populate_evaluated_applications.py <путь_к_csv_файлу> [--incremental]")
         print("Пример: python populate_evaluated_applications.py data/second_stage_results.csv")
+        print("        python populate_evaluated_applications.py data/second_stage_results.csv --incremental")
+        print("")
+        print("Флаги:")
+        print("  --incremental    Добавлять только новых пользователей (не очищать таблицу)")
         sys.exit(1)
     
     csv_file_path = sys.argv[1]
-    success = await populate_evaluated_applications(csv_file_path)
+    incremental = len(sys.argv) == 3 and sys.argv[2] == '--incremental'
+    
+    if incremental:
+        logger.info("Режим инкрементального обновления")
+    else:
+        logger.info("Режим полного обновления (очистка таблицы)")
+    
+    success = await populate_evaluated_applications(csv_file_path, incremental)
     
     if success:
         logger.info("Скрипт выполнен успешно")
