@@ -59,6 +59,7 @@ class Config:
     redis: RedisConfig
     selection: SelectionConfig
     google: Optional[GoogleConfig] = None
+    admin_ids: list[int] = field(default_factory=list)
 
 def load_config(path: str = None) -> Config:
     # Загружаем JSON конфигурацию
@@ -128,11 +129,21 @@ def load_config(path: str = None) -> Config:
         support_contacts=json_config["support_contacts"]
     )
     
+    # Получаем список ID администраторов
+    admin_ids_str = env.str("ADMIN_IDS", "")
+    admin_ids = []
+    if admin_ids_str:
+        try:
+            admin_ids = [int(x.strip()) for x in admin_ids_str.split(",") if x.strip()]
+        except ValueError:
+            logger.warning(f"Некорректный формат ADMIN_IDS: {admin_ids_str}")
+    
     return Config(
         tg_bot=tg_bot,
         db=db_config,
         db_applications=db_applications_config,
         redis=redis,
         selection=selection_config,
-        google=google_config
+        google=google_config,
+        admin_ids=admin_ids
     )
