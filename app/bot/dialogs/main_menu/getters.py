@@ -227,6 +227,37 @@ async def get_task_button_info(dialog_manager: DialogManager, **kwargs) -> Dict[
     }
 
 
+async def get_interview_button_info(dialog_manager: DialogManager, **kwargs) -> Dict[str, Any]:
+    """Получаем информацию для кнопки интервью"""
+    event_from_user: User = dialog_manager.event.from_user
+    db_pool = dialog_manager.middleware_data.get("db_applications")
+    
+    # По умолчанию кнопка скрыта
+    show_interview_button = False
+    interview_button_emoji = "🎯"
+    
+    if db_pool:
+        try:
+            # Импортируем DAO для интервью
+            from app.infrastructure.database.dao.interview import InterviewDAO
+            dao = InterviewDAO(db_pool)
+            
+            # Проверяем статус одобрения пользователя
+            approved_dept = await dao.get_user_approved_department(event_from_user.id)
+            show_interview_button = approved_dept > 0
+            
+        except Exception as e:
+            # В случае ошибки логируем и скрываем кнопку
+            import logging
+            logger = logging.getLogger(__name__)
+            logger.error(f"Error checking interview status for user {event_from_user.id}: {e}")
+    
+    return {
+        "interview_button_emoji": interview_button_emoji,
+        "show_interview_button": show_interview_button
+    }
+
+
 async def get_main_menu_media(dialog_manager: DialogManager, **kwargs) -> Dict[str, Any]:
     """Получаем медиа для главного меню"""
     file_id = get_file_id_for_path("main_menu/main_menu.jpg")

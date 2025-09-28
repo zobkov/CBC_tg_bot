@@ -29,6 +29,7 @@ from app.bot.dialogs.main_menu.dialogs import main_menu_dialog
 from app.bot.dialogs.first_stage.dialogs import first_stage_dialog
 from app.bot.dialogs.job_selection.dialogs import job_selection_dialog
 from app.bot.dialogs.tasks.dialogs import task_dialog
+from app.bot.dialogs.interview.dialogs import interview_dialog
 
 from app.services.broadcast_scheduler import BroadcastScheduler
 from app.services.photo_file_id_manager import startup_photo_check
@@ -120,7 +121,8 @@ async def main():
         main_menu_dialog,
         first_stage_dialog,
         job_selection_dialog,
-        task_dialog
+        task_dialog,
+        interview_dialog
                        )
 
     logger.info("Including middlewares")
