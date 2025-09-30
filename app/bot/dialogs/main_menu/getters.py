@@ -91,7 +91,7 @@ async def get_current_stage_info(dialog_manager: DialogManager, **kwargs) -> Dic
         if "start_date" in current_stage_info and current_stage_info.get("status") == "upcoming":
             # Для будущих этапов показываем дату начала
             start_date = datetime.fromisoformat(current_stage_info["start_date"])
-            deadline_info = f"🚀 Начало: {start_date.strftime('%d.%m.%Y, %H:%M')}"
+            deadline_info = f""
             
             # Рассчитываем время до начала
         elif "end_date" in current_stage_info:
