@@ -9,8 +9,16 @@ from app.infrastructure.database.database.db import DB
 
 async def on_current_stage_clicked(callback: CallbackQuery, button, dialog_manager: DialogManager):
     """Обработчик нажатия на кнопку 'Тестовые задания'"""
+    from app.utils.deadline_checker import is_task_submission_closed, get_task_submission_status_message
+    
     # Сначала отвечаем на callback, чтобы избежать таймаута
     await callback.answer()
+    
+    # Проверяем, закрыта ли отправка тестовых заданий
+    if is_task_submission_closed():
+        # Отправляем сообщение о закрытии отправки
+        await callback.message.answer(get_task_submission_status_message())
+        return
     
     # Получаем доступ к базе данных
     db: DB = dialog_manager.middleware_data.get("db")

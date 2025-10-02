@@ -24,6 +24,8 @@ async def get_user_info(dialog_manager: DialogManager, event_from_user: User, **
 
 async def get_current_stage_info(dialog_manager: DialogManager, **kwargs) -> Dict[str, Any]:
     """Получаем информацию о текущем этапе отбора"""
+    from app.utils.deadline_checker import is_task_submission_closed, format_results_date
+    
     config: Config = dialog_manager.middleware_data.get("config")
     db: DB = dialog_manager.middleware_data.get("db")
     event_from_user: User = dialog_manager.event.from_user
@@ -43,6 +45,9 @@ async def get_current_stage_info(dialog_manager: DialogManager, **kwargs) -> Dic
             application_submitted = bool(user_record and user_record.submission_status == "submitted")
     except Exception:
         application_submitted = False
+    
+    # Проверяем, закрыта ли отправка тестовых заданий
+    submission_closed = is_task_submission_closed()
     
     now = datetime.now()
     current_stage = None
@@ -85,42 +90,24 @@ async def get_current_stage_info(dialog_manager: DialogManager, **kwargs) -> Dic
             "status": "completed"
         }
     
-    # Добавляем информацию о дедлайнах
+    # Логика отображения дедлайна и результатов
     deadline_info = ""
-    if current_stage_info and current_stage != "completed":
-        if "start_date" in current_stage_info and current_stage_info.get("status") == "upcoming":
-            # Для будущих этапов показываем дату начала
-            start_date = datetime.fromisoformat(current_stage_info["start_date"])
-            deadline_info = f""
-            
-            # Рассчитываем время до начала
-        elif "end_date" in current_stage_info:
-            # Для текущих этапов показываем дедлайн или результаты в зависимости от статуса заявки
-            end_date = datetime.fromisoformat(current_stage_info["end_date"])
-            
-            if application_submitted and "results_date" in current_stage_info:
-                # Если заявка подана, показываем когда придут результаты
-                results_date = datetime.fromisoformat(current_stage_info["results_date"])
-                deadline_info = f""
-            else:
-                # Если заявка не подана, показываем дедлайн
-                deadline_info = f""
-            
-            # Рассчитываем оставшееся время
-            """ Убрал "Осталоь ... дн" так как динамическая информация в статическом сообщении
-            time_left = end_date - now
-            if time_left.days > 7:
-                deadline_info += f"\n⏳ Осталось: {time_left.days} дн."
-            elif time_left.days > 0:
-                deadline_info += f"\n🔥 <b>Осталось: {time_left.days} дн.</b>"
-            elif time_left.seconds > 3600:
-                hours_left = time_left.seconds // 3600
-                deadline_info += f"\n🔥 <b>Осталось: {hours_left} ч.</b>"
-            elif time_left.seconds > 0:
-                deadline_info += f"\n🚨 <b>Осталось: менее часа!</b>"
-            else:
-                deadline_info += f"\n❌ <b>Дедлайн истек</b>"
-            """
+    
+    # Если отправка тестовых заданий закрыта, переопределяем информацию о этапе
+    if submission_closed:
+        current_stage_info = {
+            "name": "Тестовое задание",
+            "description": "",
+            "status": "closed"
+        }
+        
+        # Формируем информацию о результатах
+        results_date = format_results_date()
+        deadline_info = f"\n\n⏰ <b>Результаты:</b> {results_date}"
+    else:
+        # Если дедлайн еще не прошел, показываем дедлайн (для этапа "Тестовое задание")
+        if current_stage_info and current_stage_info.get("name") == "Тестовое задание":
+            deadline_info = f"\n\n⏰ <b>Дедлайн:</b> 02.10.2025, 23:59"
     
     # Добавляем информацию о следующем этапе
     next_stage_text = ""
@@ -133,7 +120,8 @@ async def get_current_stage_info(dialog_manager: DialogManager, **kwargs) -> Dic
         "stage_name": current_stage_info["name"],
         "stage_description": current_stage_info.get("description", "") + next_stage_text,
         "stage_status": current_stage_info.get("status", "active"),
-        "deadline_info": deadline_info
+        "deadline_info": deadline_info,
+        "submission_closed": submission_closed
     }
 
 
@@ -192,14 +180,22 @@ async def get_support_contacts(dialog_manager: DialogManager, **kwargs) -> Dict[
 
 async def get_task_button_info(dialog_manager: DialogManager, **kwargs) -> Dict[str, Any]:
     """Получаем информацию для кнопки тестовых заданий"""
+    from app.utils.deadline_checker import is_task_submission_closed
+    
     event_from_user: User = dialog_manager.event.from_user
     db: DB = dialog_manager.middleware_data.get("db")
+    
+    # Проверяем, закрыта ли отправка тестовых заданий
+    submission_closed = is_task_submission_closed()
     
     # По умолчанию доступ разрешен (для случаев ошибок или отсутствия данных)
     is_first_stage_passed = True
     button_emoji = "📋"
     
-    if db:
+    if submission_closed:
+        # Если дедлайн прошел, показываем замочек независимо от статуса
+        button_emoji = "🔒"
+    elif db:
         try:
             # Получаем данные оценки пользователя
             evaluation = await db.evaluated_applications.get_evaluation(user_id=event_from_user.id)
@@ -223,7 +219,66 @@ async def get_task_button_info(dialog_manager: DialogManager, **kwargs) -> Dict[
     
     return {
         "task_button_emoji": button_emoji,
-        "is_first_stage_passed": is_first_stage_passed
+        "is_first_stage_passed": is_first_stage_passed,
+        "submission_closed": submission_closed
+    }
+
+
+async def get_task_status_info(dialog_manager: DialogManager, **kwargs) -> Dict[str, Any]:
+    """Получаем информацию о статусе выполнения тестовых заданий"""
+    event_from_user: User = dialog_manager.event.from_user
+    db: DB = dialog_manager.middleware_data.get("db")
+    
+    task_status_text = "Решения не получены"
+    
+    if db:
+        try:
+            # Получаем данные о пользователе и оценке
+            user_record = await db.users.get_user_record(user_id=event_from_user.id)
+            evaluation = await db.evaluated_applications.get_evaluation(user_id=event_from_user.id)
+            
+            if user_record and evaluation:
+                # Проверяем, по каким заданиям пользователь был принят и отправил ли решения
+                submitted_tasks = []
+                
+                if evaluation.accepted_1 and user_record.task_1_submitted:
+                    submitted_tasks.append("1")
+                elif evaluation.accepted_1:
+                    # Принят, но не отправил
+                    pass
+                    
+                if evaluation.accepted_2 and user_record.task_2_submitted:
+                    submitted_tasks.append("2")
+                elif evaluation.accepted_2:
+                    # Принят, но не отправил
+                    pass
+                    
+                if evaluation.accepted_3 and user_record.task_3_submitted:
+                    submitted_tasks.append("3")
+                elif evaluation.accepted_3:
+                    # Принят, но не отправил
+                    pass
+                
+                # Если есть отправленные задания, формируем соответствующий текст
+                if submitted_tasks:
+                    task_status_text = "Решения получены"
+                else:
+                    # Проверяем, был ли принят хотя бы по одному заданию
+                    accepted_any = evaluation.accepted_1 or evaluation.accepted_2 or evaluation.accepted_3
+                    if accepted_any:
+                        task_status_text = "Решения не получены"
+                    else:
+                        # Не принят ни по одному заданию
+                        task_status_text = "Решения не получены"
+            
+        except Exception as e:
+            # В случае ошибки возвращаем значение по умолчанию
+            import logging
+            logger = logging.getLogger(__name__)
+            logger.error(f"Error getting task status for user {event_from_user.id}: {e}")
+    
+    return {
+        "task_status_text": task_status_text
     }
 
 
