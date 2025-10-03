@@ -273,3 +273,77 @@ async def on_cancel_reschedule(
     
     # Go back to main menu
     await manager.switch_to(InterviewSG.main_menu)
+
+
+async def on_cancel_interview_request(
+    callback: CallbackQuery,
+    button: Button,
+    manager: DialogManager,
+    **kwargs
+):
+    """Handle cancel interview request"""
+    await callback.answer()
+    
+    await manager.switch_to(InterviewSG.cancel_confirmation)
+
+
+async def on_confirm_cancel_interview(
+    callback: CallbackQuery,
+    button: Button,
+    manager: DialogManager,
+    **kwargs
+):
+    """Handle cancel interview confirmation"""
+    await callback.answer()
+    
+    user_id = callback.from_user.id
+    dao = InterviewDAO(manager.middleware_data["db_applications"])
+    
+    try:
+        # Get current booking info before cancellation for sync
+        current_booking = await dao.get_user_current_booking(user_id)
+        
+        success = await dao.cancel_user_booking(user_id)
+        
+        if success:
+            # Sync with Google Sheets in background
+            try:
+                sync_service = InterviewGoogleSheetsSync(dao)
+                
+                # Sync booking removal (if booking exists)
+                if current_booking:
+                    asyncio.create_task(sync_service.sync_single_timeslot_change(
+                        department_number=current_booking["department_number"],
+                        slot_date=current_booking["interview_date"],
+                        slot_time=current_booking["start_time"],
+                        user_id=None  # None means remove booking
+                    ))
+            except Exception as e:
+                print(f"Warning: Google Sheets sync failed during cancellation: {e}")
+            
+            await callback.message.answer(
+                "✅ Запись на интервью успешно отменена! "
+                "Вы можете записаться на новое время в любой момент."
+            )
+            await manager.switch_to(InterviewSG.main_menu)
+        else:
+            await callback.message.answer("❌ Произошла ошибка при отмене записи. Попробуйте ещё раз.")
+            await manager.switch_to(InterviewSG.main_menu)
+            
+    except Exception as e:
+        await callback.message.answer("❌ Произошла ошибка при отмене записи. Попробуйте ещё раз.")
+        print(f"Error cancelling interview: {e}")
+        await manager.switch_to(InterviewSG.main_menu)
+
+
+async def on_cancel_interview_cancellation(
+    callback: CallbackQuery,
+    button: Button,
+    manager: DialogManager,
+    **kwargs
+):
+    """Handle cancellation of interview cancellation (go back to main menu)"""
+    await callback.answer()
+    
+    # Go back to main menu
+    await manager.switch_to(InterviewSG.main_menu)

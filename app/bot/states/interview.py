@@ -23,3 +23,6 @@ class InterviewSG(StatesGroup):
     reschedule_date_selection = State()
     reschedule_time_selection = State()
     reschedule_confirmation = State()
+    
+    # Cancel booking flow states
+    cancel_confirmation = State()

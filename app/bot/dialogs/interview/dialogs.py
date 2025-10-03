@@ -30,7 +30,10 @@ from .handlers import (
     on_reschedule_date_selected,
     on_reschedule_timeslot_selected,
     on_confirm_reschedule,
-    on_cancel_reschedule
+    on_cancel_reschedule,
+    on_cancel_interview_request,
+    on_confirm_cancel_interview,
+    on_cancel_interview_cancellation
 )
 
 
@@ -57,6 +60,12 @@ interview_dialog = Dialog(
                 Const("📝 Перенести интервью"),
                 id="reschedule_interview",
                 on_click=on_reschedule_request,
+                when=F["has_booking"] & F["has_approval"]
+            ),
+            Button(
+                Const("❌ Отменить интервью"),
+                id="cancel_interview",
+                on_click=on_cancel_interview_request,
                 when=F["has_booking"] & F["has_approval"]
             ),
             Start(
@@ -248,5 +257,30 @@ interview_dialog = Dialog(
         ),
         state=InterviewSG.reschedule_confirmation,
         getter=get_reschedule_timeslot_info,
+    ),
+    
+    # Cancel interview confirmation
+    Window(
+        Multi(
+            Const("❌ <b>Подтверждение отмены</b>\n"),
+            Format("📅 Текущая запись: {booking_date} в {booking_time}\n"),
+            Const("⚠️ Вы уверены, что хотите отменить запись на интервью?\n"),
+            Const("После отмены вы сможете записаться на новое время."),
+            sep="\n"
+        ),
+        Row(
+            Button(
+                Const("❌ Да, отменить"),
+                id="confirm_cancel_interview", 
+                on_click=on_confirm_cancel_interview
+            ),
+            Button(
+                Const("↩️ Назад"),
+                id="cancel_interview_cancellation",
+                on_click=on_cancel_interview_cancellation
+            )
+        ),
+        state=InterviewSG.cancel_confirmation,
+        getter=get_current_booking,
     )
 )
