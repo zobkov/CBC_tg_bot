@@ -278,3 +278,34 @@ async def get_main_menu_media(dialog_manager: DialogManager, **kwargs) -> Dict[s
     return {
         "media": media
     }
+
+
+async def get_feedback_button_info(dialog_manager: DialogManager, **kwargs) -> Dict[str, Any]:
+    """Получаем информацию для кнопки обратной связи"""
+    event_from_user: User = dialog_manager.event.from_user
+    db_pool = dialog_manager.middleware_data.get("db_applications")
+    
+    # По умолчанию кнопка скрыта
+    show_feedback_button = False
+    
+    if db_pool:
+        try:
+            # Импортируем DAO для feedback
+            from app.infrastructure.database.dao.feedback import FeedbackDAO
+            dao = FeedbackDAO(db_pool)
+            
+            # Проверяем статус одобрения пользователя (approved = 0 значит отклонен)
+            user_data = await dao.get_single_user_data(event_from_user.id)
+            if user_data:
+                approved = int(user_data['approved']) if user_data['approved'] else 0
+                show_feedback_button = approved == 0
+            
+        except Exception as e:
+            # В случае ошибки логируем и скрываем кнопку
+            import logging
+            logger = logging.getLogger(__name__)
+            logger.error(f"Error checking feedback status for user {event_from_user.id}: {e}")
+    
+    return {
+        "show_feedback_button": show_feedback_button
+    }
