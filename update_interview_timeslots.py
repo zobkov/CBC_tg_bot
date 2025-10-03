@@ -93,16 +93,18 @@ async def populate_timeslots_from_csv(pool, csv_file_path, department_id):
 async def create_timeslots_for_all_departments(pool, reference_csv_path):
     """
     Create the same timeslot pattern for all departments based on reference CSV.
+    Note: Departments 1 and 7 are merged (both use department 1 timeslots)
     """
     # Department IDs mapping
+    # Note: Выставочный отдел (7) is merged with Отдел программы (1)
     departments = {
-        1: "Отдел программы",
+        1: "Отдел программы + Выставочный отдел",
         2: "Творческий отдел", 
         3: "Отдел партнёров",
         4: "Отдел SMM&PR",
         5: "Отдел дизайна",
-        6: "Отдел логистики и ИТ",
-        7: "Выставочный отдел"
+        6: "Отдел логистики и ИТ"
+        # Department 7 (Выставочный отдел) is merged with department 1
     }
     
     for dept_id, dept_name in departments.items():

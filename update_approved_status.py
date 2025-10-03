@@ -17,6 +17,7 @@ def get_department_number_by_name(dept_name: str, subdept_name: str = "") -> int
     """Get department number by department and subdepartment names"""
     
     # Mapping from department names to numbers
+    # Note: Отдел программы (1) and Выставочный отдел (7) are merged into department 1
     dept_mapping = {
         "Отдел программы": 1,
         "Творческий отдел": 2, 
@@ -24,7 +25,7 @@ def get_department_number_by_name(dept_name: str, subdept_name: str = "") -> int
         "Отдел SMM&PR": 4,
         "Отдел дизайна": 5,
         "Отдел логистики и ИТ": 6,
-        "Выставочный отдел": 7
+        "Выставочный отдел": 1  # Merged with Отдел программы
     }
     
     dept_number = dept_mapping.get(dept_name, 0)

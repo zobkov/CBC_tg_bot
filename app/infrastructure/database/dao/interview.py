@@ -42,6 +42,7 @@ class InterviewDAO:
                     return 0
                     
                 # Map department name to number
+                # Note: Отдел программы (1) and Выставочный отдел (7) are merged into department 1
                 dept_mapping = {
                     "Отдел программы": 1,
                     "Творческий отдел": 2, 
@@ -49,7 +50,7 @@ class InterviewDAO:
                     "Отдел SMM&PR": 4,
                     "Отдел дизайна": 5,
                     "Отдел логистики и ИТ": 6,
-                    "Выставочный отдел": 7
+                    "Выставочный отдел": 1  # Merged with Отдел программы
                 }
                 
                 return dept_mapping.get(department_name, 0)
