@@ -20,6 +20,7 @@ from app.bot.middlewares.database import DatabaseMiddleware
 from app.bot.middlewares.error_handler import ErrorHandlerMiddleware
 
 from app.bot.handlers.commands import router as commands_router 
+from app.bot.handlers.feedback_callbacks import feedback_callbacks_router 
 
 from app.bot.keyboards.command_menu import set_main_menu
 
@@ -30,6 +31,7 @@ from app.bot.dialogs.first_stage.dialogs import first_stage_dialog
 from app.bot.dialogs.job_selection.dialogs import job_selection_dialog
 from app.bot.dialogs.tasks.dialogs import task_dialog
 from app.bot.dialogs.interview.dialogs import interview_dialog
+from app.bot.dialogs.feedback.dialogs import feedback_dialog
 
 from app.services.broadcast_scheduler import BroadcastScheduler
 from app.services.photo_file_id_manager import startup_photo_check
@@ -112,7 +114,8 @@ async def main():
 
     logger.info("Including routers")
     dp.include_routers(
-        commands_router
+        commands_router,
+        feedback_callbacks_router
                        )
     
     dp.include_routers(
@@ -122,7 +125,8 @@ async def main():
         first_stage_dialog,
         job_selection_dialog,
         task_dialog,
-        interview_dialog
+        interview_dialog,
+        feedback_dialog
                        )
 
     logger.info("Including middlewares")
