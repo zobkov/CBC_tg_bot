@@ -85,42 +85,83 @@ async def get_user_approved_position_number(
     return 0
 
 
-async def load_approved_from_csv(csv_path: str) -> list:
-    """Load approved candidates from CSV file"""
+async def load_approved_from_csv(csv_path: str) -> tuple[list, list]:
+    """Load approved candidates and rejected candidates with feedback from CSV file"""
     if not os.path.exists(csv_path):
         print(f"Error: CSV file {csv_path} not found")
-        return []
+        return [], []
     
     approved_candidates = []
+    rejected_candidates = []
     
     with open(csv_path, 'r', encoding='utf-8') as file:
         reader = csv.DictReader(file)
         
         for row in reader:
-            # Skip if not approved
-            if row.get("одобрен", "").lower() not in ["да", "yes", "1", "true"]:
-                continue
-                
             try:
-                user_id = int(row["id"])
-                username = row.get("username", "")
-                department = row.get("отдел", "")
-                subdepartment = row.get("подотдел", "")
-                position = row.get("вакансия", "")
+                user_id = int(row["ID"])
+                username = row.get("Username", "")
+                department = row.get("Отдел", "")
+                subdepartment = row.get("Подотдел", "")
+                position = row.get("Вакансия", "")
+                approved = row.get("Одобрен", "").strip()
+                feedback = row.get("Обратная связь – ГОТОВО", "").strip()
                 
-                approved_candidates.append({
+                candidate_data = {
                     "user_id": user_id,
                     "username": username,
                     "department": department,
                     "subdepartment": subdepartment,
-                    "position": position
-                })
+                    "position": position,
+                    "feedback": feedback
+                }
+                
+                # Check if approved
+                if approved.lower() in ["да", "yes", "1", "true"]:
+                    approved_candidates.append(candidate_data)
+                else:
+                    # Add to rejected list if there's feedback
+                    if feedback:
+                        rejected_candidates.append(candidate_data)
                 
             except (ValueError, KeyError) as e:
                 print(f"Error parsing row: {row}, error: {e}")
                 continue
     
-    return approved_candidates
+    return approved_candidates, rejected_candidates
+
+
+async def update_task_feedback(conn, user_id: int, department: str, subdepartment: str, position: str, feedback: str):
+    """Update task feedback for rejected candidate"""
+    try:
+        # Find which priority position (1, 2, or 3) this corresponds to
+        position_number = await get_user_approved_position_number(
+            conn, user_id, department, subdepartment, position
+        )
+        
+        if position_number == 0:
+            print(f"Could not match position for feedback - user {user_id}")
+            return False
+        
+        # Update appropriate feedback column
+        feedback_column = f"task_{position_number}_feedback"
+        
+        result = await conn.execute(f"""
+            UPDATE users 
+            SET {feedback_column} = $1 
+            WHERE user_id = $2
+        """, feedback, user_id)
+        
+        if result == "UPDATE 1":
+            print(f"✅ Updated feedback for user {user_id}: {feedback_column} = '{feedback[:50]}...'")
+            return True
+        else:
+            print(f"⚠️ User {user_id} not found for feedback update")
+            return False
+            
+    except Exception as e:
+        print(f"❌ Error updating feedback for user {user_id}: {e}")
+        return False
 
 
 async def update_approved_status_from_csv(csv_path: str = "approved_candidates.csv"):
@@ -137,20 +178,18 @@ async def update_approved_status_from_csv(csv_path: str = "approved_candidates.c
     )
     
     try:
-        # Load approved candidates from CSV
-        print(f"Loading approved candidates from {csv_path}...")
-        approved_candidates = await load_approved_from_csv(csv_path)
-        
-        if not approved_candidates:
-            print("No approved candidates found in CSV")
-            return
+        # Load approved candidates and rejected with feedback from CSV
+        print(f"Loading candidates from {csv_path}...")
+        approved_candidates, rejected_candidates = await load_approved_from_csv(csv_path)
         
         print(f"Found {len(approved_candidates)} approved candidates")
+        print(f"Found {len(rejected_candidates)} rejected candidates with feedback")
         
         # Reset all users to not approved first
         await conn.execute("UPDATE users SET approved = 0")
         print("Reset all users to not approved")
         
+        # Process approved candidates
         updated_count = 0
         errors_count = 0
         
@@ -189,8 +228,34 @@ async def update_approved_status_from_csv(csv_path: str = "approved_candidates.c
                 print(f"❌ Error updating user {candidate.get('user_id', 'unknown')}: {e}")
                 errors_count += 1
         
+        # Process rejected candidates with feedback
+        feedback_updated_count = 0
+        
+        print(f"\n📝 Processing feedback for rejected candidates...")
+        for candidate in rejected_candidates:
+            try:
+                user_id = candidate["user_id"]
+                department = candidate["department"]
+                subdepartment = candidate["subdepartment"]
+                position = candidate["position"]
+                feedback = candidate["feedback"]
+                
+                success = await update_task_feedback(
+                    conn, user_id, department, subdepartment, position, feedback
+                )
+                
+                if success:
+                    feedback_updated_count += 1
+                else:
+                    errors_count += 1
+                
+            except Exception as e:
+                print(f"❌ Error updating feedback for user {candidate.get('user_id', 'unknown')}: {e}")
+                errors_count += 1
+        
         print(f"\n📊 Summary:")
-        print(f"✅ Successfully updated: {updated_count} users")
+        print(f"✅ Successfully updated approved status: {updated_count} users")
+        print(f"✅ Successfully updated feedback: {feedback_updated_count} users")
         print(f"❌ Errors: {errors_count}")
         
         # Show approval statistics
@@ -209,6 +274,21 @@ async def update_approved_status_from_csv(csv_path: str = "approved_candidates.c
         total_approved = await conn.fetchval("""
             SELECT COUNT(*) FROM users WHERE approved > 0
         """)
+        
+        # Show feedback statistics
+        feedback_summary = await conn.fetch("""
+            SELECT 
+                COUNT(CASE WHEN task_1_feedback IS NOT NULL THEN 1 END) as task_1_feedback_count,
+                COUNT(CASE WHEN task_2_feedback IS NOT NULL THEN 1 END) as task_2_feedback_count,
+                COUNT(CASE WHEN task_3_feedback IS NOT NULL THEN 1 END) as task_3_feedback_count
+            FROM users
+        """)
+        
+        print(f"\n📝 Feedback statistics:")
+        for row in feedback_summary:
+            print(f"Task 1 feedback: {row['task_1_feedback_count']} users")
+            print(f"Task 2 feedback: {row['task_2_feedback_count']} users")
+            print(f"Task 3 feedback: {row['task_3_feedback_count']} users")
         
         print(f"Total approved users: {total_approved}")
     
