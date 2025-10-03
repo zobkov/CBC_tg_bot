@@ -179,6 +179,33 @@ class InterviewDAO:
             
             return cursor.rowcount > 0
     
+    async def get_user_info_by_id(self, user_id: int) -> Optional[Dict[str, Any]]:
+        """Get user's full name and username by user_id"""
+        async with self.db_pool.connection() as conn:
+            async with conn.cursor() as cursor:
+                await cursor.execute("""
+                    SELECT first_name, last_name, username 
+                    FROM users 
+                    WHERE user_id = %s
+                """, (user_id,))
+                result = await cursor.fetchone()
+                
+                if result:
+                    first_name = result[0] or ""
+                    last_name = result[1] or ""
+                    username = result[2] or ""
+                    
+                    # Build full name
+                    full_name = f"{first_name} {last_name}".strip()
+                    if not full_name:
+                        full_name = f"User {user_id}"
+                    
+                    return {
+                        "full_name": full_name,
+                        "username": username or f"user{user_id}"
+                    }
+                return None
+
     async def get_department_timeslots_summary(
         self, 
         department_number: int

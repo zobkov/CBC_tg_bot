@@ -1,6 +1,7 @@
 """
 Handlers for interview dialog - business logic
 """
+import asyncio
 from datetime import date
 from typing import Any
 
@@ -9,6 +10,7 @@ from aiogram_dialog import DialogManager
 from aiogram_dialog.widgets.kbd import Button
 
 from app.infrastructure.database.dao.interview import InterviewDAO
+from app.services.interview_google_sync import InterviewGoogleSheetsSync
 from app.bot.states.interview import InterviewSG
 
 
@@ -65,9 +67,27 @@ async def on_confirm_booking(
     dao = InterviewDAO(manager.middleware_data["db_applications"])
     
     try:
+        # Get timeslot info before booking
+        timeslot_info = await dao.get_timeslot_by_id(int(timeslot_id))
+        if not timeslot_info:
+            await callback.message.answer("❌ Ошибка: временной слот не найден")
+            return
+        
         success = await dao.book_timeslot(user_id, int(timeslot_id))
         
         if success:
+            # Sync with Google Sheets in background
+            try:
+                sync_service = InterviewGoogleSheetsSync(dao)
+                asyncio.create_task(sync_service.sync_single_timeslot_change(
+                    department_number=timeslot_info["department_number"],
+                    slot_date=timeslot_info["interview_date"],
+                    slot_time=timeslot_info["start_time"],
+                    user_id=user_id
+                ))
+            except Exception as e:
+                print(f"Warning: Google Sheets sync failed: {e}")
+            
             # Clear dialog data
             manager.dialog_data.clear()
             await manager.switch_to(InterviewSG.success)
@@ -182,9 +202,41 @@ async def on_confirm_reschedule(
     dao = InterviewDAO(manager.middleware_data["db_applications"])
     
     try:
+        # Get old booking info before rescheduling for sync
+        old_booking = await dao.get_user_current_booking(user_id)
+        
+        # Get new timeslot info before booking
+        new_timeslot_info = await dao.get_timeslot_by_id(int(new_timeslot_id))
+        if not new_timeslot_info:
+            await callback.message.answer("❌ Ошибка: новый временной слот не найден")
+            return
+        
         success = await dao.book_timeslot(user_id, int(new_timeslot_id))
         
         if success:
+            # Sync with Google Sheets in background
+            try:
+                sync_service = InterviewGoogleSheetsSync(dao)
+                
+                # Sync old booking removal (if exists)
+                if old_booking:
+                    asyncio.create_task(sync_service.sync_single_timeslot_change(
+                        department_number=old_booking["department_number"],
+                        slot_date=old_booking["interview_date"],
+                        slot_time=old_booking["start_time"],
+                        user_id=None  # None means remove booking
+                    ))
+                
+                # Sync new booking
+                asyncio.create_task(sync_service.sync_single_timeslot_change(
+                    department_number=new_timeslot_info["department_number"],
+                    slot_date=new_timeslot_info["interview_date"],
+                    slot_time=new_timeslot_info["start_time"],
+                    user_id=user_id
+                ))
+            except Exception as e:
+                print(f"Warning: Google Sheets sync failed during reschedule: {e}")
+            
             # Clear dialog data
             manager.dialog_data.clear()
             await callback.message.answer(
