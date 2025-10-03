@@ -24,7 +24,7 @@ class FeedbackDAO:
                         a.department_1, a.subdepartment_1, a.position_1,
                         a.department_2, a.subdepartment_2, a.position_2,
                         a.department_3, a.subdepartment_3, a.position_3,
-                        ea.task_1_feedback, ea.task_2_feedback, ea.task_3_feedback,
+                        u.task_1_feedback, u.task_2_feedback, u.task_3_feedback,
                         u.approved
                     FROM applications a
                     LEFT JOIN evaluated_applications ea ON a.user_id = ea.user_id
@@ -62,9 +62,7 @@ class FeedbackDAO:
                         
                         # Get position info
                         positions_list = dept_info.get("positions", [])
-                        position_name = "Неизвестная позиция"
-                        if position_num and 1 <= position_num <= len(positions_list):
-                            position_name = positions_list[position_num - 1]
+                        position_name = position_num if position_num else "Неизвестная позиция"
                         
                         # Build full position title
                         full_position = dept_name
@@ -91,7 +89,7 @@ class FeedbackDAO:
                 
                 await cursor.execute(f"""
                     SELECT {feedback_column}
-                    FROM evaluated_applications 
+                    FROM users 
                     WHERE user_id = %s
                 """, (user_id,))
                 result = await cursor.fetchone()

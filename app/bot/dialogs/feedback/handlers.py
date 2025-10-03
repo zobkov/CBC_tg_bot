@@ -24,7 +24,8 @@ async def on_feedback_position_selected(
     
     # Parse item_id to get priority
     try:
-        priority = int(item_id)
+        # Extract priority from item_id like "fb_pos_1" -> 1
+        priority = int(item_id.replace("fb_pos_", ""))
         
         # Get position info for the selected priority
         dao = FeedbackDAO(manager.middleware_data["db_applications"])
