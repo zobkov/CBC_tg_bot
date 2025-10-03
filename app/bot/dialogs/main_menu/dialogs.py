@@ -23,20 +23,14 @@ main_menu_dialog = Dialog(
                "📍 <b>Статус заявки:</b> {status_text}\n\n"
                "⏰ <b>Дедлайн:</b> 28.09.2025, 23:59"
                "{deadline_info}\n"
-               "{stage_description}"),
-        Row(
-            Button(
-                Format("{task_button_emoji} Тестовые задания"),
-                id="current_stage",
-                on_click=on_current_stage_clicked
-            ),
+               "{stage_description}"
         ),
         Row(
             Start(
                 Format("{interview_button_emoji} Интервью"),
                 id="interview_button",
                 state=InterviewSG.main_menu,
-                #when="show_interview_button"
+                when="show_interview_button"
             ),
         ),
         Row(

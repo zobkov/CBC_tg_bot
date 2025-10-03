@@ -184,25 +184,23 @@ class InterviewDAO:
         async with self.db_pool.connection() as conn:
             async with conn.cursor() as cursor:
                 await cursor.execute("""
-                    SELECT first_name, last_name, username 
-                    FROM users 
+                    SELECT full_name, telegram_username 
+                    FROM applications 
                     WHERE user_id = %s
                 """, (user_id,))
                 result = await cursor.fetchone()
                 
                 if result:
-                    first_name = result[0] or ""
-                    last_name = result[1] or ""
-                    username = result[2] or ""
+                    full_name = result[0] or ""
+                    username = result[1] or ""
                     
                     # Build full name
-                    full_name = f"{first_name} {last_name}".strip()
-                    if not full_name:
+                    if not full_name.strip():
                         full_name = f"User {user_id}"
                     
                     return {
-                        "full_name": full_name,
-                        "username": username or f"user{user_id}"
+                        "full_name": full_name.strip(),
+                        "username": username.strip() if username else f"user{user_id}"
                     }
                 return None
 
