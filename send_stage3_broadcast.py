@@ -41,10 +41,19 @@ class Stage3BroadcastService:
 
 Теперь тебе необходимо записаться на интервью с менеджером отдела. Для этого используй меню бота."""
             
+            # Create inline keyboard with personal cabinet button
+            keyboard = InlineKeyboardMarkup(inline_keyboard=[
+                [InlineKeyboardButton(
+                    text="🏠 Личный кабинет",
+                    callback_data="go_to_main_menu"
+                )]
+            ])
+            
             await self.bot.send_message(
                 chat_id=user_id,
                 text=message,
-                parse_mode="HTML"
+                parse_mode="HTML",
+                reply_markup=keyboard
             )
             logger.info(f"✅ Approval notification sent to user {user_id}")
             return True
