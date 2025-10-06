@@ -21,6 +21,8 @@ from app.bot.middlewares.error_handler import ErrorHandlerMiddleware
 
 from app.bot.handlers.commands import router as commands_router 
 from app.bot.handlers.feedback_callbacks import feedback_callbacks_router 
+from app.bot.handlers.admin_lock import setup_admin_commands_router
+from app.bot.middlewares.admin_lock import AdminLockMiddleware 
 
 from app.bot.keyboards.command_menu import set_main_menu
 
@@ -113,7 +115,12 @@ async def main():
     dp["db"] = db_applications_pool
 
     logger.info("Including routers")
+    
+    # Настраиваем админские команды
+    admin_commands_router = setup_admin_commands_router(config.admin_ids)
+    
     dp.include_routers(
+        admin_commands_router,  # Команды админов /lock /unlock /status
         commands_router,
         feedback_callbacks_router
                        )
@@ -130,6 +137,8 @@ async def main():
                        )
 
     logger.info("Including middlewares")
+    # Добавляем middleware блокировки ПЕРВЫМ (ДО всех остальных)
+    dp.update.middleware(AdminLockMiddleware(config.admin_ids, storage))
     dp.update.middleware(ErrorHandlerMiddleware())
     dp.update.middleware(DatabaseMiddleware())
 
