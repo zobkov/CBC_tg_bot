@@ -141,7 +141,7 @@ async def on_confirm_booking(
         else:
             await callback.message.answer(
                 "❌ К сожалению, выбранный временной слот уже занят. "
-                "Пожалуйста, выбери другое время."
+                "Пожалуйста, выбери другое время 🫶"
             )
             # Go back to date selection
             await manager.switch_to(InterviewSG.date_selection)
@@ -341,7 +341,7 @@ async def on_confirm_reschedule(
         else:
             await callback.message.answer(
                 "❌ К сожалению, выбранный временной слот уже занят. "
-                "Пожалуйста, выберите другое время."
+                "Пожалуйста, выбери другое время 🫶."
             )
             # Go back to reschedule date selection
             await manager.switch_to(InterviewSG.reschedule_date_selection)
@@ -416,7 +416,7 @@ async def on_confirm_cancel_interview(
                 print(f"Warning: Google Sheets sync failed during cancellation: {e}")
             
             await callback.message.answer(
-                "✅ <b>Запись на интервью отменена</b> \n\nНичего страшного — ты можешь выбрать новое время в любой момент, когда будет удобно."
+                "✅ <b>Запись на онлайн-собеседование отменена</b> \n\nНичего страшного — ты можешь выбрать новое время в любой момент, когда будет удобно!"
             )
             await manager.switch_to(InterviewSG.main_menu, show_mode=ShowMode.DELETE_AND_SEND)
         else:

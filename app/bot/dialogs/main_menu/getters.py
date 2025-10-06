@@ -32,7 +32,9 @@ async def get_current_stage_info(dialog_manager: DialogManager, **kwargs) -> Dic
         return {
             "current_stage": "Неизвестно",
             "current_stage_description": "Информация недоступна",
-            "is_active": False
+            "is_active": False,
+            "stage_name": "Неизвестно",
+            "deadline_info": ""
         }
     
     # Получаем статус заявки пользователя из таблицы users (submission_status)
@@ -44,112 +46,55 @@ async def get_current_stage_info(dialog_manager: DialogManager, **kwargs) -> Dic
     except Exception:
         application_submitted = False
     
-    now = datetime.now()
-    current_stage = None
-    current_stage_info = None
-    next_stage_info = None
-    
-    # Сортируем этапы по дате начала
-    sorted_stages = sorted(
-        config.selection.stages.items(),
-        key=lambda x: datetime.fromisoformat(x[1]["start_date"])
-    )
-    
-    # Находим текущий этап
-    for i, (stage_key, stage_data) in enumerate(sorted_stages):
-        start_date = datetime.fromisoformat(stage_data["start_date"])
-        end_date = datetime.fromisoformat(stage_data["end_date"])
-        
-        if start_date <= now <= end_date:
-            current_stage = stage_key
-            current_stage_info = stage_data
-            # Находим следующий этап
-            if i + 1 < len(sorted_stages):
-                next_stage_info = sorted_stages[i + 1][1]
-            break
-    
-    if not current_stage:
-        # Проверяем будущие этапы
-        for stage_key, stage_data in sorted_stages:
-            start_date = datetime.fromisoformat(stage_data["start_date"])
-            if now < start_date:
-                current_stage = stage_key
-                current_stage_info = stage_data
-                current_stage_info["status"] = "upcoming"
-                break
-    
-    if not current_stage_info:
-        current_stage_info = {
-            "name": "Отбор завершен",
-            "description": "Все этапы отбора завершены",
-            "status": "completed"
-        }
-    
-    # Добавляем информацию о дедлайнах
+    # Дефолтные значения
+    stage_name = "Подача заявок"
     deadline_info = ""
-    if current_stage_info and current_stage != "completed":
-        if "start_date" in current_stage_info and current_stage_info.get("status") == "upcoming":
-            # Для будущих этапов показываем дату начала
-            start_date = datetime.fromisoformat(current_stage_info["start_date"])
-            deadline_info = f"🚀 Начало: {start_date.strftime('%d.%m.%Y, %H:%M')}"
-            
-            # Рассчитываем время до начала
-        elif "end_date" in current_stage_info:
-            # Для текущих этапов показываем дедлайн или результаты в зависимости от статуса заявки
-            end_date = datetime.fromisoformat(current_stage_info["end_date"])
-            
-            if application_submitted and "results_date" in current_stage_info:
-                # Если заявка подана, показываем когда придут результаты
-                results_date = datetime.fromisoformat(current_stage_info["results_date"])
-                deadline_info = f""
-            else:
-                # Если заявка не подана, показываем дедлайн
-                deadline_info = f""
-            
-            # Рассчитываем оставшееся время
-            """ Убрал "Осталоь ... дн" так как динамическая информация в статическом сообщении
-            time_left = end_date - now
-            if time_left.days > 7:
-                deadline_info += f"\n⏳ Осталось: {time_left.days} дн."
-            elif time_left.days > 0:
-                deadline_info += f"\n🔥 <b>Осталось: {time_left.days} дн.</b>"
-            elif time_left.seconds > 3600:
-                hours_left = time_left.seconds // 3600
-                deadline_info += f"\n🔥 <b>Осталось: {hours_left} ч.</b>"
-            elif time_left.seconds > 0:
-                deadline_info += f"\n🚨 <b>Осталось: менее часа!</b>"
-            else:
-                deadline_info += f"\n❌ <b>Дедлайн истек</b>"
-            """
-    deadline_info = "\n⏰ <b>Результаты:</b> 18.10.2025, 23:59"
-    # Добавляем информацию о следующем этапе
-    next_stage_text = ""
-    #if next_stage_info and current_stage_info.get("status") != "upcoming":
-     #   next_start = datetime.fromisoformat(next_stage_info["start_date"])
-    #    next_stage_text = f"\n\n📋 <b>Следующий этап:</b> {next_stage_info['name']}\n🚀 <b>Начало:</b> {next_start.strftime('%d.%m.%Y, %H:%M')}"
     
-    # Проверяем статус одобрения пользователя для скрытия дедлайна
-    db_pool = dialog_manager.middleware_data.get("db_applications")
-    if db_pool and application_submitted:
-        try:
-            from app.infrastructure.database.dao.feedback import FeedbackDAO
-            feedback_dao = FeedbackDAO(db_pool)
-            user_data = await feedback_dao.get_single_user_data(event_from_user.id)
-            
-            if user_data:
-                approved = int(user_data['approved']) if user_data['approved'] else 0
-                if approved == 0:
-                    # Пользователь не одобрен - скрываем дедлайн
+    # Если заявка подана, проверяем статус одобрения
+    if application_submitted:
+        db_pool = dialog_manager.middleware_data.get("db_applications")
+        if db_pool:
+            try:
+                from app.infrastructure.database.dao.feedback import FeedbackDAO
+                from app.infrastructure.database.dao.interview import InterviewDAO
+                
+                feedback_dao = FeedbackDAO(db_pool)
+                user_data = await feedback_dao.get_single_user_data(event_from_user.id)
+                
+                if user_data:
+                    approved = int(user_data['approved']) if user_data['approved'] else 0
+                    
+                    if approved == 0:
+                        # Пользователь не одобрен
+                        stage_name = "Тестовое задание"
+                        deadline_info = ""  # Пустой дедлайн
+                    else:
+                        # Пользователь одобрен - проверяем статус интервью
+                        stage_name = "Онлайн-собеседование"
+                        
+                        interview_dao = InterviewDAO(db_pool)
+                        current_booking = await interview_dao.get_user_current_booking(event_from_user.id)
+                        
+                        if current_booking:
+                            # Слот выбран - показываем дату результатов
+                            deadline_info = "\n⏰ <b>Результаты:</b> 15.10.2025, 12:00"
+                        else:
+                            # Слот НЕ выбран - показываем дедлайн выбора
+                            deadline_info = "\n⏰ <b>Дедлайн:</b> 8.10.2025, 23:59"
+                else:
+                    # Пользователь не найден в системе оценки
+                    stage_name = "Подача заявок"
                     deadline_info = ""
-        except Exception:
-            # В случае ошибки оставляем дедлайн как есть
-            pass
+            except Exception:
+                # В случае ошибки показываем дефолтные значения
+                stage_name = "Подача заявок"
+                deadline_info = ""
     
     return {
-        "current_stage": current_stage or "completed",
-        "stage_name": current_stage_info["name"],
-        "stage_description": current_stage_info.get("description", "") + next_stage_text,
-        "stage_status": current_stage_info.get("status", "active"),
+        "current_stage": "active",
+        "stage_name": stage_name,
+        "stage_description": "",
+        "stage_status": "active",
         "deadline_info": deadline_info
     }
 
@@ -192,7 +137,7 @@ async def get_application_status(dialog_manager: DialogManager, **kwargs) -> Dic
                         
                         if approved == 0:
                             # Пользователь не одобрен - показываем статус для запроса обратной связи
-                            status_text = "Тестовое задание"
+                            status_text = "Запросить обратную связь"
                         else:
                             # Пользователь одобрен - проверяем, выбрал ли он слот для интервью
                             from app.infrastructure.database.dao.interview import InterviewDAO
