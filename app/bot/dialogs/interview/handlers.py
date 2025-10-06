@@ -41,11 +41,58 @@ async def on_timeslot_selected(
     """Handle timeslot selection"""
     await callback.answer()
     
-    # Store selected timeslot ID in dialog data
-    manager.dialog_data["selected_timeslot_id"] = item_id
+    user_id = callback.from_user.id
+    dao = InterviewDAO(manager.middleware_data["db_applications"])
     
-    # Switch to confirmation state
-    await manager.switch_to(InterviewSG.confirmation)
+    try:
+        # Проверяем актуальную информацию о слоте
+        timeslot_info = await dao.get_timeslot_by_id(int(item_id))
+        
+        if not timeslot_info:
+            # Слот не найден
+            import logging
+            logger = logging.getLogger(__name__)
+            logger.error(f"Timeslot {item_id} not found for user {user_id}")
+            
+            await callback.message.answer(
+                "❌ К сожалению, кто-то уже занял это время. Выбери, пожалуйста, другое."
+            )
+            await manager.switch_to(InterviewSG.date_selection)
+            return
+        
+        # Проверяем, доступен ли слот и не занят ли он
+        if not timeslot_info.get("is_available") or timeslot_info.get("reserved_by") is not None:
+            # Слот уже занят
+            import logging
+            logger = logging.getLogger(__name__)
+            logger.warning(
+                f"Race condition detected: user {user_id} tried to select already occupied timeslot {item_id}. "
+                f"Slot info: is_available={timeslot_info.get('is_available')}, "
+                f"reserved_by={timeslot_info.get('reserved_by')}"
+            )
+            
+            await callback.message.answer(
+                "❌ К сожалению, кто-то уже занял это время. Выбери, пожалуйста, другое."
+            )
+            await manager.switch_to(InterviewSG.date_selection)
+            return
+        
+        # Слот доступен, сохраняем выбор
+        manager.dialog_data["selected_timeslot_id"] = item_id
+        
+        # Переходим к подтверждению
+        await manager.switch_to(InterviewSG.confirmation)
+        
+    except Exception as e:
+        # Ошибка при проверке слота
+        import logging
+        logger = logging.getLogger(__name__)
+        logger.error(f"Error checking timeslot {item_id} for user {user_id}: {e}")
+        
+        await callback.message.answer(
+            "❌ Произошла ошибка при выборе времени. Попробуйте ещё раз."
+        )
+        await manager.switch_to(InterviewSG.date_selection)
 
 
 async def on_confirm_booking(
@@ -176,11 +223,58 @@ async def on_reschedule_timeslot_selected(
     """Handle timeslot selection in reschedule flow"""
     await callback.answer()
     
-    # Store selected timeslot ID in dialog data
-    manager.dialog_data["reschedule_timeslot_id"] = item_id
+    user_id = callback.from_user.id
+    dao = InterviewDAO(manager.middleware_data["db_applications"])
     
-    # Switch to reschedule confirmation state
-    await manager.switch_to(InterviewSG.reschedule_confirmation)
+    try:
+        # Проверяем актуальную информацию о слоте
+        timeslot_info = await dao.get_timeslot_by_id(int(item_id))
+        
+        if not timeslot_info:
+            # Слот не найден
+            import logging
+            logger = logging.getLogger(__name__)
+            logger.error(f"Reschedule: Timeslot {item_id} not found for user {user_id}")
+            
+            await callback.message.answer(
+                "❌ К сожалению, кто-то уже занял это время. Выбери, пожалуйста, другое."
+            )
+            await manager.switch_to(InterviewSG.reschedule_date_selection)
+            return
+        
+        # Проверяем, доступен ли слот и не занят ли он
+        if not timeslot_info.get("is_available") or timeslot_info.get("reserved_by") is not None:
+            # Слот уже занят
+            import logging
+            logger = logging.getLogger(__name__)
+            logger.warning(
+                f"Reschedule race condition detected: user {user_id} tried to select already occupied timeslot {item_id}. "
+                f"Slot info: is_available={timeslot_info.get('is_available')}, "
+                f"reserved_by={timeslot_info.get('reserved_by')}"
+            )
+            
+            await callback.message.answer(
+                "❌ К сожалению, кто-то уже занял это время. Выбери, пожалуйста, другое."
+            )
+            await manager.switch_to(InterviewSG.reschedule_date_selection)
+            return
+        
+        # Слот доступен, сохраняем выбор
+        manager.dialog_data["reschedule_timeslot_id"] = item_id
+        
+        # Переходим к подтверждению переноса
+        await manager.switch_to(InterviewSG.reschedule_confirmation)
+        
+    except Exception as e:
+        # Ошибка при проверке слота
+        import logging
+        logger = logging.getLogger(__name__)
+        logger.error(f"Error checking reschedule timeslot {item_id} for user {user_id}: {e}")
+        
+        await callback.message.answer(
+            "❌ Произошла ошибка при выборе времени. Попробуйте ещё раз."
+        )
+        await manager.switch_to(InterviewSG.reschedule_date_selection)
 
 
 async def on_confirm_reschedule(
