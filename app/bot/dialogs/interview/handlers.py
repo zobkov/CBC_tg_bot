@@ -6,7 +6,7 @@ from datetime import date
 from typing import Any
 
 from aiogram.types import CallbackQuery
-from aiogram_dialog import DialogManager
+from aiogram_dialog import DialogManager, ShowMode
 from aiogram_dialog.widgets.kbd import Button
 
 from app.infrastructure.database.dao.interview import InterviewDAO
@@ -141,7 +141,7 @@ async def on_confirm_booking(
         else:
             await callback.message.answer(
                 "❌ К сожалению, выбранный временной слот уже занят. "
-                "Пожалуйста, выберите другое время."
+                "Пожалуйста, выбери другое время."
             )
             # Go back to date selection
             await manager.switch_to(InterviewSG.date_selection)
@@ -416,18 +416,17 @@ async def on_confirm_cancel_interview(
                 print(f"Warning: Google Sheets sync failed during cancellation: {e}")
             
             await callback.message.answer(
-                "✅ Запись на интервью успешно отменена! "
-                "Вы можете записаться на новое время в любой момент."
+                "✅ <b>Запись на интервью отменена</b> \n\nНичего страшного — ты можешь выбрать новое время в любой момент, когда будет удобно."
             )
-            await manager.switch_to(InterviewSG.main_menu)
+            await manager.switch_to(InterviewSG.main_menu, show_mode=ShowMode.DELETE_AND_SEND)
         else:
             await callback.message.answer("❌ Произошла ошибка при отмене записи. Попробуйте ещё раз.")
-            await manager.switch_to(InterviewSG.main_menu)
+            await manager.switch_to(InterviewSG.main_menu, show_mode=ShowMode.DELETE_AND_SEND)
             
     except Exception as e:
         await callback.message.answer("❌ Произошла ошибка при отмене записи. Попробуйте ещё раз.")
         print(f"Error cancelling interview: {e}")
-        await manager.switch_to(InterviewSG.main_menu)
+        await manager.switch_to(InterviewSG.main_menu,show_mode=ShowMode.DELETE_AND_SEND)
 
 
 async def on_cancel_interview_cancellation(

@@ -121,7 +121,7 @@ async def get_current_stage_info(dialog_manager: DialogManager, **kwargs) -> Dic
             else:
                 deadline_info += f"\n❌ <b>Дедлайн истек</b>"
             """
-    
+    deadline_info = "\n⏰ <b>Результаты:</b> 18.10.2025, 23:59"
     # Добавляем информацию о следующем этапе
     next_stage_text = ""
     #if next_stage_info and current_stage_info.get("status") != "upcoming":
