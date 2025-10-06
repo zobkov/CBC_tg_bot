@@ -179,14 +179,14 @@ class FeedbackDAO:
                     
                     departments = self.config.selection.departments
                     dept_info = departments.get(str(department_num), {})
-                    dept_name = dept_info.get("name", f"Отдел {department_num}")
+                    dept_name = dept_info.get("name", f"{department_num}")
                     
                     # Get subdepartment info
                     subdept_name = ""
                     if subdepartment_num and subdepartment_num != 0:
                         subdepts = dept_info.get("subdepartments", {})
                         subdept_info = subdepts.get(str(subdepartment_num), {})
-                        subdept_name = subdept_info.get("name", f"Подотдел {subdepartment_num}")
+                        subdept_name = subdept_info.get("name", f"{subdepartment_num}")
                     
                     # Get position info
                     position_name = position_num if position_num else "Неизвестная позиция"
