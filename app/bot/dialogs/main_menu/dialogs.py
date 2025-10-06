@@ -24,7 +24,6 @@ main_menu_dialog = Dialog(
                "📍 <b>Статус заявки:</b> {status_text}\n\n"
                "⏰ <b>Дедлайн:</b> 28.09.2025, 23:59"
                "{deadline_info}\n"
-               "{stage_description}"
         ),
         Row(
             Start(

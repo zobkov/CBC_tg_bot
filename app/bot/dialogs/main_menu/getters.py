@@ -143,6 +143,7 @@ async def get_application_status(dialog_manager: DialogManager, **kwargs) -> Dic
     
     # Получаем объект DB из middleware_data
     db: DB = dialog_manager.middleware_data.get("db")
+    db_pool = dialog_manager.middleware_data.get("db_applications")
     
     if not db:
         return {
@@ -156,10 +157,44 @@ async def get_application_status(dialog_manager: DialogManager, **kwargs) -> Dic
         await db.applications.create_application(user_id=event_from_user.id)
         user_record = await db.users.get_user_record(user_id=event_from_user.id)
         application_status = (user_record.submission_status if user_record else "not_submitted")
-        status_text = {
-            "not_submitted": "Заявка не подана",
-            "submitted": "Заявка подана"
-        }.get(application_status, "Неизвестный статус")
+        
+        # Базовый статус для неподанных заявок
+        if application_status == "not_submitted":
+            status_text = "Заявка не подана"
+        else:
+            # Заявка подана, проверяем статус одобрения
+            if db_pool:
+                try:
+                    # Получаем статус одобрения из таблицы users
+                    from app.infrastructure.database.dao.feedback import FeedbackDAO
+                    feedback_dao = FeedbackDAO(db_pool)
+                    user_data = await feedback_dao.get_single_user_data(event_from_user.id)
+                    
+                    if user_data:
+                        approved = int(user_data['approved']) if user_data['approved'] else 0
+                        
+                        if approved == 0:
+                            # Пользователь не одобрен - показываем статус для запроса обратной связи
+                            status_text = "Запросить обратную связь"
+                        else:
+                            # Пользователь одобрен - проверяем, выбрал ли он слот для интервью
+                            from app.infrastructure.database.dao.interview import InterviewDAO
+                            interview_dao = InterviewDAO(db_pool)
+                            current_booking = await interview_dao.get_user_current_booking(event_from_user.id)
+                            
+                            if current_booking:
+                                status_text = "Время выбрано"
+                            else:
+                                status_text = "Время не выбрано"
+                    else:
+                        # Пользователь не найден в таблице evaluated или не подавал задания
+                        status_text = "Заявка подана"
+                except Exception:
+                    # В случае ошибки с проверкой одобрения показываем базовый статус
+                    status_text = "Заявка подана"
+            else:
+                status_text = "Заявка подана"
+                
     except Exception as e:
         # В случае ошибки возвращаем значения по умолчанию
         application_status = "not_submitted"

@@ -10,16 +10,34 @@ from app.infrastructure.database.dao.interview import InterviewDAO
 
 
 async def get_user_approved_department(dialog_manager: DialogManager, **kwargs) -> Dict[str, Any]:
-    """Get the department number for which user was approved"""
+    """Get the department number and position info for which user was approved"""
     user_id = dialog_manager.event.from_user.id
     dao = InterviewDAO(dialog_manager.middleware_data["db_applications"])
     
+    # Get basic department number for interview scheduling
     approved_dept = await dao.get_user_approved_department(user_id)
     
-    return {
-        "approved_department": approved_dept,
-        "has_approval": approved_dept > 0
-    }
+    # Get full position information for display
+    position_info = await dao.get_user_approved_position_info(user_id)
+    
+    if position_info:
+        return {
+            "approved_department": approved_dept,
+            "has_approval": approved_dept > 0,
+            "approved_position_title": position_info["full_title"],
+            "department_name": position_info["department_name"],
+            "subdepartment_name": position_info["subdepartment_name"],
+            "position_name": position_info["position_name"]
+        }
+    else:
+        return {
+            "approved_department": approved_dept,
+            "has_approval": approved_dept > 0,
+            "approved_position_title": f"Отдел {approved_dept}" if approved_dept > 0 else "",
+            "department_name": "",
+            "subdepartment_name": "",
+            "position_name": ""
+        }
 
 
 async def get_available_dates(dialog_manager: DialogManager, **kwargs) -> Dict[str, Any]:

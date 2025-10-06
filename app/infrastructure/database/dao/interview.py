@@ -7,12 +7,15 @@ from typing import List, Dict, Any, Optional
 import psycopg_pool
 from psycopg import AsyncConnection
 
+from config.config import load_config
+
 
 class InterviewDAO:
     """DAO for managing interview timeslots and bookings"""
     
     def __init__(self, db_pool: psycopg_pool.AsyncConnectionPool):
         self.db_pool = db_pool
+        self.config = load_config()
     
     async def get_user_approved_department(self, user_id: int) -> int:
         """Get the department number for which user was approved, 0 if not approved"""
@@ -228,3 +231,62 @@ class InterviewDAO:
                     }
                     for row in results
                 ]
+    
+    async def get_user_approved_position_info(self, user_id: int) -> Optional[Dict[str, Any]]:
+        """Get approved position information for user with full title"""
+        async with self.db_pool.connection() as conn:
+            async with conn.cursor() as cursor:
+                await cursor.execute("""
+                    SELECT 
+                        a.department_1, a.subdepartment_1, a.position_1,
+                        a.department_2, a.subdepartment_2, a.position_2,
+                        a.department_3, a.subdepartment_3, a.position_3,
+                        u.approved
+                    FROM applications a
+                    LEFT JOIN users u ON a.user_id = u.user_id
+                    WHERE a.user_id = %s AND CAST(u.approved AS INTEGER) > 0
+                """, (user_id,))
+                result = await cursor.fetchone()
+                
+                if not result:
+                    return None
+                
+                approved_priority = int(result[9]) if result[9] else 0  # approved column
+                if approved_priority and 1 <= approved_priority <= 3:
+                    dept_idx = (approved_priority - 1) * 3
+                    department_num = result[dept_idx]
+                    subdepartment_num = result[dept_idx + 1]
+                    position_num = result[dept_idx + 2]
+                    
+                    departments = self.config.selection.departments
+                    dept_info = departments.get(str(department_num), {})
+                    dept_name = dept_info.get("name", f"{department_num}")
+                    
+                    # Get subdepartment info
+                    subdept_name = ""
+                    if subdepartment_num and subdepartment_num != 0:
+                        subdepts = dept_info.get("subdepartments", {})
+                        subdept_info = subdepts.get(str(subdepartment_num), {})
+                        subdept_name = subdept_info.get("name", f"{subdepartment_num}")
+                    
+                    # Get position info
+                    position_name = position_num if position_num else "Неизвестная позиция"
+                    
+                    # Build full position title
+                    full_position = dept_name
+                    if subdept_name:
+                        full_position += f" - {subdept_name}"
+                    full_position += f" - {position_name}"
+                    
+                    return {
+                        "department": department_num,
+                        "subdepartment": subdepartment_num,
+                        "position": position_num,
+                        "full_title": full_position,
+                        "priority": approved_priority,
+                        "department_name": dept_name,
+                        "subdepartment_name": subdept_name,
+                        "position_name": position_name
+                    }
+                
+                return None
