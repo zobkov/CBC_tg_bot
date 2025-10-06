@@ -128,6 +128,23 @@ async def get_current_stage_info(dialog_manager: DialogManager, **kwargs) -> Dic
      #   next_start = datetime.fromisoformat(next_stage_info["start_date"])
     #    next_stage_text = f"\n\n📋 <b>Следующий этап:</b> {next_stage_info['name']}\n🚀 <b>Начало:</b> {next_start.strftime('%d.%m.%Y, %H:%M')}"
     
+    # Проверяем статус одобрения пользователя для скрытия дедлайна
+    db_pool = dialog_manager.middleware_data.get("db_applications")
+    if db_pool and application_submitted:
+        try:
+            from app.infrastructure.database.dao.feedback import FeedbackDAO
+            feedback_dao = FeedbackDAO(db_pool)
+            user_data = await feedback_dao.get_single_user_data(event_from_user.id)
+            
+            if user_data:
+                approved = int(user_data['approved']) if user_data['approved'] else 0
+                if approved == 0:
+                    # Пользователь не одобрен - скрываем дедлайн
+                    deadline_info = ""
+        except Exception:
+            # В случае ошибки оставляем дедлайн как есть
+            pass
+    
     return {
         "current_stage": current_stage or "completed",
         "stage_name": current_stage_info["name"],
@@ -175,7 +192,7 @@ async def get_application_status(dialog_manager: DialogManager, **kwargs) -> Dic
                         
                         if approved == 0:
                             # Пользователь не одобрен - показываем статус для запроса обратной связи
-                            status_text = "Запросить обратную связь"
+                            status_text = "Тестовое задание"
                         else:
                             # Пользователь одобрен - проверяем, выбрал ли он слот для интервью
                             from app.infrastructure.database.dao.interview import InterviewDAO

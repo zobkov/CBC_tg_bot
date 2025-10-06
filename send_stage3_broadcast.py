@@ -203,7 +203,7 @@ async def main():
     
     # Check for test mode with specific user IDs
     if len(sys.argv) > 1 and sys.argv[1] == "--test":
-        test_user_ids = [257026813] # artem k - 1905792261,8336687438
+        test_user_ids = [257026813,1905792261,8336687438] # artem k - 1905792261,8336687438
         dry_run = False  # Send real messages in test mode
         logger.warning(f"🧪 TEST MODE - Sending REAL messages to users: {test_user_ids}")
     elif len(sys.argv) > 1 and sys.argv[1] == "--live":
