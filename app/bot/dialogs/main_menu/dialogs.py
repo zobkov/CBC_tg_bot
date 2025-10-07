@@ -58,6 +58,7 @@ main_menu_dialog = Dialog(
                "Если возникнут вопросы, мы всегда на связи! Ты можешь обратиться к одному из контактов ниже и задать все интересующие тебя вопросы.\n\n"
                "<b>По общим вопросам:</b> {general_support}\n"
                "<b>Техническая поддержка:</b> {technical_support}\n"
+               "\nЧастые вопросы: https://docs.google.com/document/d/1fV2IA_k5eY3TSM4Xue1sYR1OS8-AkHDGN_t4ubKNMlA/edit?usp=sharing"
                ),
         Back(Const("◀️ Назад")),
         state=MainMenuSG.support,
