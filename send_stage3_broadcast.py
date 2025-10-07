@@ -6,10 +6,12 @@ import asyncio
 import logging
 from datetime import datetime
 from typing import List, Dict, Any
+import os
+import json
 
 from aiogram import Bot
 from aiogram.exceptions import TelegramForbiddenError, TelegramBadRequest
-from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton
+from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton, FSInputFile
 
 from config.config import load_config
 from app.infrastructure.database.connect_to_pg import get_pg_pool
@@ -22,6 +24,67 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
+# Константы для видео
+VIDEO_PATH = "app/bot/assets/broadcast/video/interview_instruction.mp4"
+VIDEO_FILE_ID_STORAGE = "config/video_file_ids.json"
+TARGET_USER_ID = 257026813  # Пользователь для генерации file_id
+
+
+async def get_video_file_id(bot: Bot) -> str:
+    """Получить file_id видео, отправив его пользователю если нужно"""
+    
+    # Проверяем, есть ли уже сохраненный file_id
+    if os.path.exists(VIDEO_FILE_ID_STORAGE):
+        try:
+            with open(VIDEO_FILE_ID_STORAGE, 'r', encoding='utf-8') as f:
+                data = json.load(f)
+                if "interview_instruction" in data:
+                    logger.info(f"📹 Using cached video file_id: {data['interview_instruction'][:20]}...")
+                    return data["interview_instruction"]
+        except (json.JSONDecodeError, KeyError) as e:
+            logger.warning(f"⚠️ Error reading video file_id cache: {e}")
+    
+    # Отправляем видео пользователю для получения file_id
+    logger.info(f"📹 Generating video file_id by sending to user {TARGET_USER_ID}")
+    
+    if not os.path.exists(VIDEO_PATH):
+        raise FileNotFoundError(f"Video file not found: {VIDEO_PATH}")
+    
+    try:
+        video_file = FSInputFile(VIDEO_PATH)
+        message = await bot.send_video(
+            chat_id=TARGET_USER_ID,
+            video=video_file,
+            caption="🎬 Генерация file_id для видео (можно удалить это сообщение)"
+        )
+        
+        file_id = message.video.file_id
+        logger.info(f"✅ Generated video file_id: {file_id[:20]}...")
+        
+        # Сохраняем file_id для будущего использования
+        os.makedirs(os.path.dirname(VIDEO_FILE_ID_STORAGE), exist_ok=True)
+        
+        # Загружаем существующие данные или создаем новые
+        data = {}
+        if os.path.exists(VIDEO_FILE_ID_STORAGE):
+            try:
+                with open(VIDEO_FILE_ID_STORAGE, 'r', encoding='utf-8') as f:
+                    data = json.load(f)
+            except json.JSONDecodeError:
+                pass
+        
+        data["interview_instruction"] = file_id
+        
+        with open(VIDEO_FILE_ID_STORAGE, 'w', encoding='utf-8') as f:
+            json.dump(data, f, ensure_ascii=False, indent=2)
+        
+        logger.info(f"💾 Video file_id saved to {VIDEO_FILE_ID_STORAGE}")
+        return file_id
+        
+    except Exception as e:
+        logger.error(f"❌ Error generating video file_id: {e}")
+        raise
+
 
 class Stage3BroadcastService:
     """Service for stage 3 broadcast (approval/rejection notifications)"""
@@ -33,6 +96,17 @@ class Stage3BroadcastService:
     async def send_approval_notification(self, user_id: int, position_info: Dict[str, Any]) -> bool:
         """Send approval notification to user"""
         try:
+            # Получаем file_id видео
+            video_file_id = await get_video_file_id(self.bot)
+            
+            # Сначала отправляем видео
+            await self.bot.send_video(
+                chat_id=user_id,
+                video=video_file_id,
+                caption="🎬 Инструкция по записи на онлайн-собеседование"
+            )
+            
+            # Затем отправляем основное сообщение
             message = f"""你好! Отбор был непростым испытанием. Мы внимательно изучили десятки решений, и твоё оказалось одним из самых сильных. Поздравляем и добро пожаловать на заключительный этап отбора!
 
 <b>Ты прошел на позицию: </b>
