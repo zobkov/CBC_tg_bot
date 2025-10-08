@@ -7,6 +7,7 @@ from aiogram_dialog import DialogManager, StartMode
 
 from app.bot.states.feedback import FeedbackSG
 from app.bot.states.main_menu import MainMenuSG
+from app.bot.states.interview import InterviewSG
 
 feedback_callbacks_router = Router()
 
@@ -31,5 +32,17 @@ async def go_to_main_menu(callback: CallbackQuery, dialog_manager: DialogManager
     # Start main menu dialog
     await dialog_manager.start(
         MainMenuSG.main_menu,
+        mode=StartMode.RESET_STACK
+    )
+
+
+@feedback_callbacks_router.callback_query(F.data == "reschedule_interview")
+async def reschedule_interview(callback: CallbackQuery, dialog_manager: DialogManager):
+    """Handle interview rescheduling from inline button"""
+    await callback.answer()
+    
+    # Start interview dialog to select new time
+    await dialog_manager.start(
+        InterviewSG.main_menu,
         mode=StartMode.RESET_STACK
     )

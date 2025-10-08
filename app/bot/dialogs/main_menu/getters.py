@@ -231,7 +231,8 @@ async def get_interview_button_info(dialog_manager: DialogManager, **kwargs) -> 
     
     # По умолчанию кнопка скрыта
     show_interview_button = False
-    interview_button_emoji = "🎯"
+    interview_button_emoji = "🔒"
+    interview_button_enabled = False
     
     if db_pool:
         try:
@@ -243,6 +244,9 @@ async def get_interview_button_info(dialog_manager: DialogManager, **kwargs) -> 
             approved_dept = await dao.get_user_approved_department(event_from_user.id)
             show_interview_button = approved_dept > 0
             
+            # Запись на интервью закрыта для всех, поэтому кнопка неактивна
+            interview_button_enabled = False
+            
         except Exception as e:
             # В случае ошибки логируем и скрываем кнопку
             import logging
@@ -251,7 +255,8 @@ async def get_interview_button_info(dialog_manager: DialogManager, **kwargs) -> 
     
     return {
         "interview_button_emoji": interview_button_emoji,
-        "show_interview_button": show_interview_button
+        "show_interview_button": show_interview_button,
+        "interview_button_enabled": interview_button_enabled
     }
 
 
@@ -305,4 +310,62 @@ async def get_feedback_button_info(dialog_manager: DialogManager, **kwargs) -> D
     
     return {
         "show_feedback_button": show_feedback_button
+    }
+
+
+async def get_interview_datetime_info(dialog_manager: DialogManager, **kwargs) -> Dict[str, Any]:
+    """Получаем информацию о дате и времени интервью"""
+    event_from_user: User = dialog_manager.event.from_user
+    db_pool = dialog_manager.middleware_data.get("db_applications")
+    
+    interview_datetime = ""
+    
+    if db_pool:
+        try:
+            # Импортируем DAO для интервью
+            from app.infrastructure.database.dao.interview import InterviewDAO
+            dao = InterviewDAO(db_pool)
+            
+            # Получаем текущую бронь пользователя
+            current_booking = await dao.get_user_current_booking(event_from_user.id)
+            
+            if current_booking:
+                # Если есть бронь, форматируем дату и время
+                booking_date = current_booking.get('interview_date')
+                booking_time = current_booking.get('start_time')
+                
+                if booking_date and booking_time:
+                    # Форматируем дату и время для отображения
+                    from datetime import datetime
+                    
+                    # Парсим дату (предполагаем формат date object или YYYY-MM-DD)
+                    try:
+                        if isinstance(booking_date, str):
+                            date_obj = datetime.strptime(booking_date, '%Y-%m-%d')
+                        else:
+                            # Если это уже date object
+                            date_obj = datetime.combine(booking_date, datetime.min.time())
+                        
+                        formatted_date = date_obj.strftime('%d.%m.%Y')
+                        
+                        # Форматируем время (может быть time object или строка)
+                        if isinstance(booking_time, str):
+                            time_str = booking_time
+                        else:
+                            # Если это time object
+                            time_str = booking_time.strftime('%H:%M')
+                        
+                        interview_datetime = f"\n🕐 <b>Интервью:</b> {formatted_date}, {time_str}"
+                    except (ValueError, TypeError, AttributeError):
+                        # Если не удается распарсить дату/время, показываем как есть
+                        interview_datetime = f"\n🕐 <b>Интервью:</b> {booking_date}, {booking_time}"
+            
+        except Exception as e:
+            # В случае ошибки логируем и не показываем информацию об интервью
+            import logging
+            logger = logging.getLogger(__name__)
+            logger.error(f"Error getting interview datetime for user {event_from_user.id}: {e}")
+    
+    return {
+        "interview_datetime": interview_datetime
     }

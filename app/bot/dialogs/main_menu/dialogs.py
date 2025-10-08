@@ -11,8 +11,8 @@ from app.bot.states.main_menu import MainMenuSG
 from app.bot.states.first_stage import FirstStageSG
 from app.bot.states.interview import InterviewSG
 from app.bot.states.feedback import FeedbackSG
-from .getters import get_current_stage_info, get_application_status, get_support_contacts, get_main_menu_media, get_task_button_info, get_interview_button_info, get_feedback_button_info
-from .handlers import on_current_stage_clicked, on_support_clicked
+from .getters import get_current_stage_info, get_application_status, get_support_contacts, get_main_menu_media, get_task_button_info, get_interview_button_info, get_feedback_button_info, get_interview_datetime_info
+from .handlers import on_current_stage_clicked, on_support_clicked, on_interview_button_clicked
 
 main_menu_dialog = Dialog(
     Window(
@@ -22,13 +22,14 @@ main_menu_dialog = Dialog(
         Format("🏠 <b>Личный кабинет кандидата в команду КБК 2026</b>\n\n"
                "📅 <b>Текущий этап:</b> {stage_name}\n"
                "📍 <b>Статус заявки:</b> {status_text}\n"
+               "{interview_datetime}"
                "{deadline_info}\n"
         ),
         Row(
-            Start(
+            Button(
                 Format("{interview_button_emoji} Интервью"),
                 id="interview_button",
-                state=InterviewSG.main_menu,
+                on_click=on_interview_button_clicked,
                 when="show_interview_button"
             ),
         ),
@@ -48,7 +49,7 @@ main_menu_dialog = Dialog(
             ),
         ),
         state=MainMenuSG.main_menu,
-        getter=[get_current_stage_info, get_application_status, get_main_menu_media, get_task_button_info, get_interview_button_info, get_feedback_button_info]
+        getter=[get_current_stage_info, get_application_status, get_main_menu_media, get_task_button_info, get_interview_button_info, get_feedback_button_info, get_interview_datetime_info]
     ),
     Window(
         StaticMedia(
