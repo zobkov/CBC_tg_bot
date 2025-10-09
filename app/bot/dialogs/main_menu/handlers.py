@@ -55,3 +55,9 @@ async def on_support_clicked(callback: CallbackQuery, button, dialog_manager: Di
     """Обработчик нажатия на кнопку 'Поддержка'"""
     # Переходим к окну поддержки
     await dialog_manager.switch_to(state=MainMenuSG.support)
+
+
+async def on_interview_button_clicked(callback: CallbackQuery, button, dialog_manager: DialogManager):
+    """Обработчик нажатия на кнопку 'Интервью' (заблокированную)"""
+    # Сначала отвечаем на callback, чтобы избежать таймаута
+    await callback.answer("Запись на интервью закрыта", show_alert=True)
