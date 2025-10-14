@@ -20,6 +20,9 @@ from app.bot.middlewares.database import DatabaseMiddleware
 from app.bot.middlewares.error_handler import ErrorHandlerMiddleware
 
 from app.bot.handlers.commands import router as commands_router 
+from app.bot.handlers.feedback_callbacks import feedback_callbacks_router 
+from app.bot.handlers.admin_lock import setup_admin_commands_router
+from app.bot.middlewares.admin_lock import AdminLockMiddleware 
 
 from app.bot.keyboards.command_menu import set_main_menu
 
@@ -29,6 +32,8 @@ from app.bot.dialogs.main_menu.dialogs import main_menu_dialog
 from app.bot.dialogs.first_stage.dialogs import first_stage_dialog
 from app.bot.dialogs.job_selection.dialogs import job_selection_dialog
 from app.bot.dialogs.tasks.dialogs import task_dialog
+from app.bot.dialogs.interview.dialogs import interview_dialog
+from app.bot.dialogs.feedback.dialogs import feedback_dialog
 
 from app.services.broadcast_scheduler import BroadcastScheduler
 from app.services.photo_file_id_manager import startup_photo_check
@@ -110,8 +115,14 @@ async def main():
     dp["db"] = db_applications_pool
 
     logger.info("Including routers")
+    
+    # Настраиваем админские команды
+    admin_commands_router = setup_admin_commands_router(config.admin_ids)
+    
     dp.include_routers(
-        commands_router
+        admin_commands_router,  # Команды админов /lock /unlock /status
+        commands_router,
+        feedback_callbacks_router
                        )
     
     dp.include_routers(
@@ -120,10 +131,14 @@ async def main():
         main_menu_dialog,
         first_stage_dialog,
         job_selection_dialog,
-        task_dialog
+        task_dialog,
+        interview_dialog,
+        feedback_dialog
                        )
 
     logger.info("Including middlewares")
+    # Добавляем middleware блокировки ПЕРВЫМ (ДО всех остальных)
+    dp.update.middleware(AdminLockMiddleware(config.admin_ids, storage))
     dp.update.middleware(ErrorHandlerMiddleware())
     dp.update.middleware(DatabaseMiddleware())
 

@@ -34,7 +34,9 @@ async def get_current_stage_info(dialog_manager: DialogManager, **kwargs) -> Dic
         return {
             "current_stage": "Неизвестно",
             "current_stage_description": "Информация недоступна",
-            "is_active": False
+            "is_active": False,
+            "stage_name": "Неизвестно",
+            "deadline_info": ""
         }
     
     # Получаем статус заявки пользователя из таблицы users (submission_status)
@@ -46,82 +48,56 @@ async def get_current_stage_info(dialog_manager: DialogManager, **kwargs) -> Dic
     except Exception:
         application_submitted = False
     
-    # Проверяем, закрыта ли отправка тестовых заданий
-    submission_closed = is_task_submission_closed()
-    
-    now = datetime.now()
-    current_stage = None
-    current_stage_info = None
-    next_stage_info = None
-    
-    # Сортируем этапы по дате начала
-    sorted_stages = sorted(
-        config.selection.stages.items(),
-        key=lambda x: datetime.fromisoformat(x[1]["start_date"])
-    )
-    
-    # Находим текущий этап
-    for i, (stage_key, stage_data) in enumerate(sorted_stages):
-        start_date = datetime.fromisoformat(stage_data["start_date"])
-        end_date = datetime.fromisoformat(stage_data["end_date"])
-        
-        if start_date <= now <= end_date:
-            current_stage = stage_key
-            current_stage_info = stage_data
-            # Находим следующий этап
-            if i + 1 < len(sorted_stages):
-                next_stage_info = sorted_stages[i + 1][1]
-            break
-    
-    if not current_stage:
-        # Проверяем будущие этапы
-        for stage_key, stage_data in sorted_stages:
-            start_date = datetime.fromisoformat(stage_data["start_date"])
-            if now < start_date:
-                current_stage = stage_key
-                current_stage_info = stage_data
-                current_stage_info["status"] = "upcoming"
-                break
-    
-    if not current_stage_info:
-        current_stage_info = {
-            "name": "Отбор завершен",
-            "description": "Все этапы отбора завершены",
-            "status": "completed"
-        }
-    
-    # Логика отображения дедлайна и результатов
+    # Дефолтные значения
+    stage_name = "Подача заявок"
     deadline_info = ""
     
-    # Если отправка тестовых заданий закрыта, переопределяем информацию о этапе
-    if submission_closed:
-        current_stage_info = {
-            "name": "Тестовое задание",
-            "description": "",
-            "status": "closed"
-        }
-        
-        # Формируем информацию о результатах
-        results_date = format_results_date()
-        deadline_info = f"\n\n⏰ <b>Результаты:</b> {results_date}"
-    else:
-        # Если дедлайн еще не прошел, показываем дедлайн (для этапа "Тестовое задание")
-        if current_stage_info and current_stage_info.get("name") == "Тестовое задание":
-            deadline_info = f"\n\n⏰ <b>Дедлайн:</b> 02.10.2025, 23:59"
-    
-    # Добавляем информацию о следующем этапе
-    next_stage_text = ""
-    #if next_stage_info and current_stage_info.get("status") != "upcoming":
-     #   next_start = datetime.fromisoformat(next_stage_info["start_date"])
-    #    next_stage_text = f"\n\n📋 <b>Следующий этап:</b> {next_stage_info['name']}\n🚀 <b>Начало:</b> {next_start.strftime('%d.%m.%Y, %H:%M')}"
+    # Если заявка подана, проверяем статус одобрения
+    if application_submitted:
+        db_pool = dialog_manager.middleware_data.get("db_applications")
+        if db_pool:
+            try:
+                from app.infrastructure.database.dao.feedback import FeedbackDAO
+                from app.infrastructure.database.dao.interview import InterviewDAO
+                
+                feedback_dao = FeedbackDAO(db_pool)
+                user_data = await feedback_dao.get_single_user_data(event_from_user.id)
+                
+                if user_data:
+                    approved = int(user_data['approved']) if user_data['approved'] else 0
+                    
+                    if approved == 0:
+                        # Пользователь не одобрен
+                        stage_name = "Тестовое задание"
+                        deadline_info = ""  # Пустой дедлайн
+                    else:
+                        # Пользователь одобрен - проверяем статус интервью
+                        stage_name = "Онлайн-собеседование"
+                        
+                        interview_dao = InterviewDAO(db_pool)
+                        current_booking = await interview_dao.get_user_current_booking(event_from_user.id)
+                        
+                        if current_booking:
+                            # Слот выбран - показываем дату результатов
+                            deadline_info = "\n⏰ <b>Результаты:</b> 15.10.2025, 12:00"
+                        else:
+                            # Слот НЕ выбран - показываем дедлайн выбора
+                            deadline_info = "\n⏰ <b>Дедлайн:</b> 8.10.2025, 23:59"
+                else:
+                    # Пользователь не найден в системе оценки
+                    stage_name = "Подача заявок"
+                    deadline_info = ""
+            except Exception:
+                # В случае ошибки показываем дефолтные значения
+                stage_name = "Подача заявок"
+                deadline_info = ""
     
     return {
-        "current_stage": current_stage or "completed",
-        "stage_name": current_stage_info["name"],
-        "stage_description": current_stage_info.get("description", "") + next_stage_text,
-        "stage_status": current_stage_info.get("status", "active"),
-        "deadline_info": deadline_info,
-        "submission_closed": submission_closed
+        "current_stage": "active",
+        "stage_name": stage_name,
+        "stage_description": "",
+        "stage_status": "active",
+        "deadline_info": deadline_info
     }
 
 
@@ -131,6 +107,7 @@ async def get_application_status(dialog_manager: DialogManager, **kwargs) -> Dic
     
     # Получаем объект DB из middleware_data
     db: DB = dialog_manager.middleware_data.get("db")
+    db_pool = dialog_manager.middleware_data.get("db_applications")
     
     if not db:
         return {
@@ -144,10 +121,44 @@ async def get_application_status(dialog_manager: DialogManager, **kwargs) -> Dic
         await db.applications.create_application(user_id=event_from_user.id)
         user_record = await db.users.get_user_record(user_id=event_from_user.id)
         application_status = (user_record.submission_status if user_record else "not_submitted")
-        status_text = {
-            "not_submitted": "Заявка не подана",
-            "submitted": "Заявка подана"
-        }.get(application_status, "Неизвестный статус")
+        
+        # Базовый статус для неподанных заявок
+        if application_status == "not_submitted":
+            status_text = "Заявка не подана"
+        else:
+            # Заявка подана, проверяем статус одобрения
+            if db_pool:
+                try:
+                    # Получаем статус одобрения из таблицы users
+                    from app.infrastructure.database.dao.feedback import FeedbackDAO
+                    feedback_dao = FeedbackDAO(db_pool)
+                    user_data = await feedback_dao.get_single_user_data(event_from_user.id)
+                    
+                    if user_data:
+                        approved = int(user_data['approved']) if user_data['approved'] else 0
+                        
+                        if approved == 0:
+                            # Пользователь не одобрен - показываем статус для запроса обратной связи
+                            status_text = "Запросить обратную связь"
+                        else:
+                            # Пользователь одобрен - проверяем, выбрал ли он слот для интервью
+                            from app.infrastructure.database.dao.interview import InterviewDAO
+                            interview_dao = InterviewDAO(db_pool)
+                            current_booking = await interview_dao.get_user_current_booking(event_from_user.id)
+                            
+                            if current_booking:
+                                status_text = "Время выбрано"
+                            else:
+                                status_text = "Время не выбрано"
+                    else:
+                        # Пользователь не найден в таблице evaluated или не подавал задания
+                        status_text = "Заявка подана"
+                except Exception:
+                    # В случае ошибки с проверкой одобрения показываем базовый статус
+                    status_text = "Заявка подана"
+            else:
+                status_text = "Заявка подана"
+                
     except Exception as e:
         # В случае ошибки возвращаем значения по умолчанию
         application_status = "not_submitted"
@@ -282,6 +293,42 @@ async def get_task_status_info(dialog_manager: DialogManager, **kwargs) -> Dict[
     }
 
 
+async def get_interview_button_info(dialog_manager: DialogManager, **kwargs) -> Dict[str, Any]:
+    """Получаем информацию для кнопки интервью"""
+    event_from_user: User = dialog_manager.event.from_user
+    db_pool = dialog_manager.middleware_data.get("db_applications")
+    
+    # По умолчанию кнопка скрыта
+    show_interview_button = False
+    interview_button_emoji = "🔒"
+    interview_button_enabled = False
+    
+    if db_pool:
+        try:
+            # Импортируем DAO для интервью
+            from app.infrastructure.database.dao.interview import InterviewDAO
+            dao = InterviewDAO(db_pool)
+            
+            # Проверяем статус одобрения пользователя
+            approved_dept = await dao.get_user_approved_department(event_from_user.id)
+            show_interview_button = approved_dept > 0
+            
+            # Запись на интервью закрыта для всех, поэтому кнопка неактивна
+            interview_button_enabled = False
+            
+        except Exception as e:
+            # В случае ошибки логируем и скрываем кнопку
+            import logging
+            logger = logging.getLogger(__name__)
+            logger.error(f"Error checking interview status for user {event_from_user.id}: {e}")
+    
+    return {
+        "interview_button_emoji": interview_button_emoji,
+        "show_interview_button": show_interview_button,
+        "interview_button_enabled": interview_button_enabled
+    }
+
+
 async def get_main_menu_media(dialog_manager: DialogManager, **kwargs) -> Dict[str, Any]:
     """Получаем медиа для главного меню"""
     file_id = get_file_id_for_path("main_menu/main_menu.jpg")
@@ -301,4 +348,93 @@ async def get_main_menu_media(dialog_manager: DialogManager, **kwargs) -> Dict[s
     
     return {
         "media": media
+    }
+
+
+async def get_feedback_button_info(dialog_manager: DialogManager, **kwargs) -> Dict[str, Any]:
+    """Получаем информацию для кнопки обратной связи"""
+    event_from_user: User = dialog_manager.event.from_user
+    db_pool = dialog_manager.middleware_data.get("db_applications")
+    
+    # По умолчанию кнопка скрыта
+    show_feedback_button = False
+    
+    if db_pool:
+        try:
+            # Импортируем DAO для feedback
+            from app.infrastructure.database.dao.feedback import FeedbackDAO
+            dao = FeedbackDAO(db_pool)
+            
+            # Проверяем статус одобрения пользователя (approved = 0 значит отклонен)
+            user_data = await dao.get_single_user_data(event_from_user.id)
+            if user_data:
+                approved = int(user_data['approved']) if user_data['approved'] else 0
+                show_feedback_button = approved == 0
+            
+        except Exception as e:
+            # В случае ошибки логируем и скрываем кнопку
+            import logging
+            logger = logging.getLogger(__name__)
+            logger.error(f"Error checking feedback status for user {event_from_user.id}: {e}")
+    
+    return {
+        "show_feedback_button": show_feedback_button
+    }
+
+
+async def get_interview_datetime_info(dialog_manager: DialogManager, **kwargs) -> Dict[str, Any]:
+    """Получаем информацию о дате и времени интервью"""
+    event_from_user: User = dialog_manager.event.from_user
+    db_pool = dialog_manager.middleware_data.get("db_applications")
+    
+    interview_datetime = ""
+    
+    if db_pool:
+        try:
+            # Импортируем DAO для интервью
+            from app.infrastructure.database.dao.interview import InterviewDAO
+            dao = InterviewDAO(db_pool)
+            
+            # Получаем текущую бронь пользователя
+            current_booking = await dao.get_user_current_booking(event_from_user.id)
+            
+            if current_booking:
+                # Если есть бронь, форматируем дату и время
+                booking_date = current_booking.get('interview_date')
+                booking_time = current_booking.get('start_time')
+                
+                if booking_date and booking_time:
+                    # Форматируем дату и время для отображения
+                    from datetime import datetime
+                    
+                    # Парсим дату (предполагаем формат date object или YYYY-MM-DD)
+                    try:
+                        if isinstance(booking_date, str):
+                            date_obj = datetime.strptime(booking_date, '%Y-%m-%d')
+                        else:
+                            # Если это уже date object
+                            date_obj = datetime.combine(booking_date, datetime.min.time())
+                        
+                        formatted_date = date_obj.strftime('%d.%m.%Y')
+                        
+                        # Форматируем время (может быть time object или строка)
+                        if isinstance(booking_time, str):
+                            time_str = booking_time
+                        else:
+                            # Если это time object
+                            time_str = booking_time.strftime('%H:%M')
+                        
+                        interview_datetime = f"\n🕐 <b>Интервью:</b> {formatted_date}, {time_str}"
+                    except (ValueError, TypeError, AttributeError):
+                        # Если не удается распарсить дату/время, показываем как есть
+                        interview_datetime = f"\n🕐 <b>Интервью:</b> {booking_date}, {booking_time}"
+            
+        except Exception as e:
+            # В случае ошибки логируем и не показываем информацию об интервью
+            import logging
+            logger = logging.getLogger(__name__)
+            logger.error(f"Error getting interview datetime for user {event_from_user.id}: {e}")
+    
+    return {
+        "interview_datetime": interview_datetime
     }
