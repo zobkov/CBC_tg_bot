@@ -55,9 +55,7 @@ def build_start_media_group(caption: str | None = None):
     start_relative_paths = [
         "start/1.jpg",
         "start/2.png", 
-        "start/3.png",
-        "start/4.png",
-        "start/5.png",
+        "start/3.jpeg",
         "start/6.png",
         "start/8.png",
         "start/7.png",

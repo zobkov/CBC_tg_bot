@@ -24,6 +24,8 @@ async def get_user_info(dialog_manager: DialogManager, event_from_user: User, **
 
 async def get_current_stage_info(dialog_manager: DialogManager, **kwargs) -> Dict[str, Any]:
     """Получаем информацию о текущем этапе отбора"""
+    from app.utils.deadline_checker import is_task_submission_closed, format_results_date
+    
     config: Config = dialog_manager.middleware_data.get("config")
     db: DB = dialog_manager.middleware_data.get("db")
     event_from_user: User = dialog_manager.event.from_user
@@ -189,14 +191,22 @@ async def get_support_contacts(dialog_manager: DialogManager, **kwargs) -> Dict[
 
 async def get_task_button_info(dialog_manager: DialogManager, **kwargs) -> Dict[str, Any]:
     """Получаем информацию для кнопки тестовых заданий"""
+    from app.utils.deadline_checker import is_task_submission_closed
+    
     event_from_user: User = dialog_manager.event.from_user
     db: DB = dialog_manager.middleware_data.get("db")
+    
+    # Проверяем, закрыта ли отправка тестовых заданий
+    submission_closed = is_task_submission_closed()
     
     # По умолчанию доступ разрешен (для случаев ошибок или отсутствия данных)
     is_first_stage_passed = True
     button_emoji = "📋"
     
-    if db:
+    if submission_closed:
+        # Если дедлайн прошел, показываем замочек независимо от статуса
+        button_emoji = "🔒"
+    elif db:
         try:
             # Получаем данные оценки пользователя
             evaluation = await db.evaluated_applications.get_evaluation(user_id=event_from_user.id)
@@ -220,7 +230,66 @@ async def get_task_button_info(dialog_manager: DialogManager, **kwargs) -> Dict[
     
     return {
         "task_button_emoji": button_emoji,
-        "is_first_stage_passed": is_first_stage_passed
+        "is_first_stage_passed": is_first_stage_passed,
+        "submission_closed": submission_closed
+    }
+
+
+async def get_task_status_info(dialog_manager: DialogManager, **kwargs) -> Dict[str, Any]:
+    """Получаем информацию о статусе выполнения тестовых заданий"""
+    event_from_user: User = dialog_manager.event.from_user
+    db: DB = dialog_manager.middleware_data.get("db")
+    
+    task_status_text = "Решения не получены"
+    
+    if db:
+        try:
+            # Получаем данные о пользователе и оценке
+            user_record = await db.users.get_user_record(user_id=event_from_user.id)
+            evaluation = await db.evaluated_applications.get_evaluation(user_id=event_from_user.id)
+            
+            if user_record and evaluation:
+                # Проверяем, по каким заданиям пользователь был принят и отправил ли решения
+                submitted_tasks = []
+                
+                if evaluation.accepted_1 and user_record.task_1_submitted:
+                    submitted_tasks.append("1")
+                elif evaluation.accepted_1:
+                    # Принят, но не отправил
+                    pass
+                    
+                if evaluation.accepted_2 and user_record.task_2_submitted:
+                    submitted_tasks.append("2")
+                elif evaluation.accepted_2:
+                    # Принят, но не отправил
+                    pass
+                    
+                if evaluation.accepted_3 and user_record.task_3_submitted:
+                    submitted_tasks.append("3")
+                elif evaluation.accepted_3:
+                    # Принят, но не отправил
+                    pass
+                
+                # Если есть отправленные задания, формируем соответствующий текст
+                if submitted_tasks:
+                    task_status_text = "Решения получены"
+                else:
+                    # Проверяем, был ли принят хотя бы по одному заданию
+                    accepted_any = evaluation.accepted_1 or evaluation.accepted_2 or evaluation.accepted_3
+                    if accepted_any:
+                        task_status_text = "Решения не получены"
+                    else:
+                        # Не принят ни по одному заданию
+                        task_status_text = "Решения не получены"
+            
+        except Exception as e:
+            # В случае ошибки возвращаем значение по умолчанию
+            import logging
+            logger = logging.getLogger(__name__)
+            logger.error(f"Error getting task status for user {event_from_user.id}: {e}")
+    
+    return {
+        "task_status_text": task_status_text
     }
 
 
