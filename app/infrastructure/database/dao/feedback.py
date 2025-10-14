@@ -5,15 +5,15 @@ from typing import List, Dict, Any, Optional
 import psycopg_pool
 from psycopg import AsyncConnection
 
-from config.config import load_config
+from config.config import load_config, Config
 
 
 class FeedbackDAO:
     """Data Access Object for feedback operations"""
     
-    def __init__(self, db_pool: psycopg_pool.AsyncConnectionPool):
+    def __init__(self, db_pool: psycopg_pool.AsyncConnectionPool, config: Config = None):
         self.db_pool = db_pool
-        self.config = load_config()
+        self.config = config or load_config()
     
     async def get_user_feedback_positions(self, user_id: int) -> List[Dict[str, Any]]:
         """Get positions with available feedback for user"""

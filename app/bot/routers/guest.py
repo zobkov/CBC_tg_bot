@@ -7,15 +7,17 @@ from aiogram.filters import Command
 from aiogram.types import Message
 
 from app.bot.filters.rbac import HasRole
+from app.bot.filters.legacy_intents import create_rbac_filter_with_legacy_exclusion
 from app.enums.roles import Role
 
 logger = logging.getLogger(__name__)
 
 router = Router(name="guest")
 
-# Фильтр для гостей и всех ролей выше
-router.message.filter(HasRole(Role.GUEST, Role.VOLUNTEER, Role.STAFF, Role.ADMIN))
-router.callback_query.filter(HasRole(Role.GUEST, Role.VOLUNTEER, Role.STAFF, Role.ADMIN))
+# Фильтр для гостей и всех ролей выше с исключением legacy интентов
+guest_filter = create_rbac_filter_with_legacy_exclusion(Role.GUEST, Role.VOLUNTEER, Role.STAFF, Role.ADMIN)
+router.message.filter(guest_filter)
+router.callback_query.filter(guest_filter)
 
 
 @router.message(Command("apply"))

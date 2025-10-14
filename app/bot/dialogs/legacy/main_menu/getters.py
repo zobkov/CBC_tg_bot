@@ -60,7 +60,7 @@ async def get_current_stage_info(dialog_manager: DialogManager, **kwargs) -> Dic
                 from app.infrastructure.database.dao.feedback import FeedbackDAO
                 from app.infrastructure.database.dao.interview import InterviewDAO
                 
-                feedback_dao = FeedbackDAO(db_pool)
+                feedback_dao = FeedbackDAO(db_pool, dialog_manager.middleware_data["config"])
                 user_data = await feedback_dao.get_single_user_data(event_from_user.id)
                 
                 if user_data:

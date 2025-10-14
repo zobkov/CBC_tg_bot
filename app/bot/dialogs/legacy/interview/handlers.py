@@ -42,7 +42,7 @@ async def on_timeslot_selected(
     await callback.answer()
     
     user_id = callback.from_user.id
-    dao = InterviewDAO(manager.middleware_data["db_applications"])
+    dao = InterviewDAO(manager.middleware_data["db_applications"], manager.middleware_data["config"])
     
     try:
         # Проверяем актуальную информацию о слоте
@@ -111,7 +111,7 @@ async def on_confirm_booking(
         await callback.message.answer("❌ Ошибка: не выбран временной слот")
         return
     
-    dao = InterviewDAO(manager.middleware_data["db_applications"])
+    dao = InterviewDAO(manager.middleware_data["db_applications"], manager.middleware_data["config"])
     
     try:
         # Get timeslot info before booking
@@ -224,7 +224,7 @@ async def on_reschedule_timeslot_selected(
     await callback.answer()
     
     user_id = callback.from_user.id
-    dao = InterviewDAO(manager.middleware_data["db_applications"])
+    dao = InterviewDAO(manager.middleware_data["db_applications"], manager.middleware_data["config"])
     
     try:
         # Проверяем актуальную информацию о слоте
@@ -293,7 +293,7 @@ async def on_confirm_reschedule(
         await callback.message.answer("❌ Ошибка: не выбран новый временной слот")
         return
     
-    dao = InterviewDAO(manager.middleware_data["db_applications"])
+    dao = InterviewDAO(manager.middleware_data["db_applications"], manager.middleware_data["config"])
     
     try:
         # Get old booking info before rescheduling for sync
@@ -391,7 +391,7 @@ async def on_confirm_cancel_interview(
     await callback.answer()
     
     user_id = callback.from_user.id
-    dao = InterviewDAO(manager.middleware_data["db_applications"])
+    dao = InterviewDAO(manager.middleware_data["db_applications"], manager.middleware_data["config"])
     
     try:
         # Get current booking info before cancellation for sync

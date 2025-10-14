@@ -59,10 +59,18 @@ class RolesAccessValidator(StackAccessValidator):
         """
         user_roles = data.get("roles", set())
         user_roles_str = {str(role) for role in user_roles}
+        current_user = data.get("current_user")
+        user_id = current_user.user_id if current_user else "unknown"
+        
+        # Если пользователь не загружен (legacy intent или middleware проблема),
+        # разрешаем доступ для предотвращения блокировки
+        if not user_roles and user_id == "unknown":
+            logger.debug("Dialog access: allowing unknown user (legacy intent or middleware issue)")
+            return True
         
         # Запрещаем доступ заблокированным пользователям
         if Role.BANNED.value in user_roles_str:
-            logger.warning("Access denied: user is banned")
+            logger.warning(f"Dialog access denied: user {user_id} is banned")
             return False
         
         # Если разрешен доступ всем (кроме banned)
@@ -73,8 +81,6 @@ class RolesAccessValidator(StackAccessValidator):
         has_access = bool(self.required_roles & user_roles_str)
         
         if not has_access:
-            current_user = data.get("current_user")
-            user_id = current_user.user_id if current_user else "unknown"
             logger.debug(
                 f"Dialog access denied for user {user_id}. "
                 f"Required: {self.required_roles}, User has: {user_roles_str}"

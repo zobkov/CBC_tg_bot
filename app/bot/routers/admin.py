@@ -8,15 +8,17 @@ from aiogram.filters import Command, CommandObject
 from aiogram.types import Message
 
 from app.bot.filters.rbac import HasRole
+from app.bot.filters.legacy_intents import create_rbac_filter_with_legacy_exclusion
 from app.enums.roles import Role
 
 logger = logging.getLogger(__name__)
 
 router = Router(name="admin")
 
-# Фильтр только для админов
-router.message.filter(HasRole(Role.ADMIN))
-router.callback_query.filter(HasRole(Role.ADMIN))
+# Фильтр только для админов с исключением legacy интентов
+admin_filter = create_rbac_filter_with_legacy_exclusion(Role.ADMIN)
+router.message.filter(admin_filter)
+router.callback_query.filter(admin_filter)
 
 
 @router.message(Command("admin_panel"))

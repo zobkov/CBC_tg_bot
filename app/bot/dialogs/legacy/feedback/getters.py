@@ -9,7 +9,7 @@ from app.infrastructure.database.dao.feedback import FeedbackDAO
 
 async def get_user_feedback_positions(dialog_manager: DialogManager, **kwargs) -> Dict[str, Any]:
     """Get positions with available feedback for user"""
-    dao = FeedbackDAO(dialog_manager.middleware_data["db_applications"])
+    dao = FeedbackDAO(dialog_manager.middleware_data["db_applications"], dialog_manager.middleware_data["config"])
     user_id = dialog_manager.event.from_user.id
     
     # Get user's applications with feedback
@@ -23,7 +23,7 @@ async def get_user_feedback_positions(dialog_manager: DialogManager, **kwargs) -
 
 async def get_selected_feedback(dialog_manager: DialogManager, **kwargs) -> Dict[str, Any]:
     """Get specific feedback content"""
-    dao = FeedbackDAO(dialog_manager.middleware_data["db_applications"])
+    dao = FeedbackDAO(dialog_manager.middleware_data["db_applications"], dialog_manager.middleware_data["config"])
     user_id = dialog_manager.event.from_user.id
     
     # Get position info from dialog data

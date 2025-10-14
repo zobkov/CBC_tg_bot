@@ -12,7 +12,7 @@ from app.infrastructure.database.dao.interview import InterviewDAO
 async def get_user_approved_department(dialog_manager: DialogManager, **kwargs) -> Dict[str, Any]:
     """Get the department number and position info for which user was approved"""
     user_id = dialog_manager.event.from_user.id
-    dao = InterviewDAO(dialog_manager.middleware_data["db_applications"])
+    dao = InterviewDAO(dialog_manager.middleware_data["db_applications"], dialog_manager.middleware_data["config"])
     
     # Get basic department number for interview scheduling
     approved_dept = await dao.get_user_approved_department(user_id)
@@ -43,7 +43,7 @@ async def get_user_approved_department(dialog_manager: DialogManager, **kwargs) 
 async def get_available_dates(dialog_manager: DialogManager, **kwargs) -> Dict[str, Any]:
     """Get available interview dates for user's approved department"""
     user_id = dialog_manager.event.from_user.id
-    dao = InterviewDAO(dialog_manager.middleware_data["db_applications"])
+    dao = InterviewDAO(dialog_manager.middleware_data["db_applications"], dialog_manager.middleware_data["config"])
     
     approved_dept = await dao.get_user_approved_department(user_id)
     if approved_dept == 0:
@@ -69,7 +69,7 @@ async def get_available_dates(dialog_manager: DialogManager, **kwargs) -> Dict[s
 async def get_available_timeslots(dialog_manager: DialogManager, **kwargs) -> Dict[str, Any]:
     """Get available time slots for selected date"""
     user_id = dialog_manager.event.from_user.id
-    dao = InterviewDAO(dialog_manager.middleware_data["db_applications"])
+    dao = InterviewDAO(dialog_manager.middleware_data["db_applications"], dialog_manager.middleware_data["config"])
     
     # Get selected date from dialog data
     selected_date_str = dialog_manager.dialog_data.get("selected_date")
@@ -104,7 +104,7 @@ async def get_available_timeslots(dialog_manager: DialogManager, **kwargs) -> Di
 async def get_current_booking(dialog_manager: DialogManager, **kwargs) -> Dict[str, Any]:
     """Get user's current interview booking if any"""
     user_id = dialog_manager.event.from_user.id
-    dao = InterviewDAO(dialog_manager.middleware_data["db_applications"])
+    dao = InterviewDAO(dialog_manager.middleware_data["db_applications"], dialog_manager.middleware_data["config"])
     
     booking = await dao.get_user_current_booking(user_id)
     
@@ -125,7 +125,7 @@ async def get_selected_timeslot_info(dialog_manager: DialogManager, **kwargs) ->
     if not selected_timeslot_id:
         return {"timeslot_info": None}
     
-    dao = InterviewDAO(dialog_manager.middleware_data["db_applications"])
+    dao = InterviewDAO(dialog_manager.middleware_data["db_applications"], dialog_manager.middleware_data["config"])
     timeslot = await dao.get_timeslot_by_id(int(selected_timeslot_id))
     
     if timeslot:
@@ -143,7 +143,7 @@ async def get_selected_timeslot_info(dialog_manager: DialogManager, **kwargs) ->
 async def get_reschedule_timeslots(dialog_manager: DialogManager, **kwargs) -> Dict[str, Any]:
     """Get available time slots for reschedule date"""
     user_id = dialog_manager.event.from_user.id
-    dao = InterviewDAO(dialog_manager.middleware_data["db_applications"])
+    dao = InterviewDAO(dialog_manager.middleware_data["db_applications"], dialog_manager.middleware_data["config"])
     
     # Get selected date from dialog data (reschedule flow)
     selected_date_str = dialog_manager.dialog_data.get("reschedule_date")
@@ -181,7 +181,7 @@ async def get_reschedule_timeslot_info(dialog_manager: DialogManager, **kwargs) 
     if not selected_timeslot_id:
         return {"timeslot_info": None}
     
-    dao = InterviewDAO(dialog_manager.middleware_data["db_applications"])
+    dao = InterviewDAO(dialog_manager.middleware_data["db_applications"], dialog_manager.middleware_data["config"])
     timeslot = await dao.get_timeslot_by_id(int(selected_timeslot_id))
     
     if timeslot:

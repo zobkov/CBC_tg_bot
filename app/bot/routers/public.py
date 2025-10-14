@@ -5,8 +5,13 @@ import logging
 from aiogram import Router
 from aiogram.filters import Command
 from aiogram.types import Message
+from aiogram_dialog import DialogManager, StartMode
 
 from app.bot.filters.rbac import IsNotBanned
+from app.bot.dialogs.guest.states import GuestMenuSG
+from app.bot.dialogs.volunteer.states import VolunteerMenuSG  
+from app.bot.dialogs.staff.states import StaffMenuSG
+from app.enums.roles import Role
 
 logger = logging.getLogger(__name__)
 
@@ -17,7 +22,81 @@ router = Router(name="public")
 # router.callback_query.filter(IsNotBanned())
 
 
-# Убираем обработчики /start и /menu - теперь они обрабатываются диалогами
+@router.message(Command("start"))
+async def start_command(message: Message, dialog_manager: DialogManager, roles: set[str] = None):
+    """Команда /start - запуск диалога приветствия в зависимости от роли"""
+    roles = roles or set()
+    
+    # Определяем состояние диалога в зависимости от роли пользователя
+    if Role.ADMIN.value in roles or Role.STAFF.value in roles:
+        await dialog_manager.start(state=StaffMenuSG.MAIN, mode=StartMode.RESET_STACK)
+    elif Role.VOLUNTEER.value in roles:
+        await dialog_manager.start(state=VolunteerMenuSG.MAIN, mode=StartMode.RESET_STACK)
+    else:
+        # Гости и все остальные (включая новых пользователей)
+        await dialog_manager.start(state=GuestMenuSG.MAIN, mode=StartMode.RESET_STACK)
+
+
+@router.message(Command("menu"))
+async def menu_command(message: Message, dialog_manager: DialogManager, roles: set[str] = None):
+    """Команда /menu - переход в главное меню в зависимости от роли"""
+    roles = roles or set()
+    
+    # Определяем состояние диалога в зависимости от роли пользователя
+    if Role.ADMIN.value in roles or Role.STAFF.value in roles:
+        await dialog_manager.start(state=StaffMenuSG.MAIN, mode=StartMode.RESET_STACK)
+    elif Role.VOLUNTEER.value in roles:
+        await dialog_manager.start(state=VolunteerMenuSG.MAIN, mode=StartMode.RESET_STACK)
+    else:
+        # Гости и все остальные
+        await dialog_manager.start(state=GuestMenuSG.MAIN, mode=StartMode.RESET_STACK)
+
+
+@router.message(Command("admin_help"))
+async def admin_help_command(message: Message, roles: set[str] = None):
+    """Полная справка для администраторов"""
+    roles = roles or set()
+    
+    if "admin" not in roles:
+        await message.answer("❌ Эта команда доступна только администраторам")
+        return
+    
+    admin_help_text = (
+        "🔧 <b>Полная справка администратора КБК</b>\n\n"
+        
+        "🔑 <b>Управление ролями:</b>\n"
+        "• /grant &lt;роль&gt; - Выдать роль (ответ на сообщение)\n"
+        "• /revoke &lt;роль&gt; - Отозвать роль (ответ на сообщение)\n"
+        "• /grant &lt;роль&gt; &lt;user_id&gt; - Выдать роль по ID\n"
+        "• /revoke &lt;роль&gt; &lt;user_id&gt; - Отозвать роль по ID\n\n"
+        
+        "🔒 <b>Управление доступом:</b>\n"
+        "• /lock - Переключить режим блокировки бота\n"
+        "• /unlock - Принудительно выключить блокировку\n"
+        "• /status - Проверить статус блокировки\n\n"
+        
+        "🛠 <b>Административные панели:</b>\n"
+        "• /admin_panel - Главная админ панель\n"
+        "• /system_stats - Системная статистика\n\n"
+        
+        "🧹 <b>Обслуживание системы:</b>\n"
+        "• /cache_clear - Очистить кэш ролей\n\n"
+        
+        "📊 <b>Доступные роли:</b>\n"
+        "• admin - Полный доступ ко всем функциям\n"
+        "• staff - Сотрудник (управление заявками)\n"
+        "• volunteer - Волонтёр (помощь участникам)\n"
+        "• guest - Обычный участник (по умолчанию)\n"
+        "• banned - Заблокированный пользователь\n\n"
+        
+        "💡 <b>Примеры использования:</b>\n"
+        "• Выдать роль staff пользователю: ответьте на его сообщение и напишите /grant staff\n"
+        "• Выдать роль по ID: /grant volunteer 123456789\n"
+        "• Заблокировать пользователя: /grant banned 123456789\n"
+        "• Включить техническое обслуживание: /lock\n"
+    )
+    
+    await message.answer(admin_help_text)
 
 
 @router.message(Command("help"))
@@ -36,10 +115,16 @@ async def help_command(message: Message, roles: set[str] = None):
     if "admin" in roles:
         admin_help = (
             "🔧 <b>Команды администратора:</b>\n"
-            "• /grant <role> - Выдать роль (в ответ на сообщение)\n"
-            "• /revoke <role> - Отозвать роль\n"
-            "• /grant <role> <user_id> - Выдать роль по ID\n"
-            "• /revoke <role> <user_id> - Отозвать роль по ID\n\n"
+            "• /admin_help - Полная справка админа\n"
+            "• /admin_panel - Панель управления\n"
+            "• /grant &lt;роль&gt; - Выдать роль (ответ на сообщение)\n"
+            "• /revoke &lt;роль&gt; - Отозвать роль\n"
+            "• /grant &lt;роль&gt; &lt;user_id&gt; - Выдать роль по ID\n"
+            "• /revoke &lt;роль&gt; &lt;user_id&gt; - Отозвать роль по ID\n"
+            "• /lock - Переключить режим блокировки\n"
+            "• /unlock - Выключить блокировку\n"
+            "• /status - Статус блокировки\n"
+            "• /cache_clear - Очистить кэш ролей\n\n"
             "Доступные роли: admin, staff, volunteer, guest, banned\n\n"
         )
         await message.answer(base_help + admin_help)
