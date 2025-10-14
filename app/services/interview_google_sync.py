@@ -2,11 +2,13 @@
 Service for syncing interview timeslots with Google Sheets
 """
 import asyncio
-from datetime import date, time
+import random
+from datetime import date, time, datetime
 from typing import Dict, List, Optional, Any
 import logging
 
 from googleapiclient.discovery import build
+from googleapiclient.errors import HttpError
 from google.oauth2.service_account import Credentials
 
 from config.config import load_config
@@ -75,9 +77,31 @@ class InterviewGoogleSheetsSync:
                 
         return self.service
     
+    async def _execute_with_retry(self, request_builder, max_retries: int = 3):
+        """Execute Google Sheets request with exponential backoff for quota limits"""
+        for attempt in range(max_retries + 1):
+            try:
+                return request_builder().execute()
+            except HttpError as e:
+                if e.resp.status == 429:  # Rate limit exceeded
+                    if attempt < max_retries:
+                        # Exponential backoff with jitter
+                        delay = (2 ** attempt) + random.uniform(0, 1)
+                        logger.warning(f"Rate limit exceeded, waiting {delay:.2f} seconds before retry {attempt + 1}/{max_retries}")
+                        await asyncio.sleep(delay)
+                        continue
+                    else:
+                        logger.error(f"Rate limit exceeded after {max_retries} retries")
+                        raise
+                else:
+                    # For other errors, don't retry
+                    raise
+        return None
+
     def _time_to_row(self, slot_time: time) -> int:
         """Convert time to row number (1-indexed)"""
-        time_str = slot_time.strftime("%H:%M")
+        # Format time without leading zero for hours to match TIME_SLOTS format
+        time_str = f"{slot_time.hour}:{slot_time.minute:02d}"
         if time_str in self.TIME_SLOTS:
             return self.TIME_SLOTS.index(time_str) + 2  # +2 because rows start from 2
         return -1
@@ -198,16 +222,18 @@ class InterviewGoogleSheetsSync:
                     'values': values
                 })
             
-            # Execute batch update
+            # Execute batch update with retry mechanism
             body = {
                 'valueInputOption': 'USER_ENTERED',
                 'data': batch_update_data
             }
             
-            result = service.spreadsheets().values().batchUpdate(
-                spreadsheetId=self.spreadsheet_id,
-                body=body
-            ).execute()
+            result = await self._execute_with_retry(
+                lambda: service.spreadsheets().values().batchUpdate(
+                    spreadsheetId=self.spreadsheet_id,
+                    body=body
+                )
+            )
             
             logger.info(f"Successfully updated {len(batch_update_data)} ranges in sheet {sheet_name}")
             logger.debug(f"Update result: {result}")
@@ -233,12 +259,27 @@ class InterviewGoogleSheetsSync:
     async def sync_single_timeslot_change(
         self, 
         department_number: int, 
-        slot_date: date, 
-        slot_time: time,
+        slot_date: Any, 
+        slot_time: Any,
         user_id: Optional[int] = None
     ) -> bool:
         """Sync a single timeslot change (booking/cancellation)"""
         try:
+            # Convert inputs to proper types
+            if isinstance(slot_date, str):
+                slot_date = datetime.strptime(slot_date, "%Y-%m-%d").date()
+            elif hasattr(slot_date, 'date'):  # datetime object
+                slot_date = slot_date.date()
+            
+            if isinstance(slot_time, str):
+                # Handle both HH:MM and HH:MM:SS formats
+                if len(slot_time) > 5:  # HH:MM:SS format
+                    slot_time = datetime.strptime(slot_time, "%H:%M:%S").time()
+                else:  # HH:MM format
+                    slot_time = datetime.strptime(slot_time, "%H:%M").time()
+            elif hasattr(slot_time, 'time'):  # datetime object
+                slot_time = slot_time.time()
+            
             sheet_name = self.DEPARTMENT_SHEET_MAPPING.get(department_number)
             if not sheet_name:
                 logger.warning(f"No sheet mapping found for department {department_number}")
@@ -248,7 +289,9 @@ class InterviewGoogleSheetsSync:
             col_index = self._date_to_column_index(slot_date)
             
             if row_num < 0 or col_index < 0:
-                logger.warning(f"Invalid time slot: {slot_date} {slot_time}")
+                logger.warning(f"Invalid time slot: {slot_date} {slot_time} (row: {row_num}, col: {col_index})")
+                logger.warning(f"Available dates: {self.DATES}")
+                logger.warning(f"Available times: {self.TIME_SLOTS}")
                 return False
             
             # Get column letters for name and username
@@ -282,10 +325,13 @@ class InterviewGoogleSheetsSync:
                 'data': batch_update_data
             }
             
-            result = service.spreadsheets().values().batchUpdate(
-                spreadsheetId=self.spreadsheet_id,
-                body=body
-            ).execute()
+            # Use retry mechanism for API call
+            result = await self._execute_with_retry(
+                lambda: service.spreadsheets().values().batchUpdate(
+                    spreadsheetId=self.spreadsheet_id,
+                    body=body
+                )
+            )
             
             logger.info(f"Successfully updated single timeslot in {sheet_name}: {slot_date} {slot_time}")
             return True
