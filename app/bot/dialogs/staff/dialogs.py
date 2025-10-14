@@ -1,27 +1,13 @@
 """
 Диалог главного меню для сотрудников
 """
-from aiogram_dialog import Dialog, DialogManager, Window
+from aiogram_dialog import Dialog, Window
 from aiogram_dialog.widgets.text import Const, Format
-from aiogram_dialog.widgets.kbd import Button, Column, Start
-from aiogram.types import Message
+from aiogram_dialog.widgets.kbd import Button, Column
 
 from .states import StaffMenuSG
-
-
-async def on_support_click(callback, widget, dialog_manager: DialogManager):
-    """Обработчик нажатия кнопки Поддержка"""
-    await dialog_manager.switch_to(StaffMenuSG.SUPPORT)
-
-
-async def on_applications_click(callback, widget, dialog_manager: DialogManager):
-    """Обработчик нажатия кнопки Анкеты"""
-    await dialog_manager.switch_to(StaffMenuSG.APPLICATIONS)
-
-
-async def on_back_to_main(callback, widget, dialog_manager: DialogManager):
-    """Возврат в главное меню"""
-    await dialog_manager.switch_to(StaffMenuSG.MAIN)
+from .handlers import on_support_click, on_applications_click, on_back_to_main
+from .getters import get_staff_menu_data, get_applications_data, get_support_data
 
 
 staff_menu_dialog = Dialog(
@@ -47,6 +33,7 @@ staff_menu_dialog = Dialog(
                 on_click=on_support_click
             ),
         ),
+        getter=get_staff_menu_data,
         state=StaffMenuSG.MAIN,
     ),
     
@@ -68,6 +55,7 @@ staff_menu_dialog = Dialog(
             id="back_main",
             on_click=on_back_to_main
         ),
+        getter=get_applications_data,
         state=StaffMenuSG.APPLICATIONS,
     ),
     
@@ -91,6 +79,7 @@ staff_menu_dialog = Dialog(
             id="back_main_support",
             on_click=on_back_to_main
         ),
+        getter=get_support_data,
         state=StaffMenuSG.SUPPORT,
     ),
 )

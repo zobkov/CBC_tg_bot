@@ -1,27 +1,13 @@
 """
 Диалог главного меню для волонтёров
 """
-from aiogram_dialog import Dialog, DialogManager, Window
+from aiogram_dialog import Dialog, Window
 from aiogram_dialog.widgets.text import Const, Format
-from aiogram_dialog.widgets.kbd import Button, Column, Start
-from aiogram.types import Message
+from aiogram_dialog.widgets.kbd import Button, Column
 
 from .states import VolunteerMenuSG
-
-
-async def on_support_click(callback, widget, dialog_manager: DialogManager):
-    """Обработчик нажатия кнопки Поддержка"""
-    await dialog_manager.switch_to(VolunteerMenuSG.SUPPORT)
-
-
-async def on_help_users_click(callback, widget, dialog_manager: DialogManager):
-    """Обработчик нажатия кнопки Помощь пользователям"""
-    await dialog_manager.switch_to(VolunteerMenuSG.HELP_USERS)
-
-
-async def on_back_to_main(callback, widget, dialog_manager: DialogManager):
-    """Возврат в главное меню"""
-    await dialog_manager.switch_to(VolunteerMenuSG.MAIN)
+from .handlers import on_support_click, on_help_users_click, on_back_to_main
+from .getters import get_volunteer_menu_data, get_help_users_data, get_support_data
 
 
 volunteer_menu_dialog = Dialog(
@@ -47,6 +33,7 @@ volunteer_menu_dialog = Dialog(
                 on_click=on_support_click
             ),
         ),
+        getter=get_volunteer_menu_data,
         state=VolunteerMenuSG.MAIN,
     ),
     
@@ -70,6 +57,7 @@ volunteer_menu_dialog = Dialog(
             id="back_main",
             on_click=on_back_to_main
         ),
+        getter=get_help_users_data,
         state=VolunteerMenuSG.HELP_USERS,
     ),
     
@@ -93,6 +81,7 @@ volunteer_menu_dialog = Dialog(
             id="back_main_support",
             on_click=on_back_to_main
         ),
+        getter=get_support_data,
         state=VolunteerMenuSG.SUPPORT,
     ),
 )

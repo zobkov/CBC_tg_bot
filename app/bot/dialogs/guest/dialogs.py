@@ -1,22 +1,13 @@
 """
 Диалог главного меню для гостей
 """
-from aiogram_dialog import Dialog, DialogManager, Window
+from aiogram_dialog import Dialog, Window
 from aiogram_dialog.widgets.text import Const, Format
-from aiogram_dialog.widgets.kbd import Button, Column, Start
-from aiogram.types import Message
+from aiogram_dialog.widgets.kbd import Button, Column
 
 from .states import GuestMenuSG
-
-
-async def on_support_click(callback, widget, dialog_manager: DialogManager):
-    """Обработчик нажатия кнопки Поддержка"""
-    await dialog_manager.switch_to(GuestMenuSG.SUPPORT)
-
-
-async def on_back_to_main(callback, widget, dialog_manager: DialogManager):
-    """Возврат в главное меню"""
-    await dialog_manager.switch_to(GuestMenuSG.MAIN)
+from .handlers import on_support_click, on_back_to_main
+from .getters import get_guest_menu_data, get_support_data
 
 
 guest_menu_dialog = Dialog(
@@ -39,6 +30,7 @@ guest_menu_dialog = Dialog(
             # TODO: Добавить кнопки для заявки, статуса и заданий
             # когда legacy диалоги будут адаптированы под роли
         ),
+        getter=get_guest_menu_data,
         state=GuestMenuSG.MAIN,
     ),
     
@@ -57,6 +49,7 @@ guest_menu_dialog = Dialog(
             id="back_main",
             on_click=on_back_to_main
         ),
+        getter=get_support_data,
         state=GuestMenuSG.SUPPORT,
     ),
 )
