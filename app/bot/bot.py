@@ -174,14 +174,20 @@ async def main():
     # Инициализируем аудитор для RBAC
     init_auditor(redis=redis_client)
     
+    # Создаем middleware для ролей
+    user_ctx_middleware = UserCtxMiddleware(redis=redis_client)
+    
     # Добавляем middleware для ролей ПОСЛЕ DatabaseMiddleware
     dp.update.middleware(ErrorHandlerMiddleware())
     dp.update.middleware(DatabaseMiddleware())
-    dp.update.middleware(UserCtxMiddleware(redis=redis_client))
+    dp.update.middleware(user_ctx_middleware)
     
     # Debug middleware для проверки после всех middleware
     @dp.update.middleware()
     async def post_dialog_debug_middleware(handler, event, data):
+        # Добавляем ссылку на UserCtxMiddleware и Redis в контекст
+        data["user_ctx_middleware"] = user_ctx_middleware
+        data["redis"] = redis_client
         result = await handler(event, data)
         return result
 
