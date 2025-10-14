@@ -3,6 +3,7 @@
 """
 import logging
 from aiogram import Router, F
+from aiogram.filters import Command
 from aiogram.types import Message
 
 from app.bot.filters.rbac import HasRole
@@ -17,7 +18,7 @@ router.message.filter(HasRole(Role.STAFF, Role.ADMIN))
 router.callback_query.filter(HasRole(Role.STAFF, Role.ADMIN))
 
 
-@router.message(F.text == "/staff_panel")
+@router.message(Command("staff_panel"))
 async def staff_panel_command(message: Message):
     """Панель управления для сотрудников"""
     await message.answer(
@@ -37,7 +38,7 @@ async def staff_panel_command(message: Message):
     )
 
 
-@router.message(F.text == "/applications")
+@router.message(Command("applications"))
 async def applications_command(message: Message, db=None):
     """Список заявок для модерации"""
     if not db:
@@ -60,7 +61,7 @@ async def applications_command(message: Message, db=None):
         await message.answer("❌ Ошибка при получении заявок")
 
 
-@router.message(F.text == "/stats")
+@router.message(Command("stats"))
 async def detailed_stats_command(message: Message, db=None):
     """Подробная статистика для сотрудников"""
     if not db:
@@ -84,20 +85,19 @@ async def detailed_stats_command(message: Message, db=None):
         await message.answer("❌ Ошибка при получении статистики")
 
 
-@router.message(F.text.startswith("/user_info"))
-async def user_info_command(message: Message, db=None):
+@router.message(Command("user_info"))
+async def user_info_command(message: Message, command: Command, db=None):
     """Информация о конкретном пользователе"""
     try:
-        # Извлекаем ID пользователя из команды
-        parts = message.text.split()
-        if len(parts) < 2:
+        # Используем аргументы команды
+        if not command.args:
             await message.answer(
                 "❌ Укажите ID пользователя\n"
                 "Пример: /user_info 123456789"
             )
             return
         
-        user_id = int(parts[1])
+        user_id = int(command.args.strip())
         
         if not db:
             await message.answer("❌ Ошибка доступа к базе данных")
@@ -133,7 +133,7 @@ async def user_info_command(message: Message, db=None):
         await message.answer("❌ Ошибка при получении информации о пользователе")
 
 
-@router.message(F.text == "/broadcast")
+@router.message(Command("broadcast"))
 async def broadcast_command(message: Message):
     """Команда для массовой рассылки"""
     await message.answer(
@@ -148,7 +148,7 @@ async def broadcast_command(message: Message):
     )
 
 
-@router.message(F.text == "/support_queue")
+@router.message(Command("support_queue"))
 async def support_queue_command(message: Message):
     """Очередь обращений в поддержку"""
     await message.answer(

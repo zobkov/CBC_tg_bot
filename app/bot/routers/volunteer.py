@@ -3,6 +3,7 @@
 """
 import logging
 from aiogram import Router, F
+from aiogram.filters import Command
 from aiogram.types import Message
 
 from app.bot.filters.rbac import HasRole
@@ -17,7 +18,7 @@ router.message.filter(HasRole(Role.VOLUNTEER, Role.STAFF, Role.ADMIN))
 router.callback_query.filter(HasRole(Role.VOLUNTEER, Role.STAFF, Role.ADMIN))
 
 
-@router.message(F.text == "/volunteer_help")
+@router.message(Command("volunteer_help"))
 async def volunteer_help_command(message: Message):
     """Справка для волонтёров"""
     await message.answer(
@@ -34,7 +35,7 @@ async def volunteer_help_command(message: Message):
     )
 
 
-@router.message(F.text == "/volunteer_stats")
+@router.message(Command("volunteer_stats"))
 async def volunteer_stats_command(message: Message, db=None):
     """Базовая статистика для волонтёров"""
     if not db:
@@ -58,7 +59,7 @@ async def volunteer_stats_command(message: Message, db=None):
         await message.answer("❌ Ошибка при получении статистики")
 
 
-@router.message(F.text == "/faq")
+@router.message(Command("faq"))
 async def faq_command(message: Message):
     """База знаний для помощи участникам"""
     await message.answer(
@@ -76,7 +77,7 @@ async def faq_command(message: Message):
     )
 
 
-@router.message(F.text.startswith("/escalate"))
+@router.message(Command("escalate"))
 async def escalate_command(message: Message):
     """Передача вопроса сотрудникам"""
     await message.answer(

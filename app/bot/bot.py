@@ -35,21 +35,26 @@ from app.bot.routers import (
 )
 
 # Импортируем валидатор доступа для диалогов
-from app.bot.dialogs.access import RolesAccessValidator, create_forbidden_handler
+from app.bot.dialogs.access import RolesAccessValidator, create_forbidden_handler, create_forbidden_filter
 
 # Импортируем систему аудита
 from app.utils.audit import init_auditor, get_auditor
 
 from app.bot.keyboards.command_menu import set_main_menu
 
-from app.bot.dialogs.test.dialogs import test_dialog
-from app.bot.dialogs.start.dialogs import start_dialog
-from app.bot.dialogs.main_menu.dialogs import main_menu_dialog
-from app.bot.dialogs.first_stage.dialogs import first_stage_dialog
-from app.bot.dialogs.job_selection.dialogs import job_selection_dialog
-from app.bot.dialogs.tasks.dialogs import task_dialog
-from app.bot.dialogs.interview.dialogs import interview_dialog
-from app.bot.dialogs.feedback.dialogs import feedback_dialog
+from app.bot.dialogs.legacy.test.dialogs import test_dialog
+from app.bot.dialogs.legacy.start.dialogs import start_dialog
+from app.bot.dialogs.legacy.main_menu.dialogs import main_menu_dialog
+from app.bot.dialogs.legacy.first_stage.dialogs import first_stage_dialog
+from app.bot.dialogs.legacy.job_selection.dialogs import job_selection_dialog
+from app.bot.dialogs.legacy.tasks.dialogs import task_dialog
+from app.bot.dialogs.legacy.interview.dialogs import interview_dialog
+from app.bot.dialogs.legacy.feedback.dialogs import feedback_dialog
+
+# Новые role-based диалоги
+from app.bot.dialogs.guest.dialogs import guest_menu_dialog
+from app.bot.dialogs.volunteer.dialogs import volunteer_menu_dialog  
+from app.bot.dialogs.staff.dialogs import staff_menu_dialog
 
 from app.services.broadcast_scheduler import BroadcastScheduler
 from app.services.photo_file_id_manager import startup_photo_check
@@ -155,7 +160,11 @@ async def main():
         job_selection_dialog,
         task_dialog,
         interview_dialog,
-        feedback_dialog
+        feedback_dialog,
+        # Новые role-based диалоги
+        guest_menu_dialog,
+        volunteer_menu_dialog,
+        staff_menu_dialog
                        )
 
     logger.info("Including middlewares")
@@ -169,15 +178,22 @@ async def main():
     dp.update.middleware(ErrorHandlerMiddleware())
     dp.update.middleware(DatabaseMiddleware())
     dp.update.middleware(UserCtxMiddleware(redis=redis_client))
+    
+    # Debug middleware для проверки после всех middleware
+    @dp.update.middleware()
+    async def post_dialog_debug_middleware(handler, event, data):
+        result = await handler(event, data)
+        return result
 
     logger.info("Setting up dialogs")
     # Настраиваем валидатор доступа для диалогов (по умолчанию разрешает всем кроме banned)
     access_validator = RolesAccessValidator()
     bg_factory = setup_dialogs(dp, stack_access_validator=access_validator)
     
-    # Добавляем обработчик запрещенного доступа к диалогам  
+    # Добавляем обработчик запрещенного доступа к диалогам с фильтром
     forbidden_handler = create_forbidden_handler()
-    dp.message.register(forbidden_handler)
+    forbidden_filter = create_forbidden_filter()
+    dp.message.register(forbidden_handler, forbidden_filter)
 
     await set_main_menu(bot)
 
@@ -209,6 +225,7 @@ async def main():
         )
         await scheduler.start()
         await bot.delete_webhook(drop_pending_updates=True)
+        
         await dp.start_polling(
             bot,
             bg_factory=bg_factory,

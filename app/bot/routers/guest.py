@@ -2,7 +2,8 @@
 Роутер для гостей (обычные пользователи)
 """
 import logging
-from aiogram import Router, F
+from aiogram import Router
+from aiogram.filters import Command
 from aiogram.types import Message
 
 from app.bot.filters.rbac import HasRole
@@ -17,7 +18,7 @@ router.message.filter(HasRole(Role.GUEST, Role.VOLUNTEER, Role.STAFF, Role.ADMIN
 router.callback_query.filter(HasRole(Role.GUEST, Role.VOLUNTEER, Role.STAFF, Role.ADMIN))
 
 
-@router.message(F.text == "/apply")
+@router.message(Command("apply"))
 async def apply_command(message: Message):
     """Команда для подачи заявки"""
     await message.answer(
@@ -32,7 +33,7 @@ async def apply_command(message: Message):
     )
 
 
-@router.message(F.text == "/status")
+@router.message(Command("status"))
 async def status_command(message: Message, current_user=None):
     """Проверка статуса заявки"""
     if not current_user:
@@ -60,7 +61,7 @@ async def status_command(message: Message, current_user=None):
     )
 
 
-@router.message(F.text == "/support")
+@router.message(Command("support"))
 async def support_command(message: Message):
     """Команда для получения поддержки"""
     await message.answer(

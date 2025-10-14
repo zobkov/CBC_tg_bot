@@ -3,7 +3,8 @@
 """
 import logging
 import re
-from aiogram import Router, F
+from aiogram import Router
+from aiogram.filters import Command, CommandObject
 from aiogram.types import Message
 
 from app.bot.filters.rbac import HasRole
@@ -18,7 +19,7 @@ router.message.filter(HasRole(Role.ADMIN))
 router.callback_query.filter(HasRole(Role.ADMIN))
 
 
-@router.message(F.text == "/admin_panel")
+@router.message(Command("admin_panel"))
 async def admin_panel_command(message: Message):
     """Административная панель"""
     await message.answer(
@@ -40,20 +41,28 @@ async def admin_panel_command(message: Message):
     )
 
 
-@router.message(F.text.regexp(r"^/grant\s+(\w+)(?:\s+(\d+))?$"))
-async def grant_role_command(message: Message, db=None, redis=None):
+@router.message(Command(re.compile(r"grant"), commands="grant"))
+async def grant_role_command(message: Message, command: Command, db=None, redis=None):
     """Команда выдачи ролей"""
     if not db:
         await message.answer("❌ Ошибка доступа к базе данных")
         return
     
-    # Парсим команду
-    match = re.match(r"^/grant\s+(\w+)(?:\s+(\d+))?$", message.text.strip())
-    if not match:
+    # Парсим аргументы команды
+    if not command.args:
+        await message.answer(
+            "❌ Укажите роль и пользователя\n"
+            "Пример: /grant staff 123456789 или ответьте на сообщение пользователя"
+        )
+        return
+    
+    args_parts = command.args.strip().split()
+    if len(args_parts) < 1:
         await message.answer("❌ Неверный формат команды")
         return
     
-    role, target_id = match.groups()
+    role = args_parts[0]
+    target_id = args_parts[1] if len(args_parts) > 1 else None
     
     # Проверяем валидность роли
     if not Role.is_valid_role(role):
@@ -114,20 +123,28 @@ async def grant_role_command(message: Message, db=None, redis=None):
         await message.answer(f"❌ Ошибка при выдаче роли: {e}")
 
 
-@router.message(F.text.regexp(r"^/revoke\s+(\w+)(?:\s+(\d+))?$"))
-async def revoke_role_command(message: Message, db=None, redis=None):
+@router.message(Command("revoke"), HasRole(Role.ADMIN))
+async def revoke_role_command(message: Message, command: CommandObject, db=None, redis=None):
     """Команда отзыва ролей"""
     if not db:
         await message.answer("❌ Ошибка доступа к базе данных")
         return
     
-    # Парсим команду
-    match = re.match(r"^/revoke\s+(\w+)(?:\s+(\d+))?$", message.text.strip())
-    if not match:
+    # Парсим аргументы команды
+    if not command.args:
+        await message.answer(
+            "❌ Укажите роль и пользователя\n"
+            "Пример: /revoke staff 123456789 или ответьте на сообщение пользователя"
+        )
+        return
+    
+    args_parts = command.args.strip().split()
+    if len(args_parts) < 1:
         await message.answer("❌ Неверный формат команды")
         return
     
-    role, target_id = match.groups()
+    role = args_parts[0]
+    target_id = args_parts[1] if len(args_parts) > 1 else None
     
     # Проверяем валидность роли
     if not Role.is_valid_role(role):
@@ -193,7 +210,7 @@ async def revoke_role_command(message: Message, db=None, redis=None):
         await message.answer(f"❌ Ошибка при отзыве роли: {e}")
 
 
-@router.message(F.text == "/system_stats")
+@router.message(Command("system_stats"))
 async def system_stats_command(message: Message, db=None):
     """Системная статистика"""
     if not db:
@@ -217,7 +234,7 @@ async def system_stats_command(message: Message, db=None):
         await message.answer("❌ Ошибка при получении системной статистики")
 
 
-@router.message(F.text == "/cache_clear")
+@router.message(Command("cache_clear"))
 async def cache_clear_command(message: Message, redis=None):
     """Очистка кэша"""
     if not redis:

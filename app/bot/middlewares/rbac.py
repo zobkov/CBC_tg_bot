@@ -64,19 +64,19 @@ class UserCtxMiddleware(BaseMiddleware):
             # Загружаем пользователя с ролями из кэша или БД
             user = await self._load_user_with_roles(tg_user.id, db)
             
-            roles = set(user.roles) if user else {Role.GUEST}
+            roles = set(user.roles) if user else {Role.GUEST.value}
             
             # Добавляем данные в контекст
             data["current_user"] = user
-            data["roles"] = roles
+            data["roles"] = roles  # roles уже строки из БД
             
             # КРИТИЧНО: Ранняя отсечка BANNED пользователей
-            if Role.BANNED in roles:
+            if Role.BANNED.value in roles:
                 await self._handle_banned_user(event)
                 return  # Останавливаем обработку
             
             logger.debug(
-                f"UserCtxMiddleware: пользователь {tg_user.id} с ролями {list(roles)}"
+                f"UserCtxMiddleware: пользователь {tg_user.id} с ролями {list(data['roles'])}"
             )
             
             return await handler(event, data)
@@ -85,7 +85,7 @@ class UserCtxMiddleware(BaseMiddleware):
             logger.error(f"Error in UserCtxMiddleware for user {tg_user.id}: {e}")
             # В случае ошибки устанавливаем базовые значения
             data["current_user"] = None
-            data["roles"] = {Role.GUEST}
+            data["roles"] = {Role.GUEST.value}  # Конвертируем в строку
             return await handler(event, data)
 
     async def _load_user_with_roles(self, user_id: int, db) -> UsersModel | None:

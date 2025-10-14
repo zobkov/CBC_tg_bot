@@ -131,7 +131,14 @@ class IsNotBanned(Filter):
 
     async def __call__(self, event: TelegramObject, **data: Dict[str, Any]) -> bool:
         user_roles = data.get("roles", set())
-        return Role.BANNED.value not in {str(role) for role in user_roles}
+        is_not_banned = Role.BANNED.value not in {str(role) for role in user_roles}
+        
+        current_user = data.get("current_user")
+        user_id = current_user.user_id if current_user else "unknown"
+        
+        logger.debug(f"IsNotBanned filter for user {user_id}: roles={user_roles}, result={is_not_banned}")
+        
+        return is_not_banned
 
 
 class RoleHierarchy(Filter):

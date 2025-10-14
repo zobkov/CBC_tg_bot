@@ -218,7 +218,9 @@ def create_forbidden_handler():
         **kwargs
     ):
         """Обработчик запрещенного доступа к диалогу"""
-        if aiogd_stack_forbidden:
+        # Обрабатываем ТОЛЬКО когда доступ действительно запрещен
+        if aiogd_stack_forbidden is True:
+            logger.warning(f"Access denied to dialog for user")
             if hasattr(event, 'answer'):
                 await event.answer(
                     "⛔ <b>Доступ запрещён</b>\n\n"
@@ -233,3 +235,14 @@ def create_forbidden_handler():
                 )
     
     return forbidden_handler
+
+
+def create_forbidden_filter():
+    """
+    Создает фильтр для forbidden_handler, который срабатывает только 
+    когда aiogd_stack_forbidden=True
+    """
+    def forbidden_filter(message, aiogd_stack_forbidden: bool = None, **kwargs):
+        return aiogd_stack_forbidden is True
+    
+    return forbidden_filter

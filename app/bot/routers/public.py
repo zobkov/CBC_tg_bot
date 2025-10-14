@@ -2,7 +2,8 @@
 Публичный роутер для команд, доступных всем пользователям
 """
 import logging
-from aiogram import Router, F
+from aiogram import Router
+from aiogram.filters import Command
 from aiogram.types import Message
 
 from app.bot.filters.rbac import IsNotBanned
@@ -12,66 +13,14 @@ logger = logging.getLogger(__name__)
 router = Router(name="public")
 
 # Фильтруем только не заблокированных пользователей
-router.message.filter(IsNotBanned())
-router.callback_query.filter(IsNotBanned())
+# router.message.filter(IsNotBanned())
+# router.callback_query.filter(IsNotBanned())
 
 
-@router.message(F.text.in_(["/start", "/menu"]))
-async def start_command(message: Message, roles: set[str] = None):
-    """
-    Обработчик команды /start и /menu
-    Перенаправляет пользователей в соответствующие разделы по ролям
-    """
-    roles = roles or set()
-    user_id = message.from_user.id
-    
-    logger.info(f"Start command from user {user_id} with roles: {list(roles)}")
-    
-    # Определяем наивысшую роль пользователя для перенаправления
-    if "admin" in roles:
-        await message.answer(
-            "🔧 <b>Панель администратора КБК</b>\n\n"
-            "Добро пожаловать в административную панель системы отбора команды КБК.\n\n"
-            "Доступные функции:\n"
-            "• Управление пользователями и ролями\n"
-            "• Просмотр статистики\n"
-            "• Системные настройки\n\n"
-            "Для получения справки используйте /help"
-        )
-    elif "staff" in roles:
-        await message.answer(
-            "👔 <b>Кабинет сотрудника КБК</b>\n\n"
-            "Добро пожаловать в рабочий кабинет сотрудника КБК.\n\n"
-            "Доступные функции:\n"
-            "• Работа с заявками\n"
-            "• Поддержка пользователей\n"
-            "• Отчеты и аналитика\n\n"
-            "Для получения справки используйте /help"
-        )
-    elif "volunteer" in roles:
-        await message.answer(
-            "🤝 <b>Кабинет волонтёра КБК</b>\n\n"
-            "Добро пожаловать в кабинет волонтёра КБК.\n\n"
-            "Доступные функции:\n"
-            "• Помощь пользователям\n"
-            "• Базовая поддержка\n"
-            "• Информация о мероприятии\n\n"
-            "Для получения справки используйте /help"
-        )
-    else:  # guest и остальные
-        await message.answer(
-            "🎯 <b>Личный кабинет участника КБК</b>\n\n"
-            "Добро пожаловать в систему отбора команды КБК!\n\n"
-            "Доступные функции:\n"
-            "• Подача заявки на участие\n"
-            "• Отслеживание статуса заявки\n"
-            "• Выполнение заданий\n"
-            "• Получение уведомлений\n\n"
-            "Для получения справки используйте /help"
-        )
+# Убираем обработчики /start и /menu - теперь они обрабатываются диалогами
 
 
-@router.message(F.text == "/help")
+@router.message(Command("help"))
 async def help_command(message: Message, roles: set[str] = None):
     """Справочная информация по ролям"""
     roles = roles or set()
@@ -121,7 +70,7 @@ async def help_command(message: Message, roles: set[str] = None):
         await message.answer(base_help + guest_help)
 
 
-@router.message(F.text == "/whoami")
+@router.message(Command("whoami"))
 async def whoami_command(message: Message, current_user=None, roles: set[str] = None):
     """Информация о пользователе и его ролях"""
     roles = roles or set()
@@ -138,10 +87,25 @@ async def whoami_command(message: Message, current_user=None, roles: set[str] = 
     )
     
     if current_user:
+        # Проверяем, является ли created строкой или datetime объектом
+        if hasattr(current_user.created, 'strftime'):
+            created_str = current_user.created.strftime('%d.%m.%Y %H:%M')
+        else:
+            created_str = str(current_user.created)
+            
         info_text += (
-            f"📅 Регистрация: {current_user.created.strftime('%d.%m.%Y %H:%M')}\n"
+            f"📅 Регистрация: {created_str}\n"
             f"🌐 Язык: {current_user.language}\n"
             f"📊 Статус заявки: {current_user.submission_status}\n"
         )
     
     await message.answer(info_text)
+
+
+# Debug handler в самом конце, чтобы не блокировать другие команды
+@router.message()
+async def debug_all_messages(message: Message):
+    """Debug: все сообщения"""
+    # Если сообщение не обработано другими хендлерами, отвечаем
+    if message.text and message.text.startswith('/'):
+        await message.answer(f"❓ Команда '{message.text}' не распознана. Используйте /help для справки.")

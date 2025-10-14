@@ -1,3 +1,4 @@
+-- Active: 1755689561725@@45.90.217.194@5435@cbc_crew_selection_db_applications
 -- Добавляем столбец roles в таблицу users для хранения JSON-массива ролей
 -- Также создаем отдельную таблицу user_roles для более гибкого управления
 
@@ -18,9 +19,12 @@ CREATE TABLE IF NOT EXISTS user_roles (
     revoked_at TIMESTAMPTZ NULL,
     is_active BOOLEAN NOT NULL DEFAULT TRUE,
     
-    CONSTRAINT check_role_valid CHECK (role IN ('admin', 'staff', 'volunteer', 'guest', 'banned')),
-    CONSTRAINT unique_active_user_role UNIQUE (user_id, role) DEFERRABLE INITIALLY DEFERRED
+    CONSTRAINT check_role_valid CHECK (role IN ('admin', 'staff', 'volunteer', 'guest', 'banned'))
 );
+
+-- Создаем уникальный индекс только для активных ролей
+CREATE UNIQUE INDEX IF NOT EXISTS idx_user_roles_unique_active 
+ON user_roles(user_id, role) WHERE is_active = TRUE;
 
 -- Индексы для таблицы user_roles
 CREATE INDEX IF NOT EXISTS idx_user_roles_user_id ON user_roles(user_id) WHERE is_active = TRUE;
@@ -36,11 +40,18 @@ WHERE roles IS NULL OR roles = '[]'::jsonb;
 INSERT INTO user_roles (user_id, role, granted_at, is_active)
 SELECT user_id, 'guest', created, TRUE
 FROM users
-ON CONFLICT (user_id, role) DO NOTHING;
+WHERE NOT EXISTS (
+    SELECT 1 FROM user_roles 
+    WHERE user_roles.user_id = users.user_id 
+    AND user_roles.role = 'guest' 
+    AND user_roles.is_active = TRUE
+);
 
 -- Функция для синхронизации ролей между таблицами
 CREATE OR REPLACE FUNCTION sync_user_roles() 
 RETURNS TRIGGER AS $$
+DECLARE
+    new_role TEXT;
 BEGIN
     -- При изменении roles в таблице users - синхронизируем с user_roles
     IF TG_OP = 'UPDATE' AND OLD.roles IS DISTINCT FROM NEW.roles THEN
@@ -50,10 +61,16 @@ BEGIN
         WHERE user_id = NEW.user_id AND is_active = TRUE;
         
         -- Добавляем новые роли
-        INSERT INTO user_roles (user_id, role, granted_at, is_active)
-        SELECT NEW.user_id, jsonb_array_elements_text(NEW.roles), NOW(), TRUE
-        ON CONFLICT (user_id, role) DO UPDATE 
-        SET is_active = TRUE, revoked_at = NULL, granted_at = NOW();
+        FOR new_role IN SELECT jsonb_array_elements_text(NEW.roles) LOOP
+            -- Проверяем, есть ли уже такая активная роль
+            IF NOT EXISTS (
+                SELECT 1 FROM user_roles 
+                WHERE user_id = NEW.user_id AND role = new_role AND is_active = TRUE
+            ) THEN
+                INSERT INTO user_roles (user_id, role, granted_at, is_active)
+                VALUES (NEW.user_id, new_role, NOW(), TRUE);
+            END IF;
+        END LOOP;
     END IF;
     
     RETURN COALESCE(NEW, OLD);
