@@ -60,14 +60,19 @@ class _UsersDB:
              submission_status,
              task_1_submitted,
              task_2_submitted,
-             task_3_submitted
+             task_3_submitted,
+             roles
             FROM users
             WHERE users.user_id = %s
         """,
             (user_id,),
         )
         data = await cursor.fetchone()
-        return UsersModel(*data) if data else None
+        if data:
+            # Преобразуем JSONB в список Python
+            roles = data[9] if data[9] else ["guest"]
+            return UsersModel(*data[:9], roles=roles)
+        return None
 
     async def update_alive_status(self, *, user_id: int, is_alive: bool = True) -> None:
         await self.connection.execute(
@@ -191,3 +196,82 @@ class _UsersDB:
         )
         result = await cursor.fetchone()
         return result[0] if result else False
+
+    async def get_user_roles(self, *, user_id: int) -> list[str]:
+        """Получает роли пользователя"""
+        cursor: AsyncCursor = await self.connection.execute(
+            """
+            SELECT roles FROM users WHERE user_id = %s
+        """,
+            (user_id,),
+        )
+        result = await cursor.fetchone()
+        return result[0] if result else ["guest"]
+
+    async def set_user_roles(self, *, user_id: int, roles: list[str], granted_by: int = None) -> None:
+        """Устанавливает роли пользователя"""
+        import json
+        await self.connection.execute(
+            """
+            UPDATE users
+            SET roles = %s
+            WHERE user_id = %s
+        """,
+            (json.dumps(roles), user_id),
+        )
+        
+        # Логируем изменение ролей
+        if granted_by:
+            logger.info(
+                "User roles updated. db='%s', user_id=%d, roles=%s, granted_by=%d",
+                self.__tablename__,
+                user_id,
+                roles,
+                granted_by,
+            )
+        else:
+            logger.info(
+                "User roles updated. db='%s', user_id=%d, roles=%s",
+                self.__tablename__,
+                user_id,
+                roles,
+            )
+
+    async def add_user_role(self, *, user_id: int, role: str, granted_by: int = None) -> None:
+        """Добавляет роль пользователю"""
+        current_roles = await self.get_user_roles(user_id=user_id)
+        if role not in current_roles:
+            current_roles.append(role)
+            await self.set_user_roles(user_id=user_id, roles=current_roles, granted_by=granted_by)
+
+    async def remove_user_role(self, *, user_id: int, role: str, revoked_by: int = None) -> None:
+        """Удаляет роль у пользователя"""
+        current_roles = await self.get_user_roles(user_id=user_id)
+        if role in current_roles:
+            current_roles.remove(role)
+            # Если удаляем все роли, оставляем guest
+            if not current_roles:
+                current_roles = ["guest"]
+            await self.set_user_roles(user_id=user_id, roles=current_roles, granted_by=revoked_by)
+
+    async def user_has_role(self, *, user_id: int, role: str) -> bool:
+        """Проверяет, есть ли у пользователя указанная роль"""
+        roles = await self.get_user_roles(user_id=user_id)
+        return role in roles
+
+    async def user_has_any_role(self, *, user_id: int, roles: list[str]) -> bool:
+        """Проверяет, есть ли у пользователя хотя бы одна из указанных ролей"""
+        user_roles = await self.get_user_roles(user_id=user_id)
+        return bool(set(roles) & set(user_roles))
+
+    async def list_users_by_role(self, *, role: str) -> list[int]:
+        """Получает список пользователей с указанной ролью"""
+        cursor: AsyncCursor = await self.connection.execute(
+            """
+            SELECT user_id FROM users 
+            WHERE roles ? %s AND is_blocked = FALSE
+        """,
+            (role,),
+        )
+        rows = await cursor.fetchall()
+        return [r[0] for r in rows]

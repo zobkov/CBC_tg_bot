@@ -18,11 +18,27 @@ from config.config import load_config
 from app.infrastructure.database.connect_to_pg import get_pg_pool
 from app.bot.middlewares.database import DatabaseMiddleware
 from app.bot.middlewares.error_handler import ErrorHandlerMiddleware
+from app.bot.middlewares.rbac import UserCtxMiddleware
 
 from app.bot.handlers.commands import router as commands_router 
 from app.bot.handlers.feedback_callbacks import feedback_callbacks_router 
 from app.bot.handlers.admin_lock import setup_admin_commands_router
 from app.bot.middlewares.admin_lock import AdminLockMiddleware 
+
+# Импортируем роутеры для системы ролей
+from app.bot.routers import (
+    public_router,
+    guest_router,
+    volunteer_router, 
+    staff_router,
+    admin_router
+)
+
+# Импортируем валидатор доступа для диалогов
+from app.bot.dialogs.access import RolesAccessValidator, create_forbidden_handler
+
+# Импортируем систему аудита
+from app.utils.audit import init_auditor, get_auditor
 
 from app.bot.keyboards.command_menu import set_main_menu
 
@@ -119,11 +135,17 @@ async def main():
     # Настраиваем админские команды
     admin_commands_router = setup_admin_commands_router(config.admin_ids)
     
+    # Подключаем роутеры системы ролей (в правильном порядке приоритета)
     dp.include_routers(
         admin_commands_router,  # Команды админов /lock /unlock /status
-        commands_router,
+        public_router,          # Публичные команды (/start, /help, /whoami)
+        admin_router,           # Админские команды и функции
+        staff_router,           # Функции для сотрудников
+        volunteer_router,       # Функции для волонтёров  
+        guest_router,           # Функции для гостей
+        commands_router,        # Существующие команды (legacy)
         feedback_callbacks_router
-                       )
+    )
     
     dp.include_routers(
         test_dialog,
@@ -139,11 +161,23 @@ async def main():
     logger.info("Including middlewares")
     # Добавляем middleware блокировки ПЕРВЫМ (ДО всех остальных)
     dp.update.middleware(AdminLockMiddleware(config.admin_ids, storage))
+    
+    # Инициализируем аудитор для RBAC
+    init_auditor(redis=redis_client)
+    
+    # Добавляем middleware для ролей ПОСЛЕ DatabaseMiddleware
     dp.update.middleware(ErrorHandlerMiddleware())
     dp.update.middleware(DatabaseMiddleware())
+    dp.update.middleware(UserCtxMiddleware(redis=redis_client))
 
     logger.info("Setting up dialogs")
-    bg_factory = setup_dialogs(dp)
+    # Настраиваем валидатор доступа для диалогов (по умолчанию разрешает всем кроме banned)
+    access_validator = RolesAccessValidator()
+    bg_factory = setup_dialogs(dp, stack_access_validator=access_validator)
+    
+    # Добавляем обработчик запрещенного доступа к диалогам  
+    forbidden_handler = create_forbidden_handler()
+    dp.message.register(forbidden_handler)
 
     await set_main_menu(bot)
 
