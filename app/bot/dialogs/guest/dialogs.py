@@ -69,9 +69,6 @@ guest_menu_dialog = Dialog(
         getter=get_support_contacts
     ),
     Window(
-        StaticMedia(
-            path="app/bot/assets/images/support/support.png"
-        ),
         Format("🎦 <b>Обратная связь по собеседованию</b>\n\n"
                "{interview_feedback}"
                ),

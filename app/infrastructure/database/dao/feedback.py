@@ -131,7 +131,8 @@ class FeedbackDAO:
             async with conn.cursor() as cursor:
                 await cursor.execute("""
                     SELECT a.user_id, a.full_name, a.telegram_username,
-                           COALESCE(u.approved, 0) as approved
+                           COALESCE(u.approved, 0) as approved,
+                           u.interview_feedback
                     FROM applications a
                     LEFT JOIN users u ON a.user_id = u.user_id
                     WHERE a.user_id = %s 
@@ -146,7 +147,8 @@ class FeedbackDAO:
                         "user_id": result[0],
                         "full_name": result[1],
                         "telegram_username": result[2],
-                        "approved": result[3]
+                        "approved": result[3],
+                        "interview_feedback": result[4]
                     }
                 
                 return None
