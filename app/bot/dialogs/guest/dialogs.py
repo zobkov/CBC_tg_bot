@@ -72,7 +72,7 @@ guest_menu_dialog = Dialog(
         Format("🎦 <b>Обратная связь по собеседованию</b>\n\n"
                "{interview_feedback}"
                ),
-        Back(Const("◀️ Назад")),
+        SwitchTo(Const("◀️ Назад"), id="back_menu", state=GuestMenuSG.MAIN),
         state=GuestMenuSG.interview_feedback,
         getter=get_interview_feedback
     ),

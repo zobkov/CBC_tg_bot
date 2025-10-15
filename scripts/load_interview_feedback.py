@@ -15,6 +15,7 @@ sys.path.insert(0, str(root_dir))
 
 import psycopg_pool
 from config.config import load_config
+from app.enums.roles import Role
 
 
 async def load_interview_feedback_from_csv(csv_file_path: str, dry_run: bool = True):
@@ -42,15 +43,24 @@ async def load_interview_feedback_from_csv(csv_file_path: str, dry_run: bool = T
             for row in reader:
                 user_id = row.get('ID', '').strip()
                 feedback = row.get('Обратная связь', '').strip()
+                evaluation = row.get('Оценка', '').strip()
                 
-                if user_id and feedback:
+                if user_id:
                     try:
                         user_id_int = int(user_id)
+                        
+                        # Определяем роль на основе оценки
+                        is_approved = evaluation.lower() in ['да', 'yes', '1', 'true']
+                        new_role = Role.STAFF if is_approved else Role.GUEST
+                        
                         feedbacks_to_update.append({
                             'user_id': user_id_int,
-                            'feedback': feedback,
+                            'feedback': feedback if feedback else None,
                             'username': row.get('Username', '').strip(),
-                            'full_name': row.get('ФИО', '').strip()
+                            'full_name': row.get('ФИО', '').strip(),
+                            'evaluation': evaluation,
+                            'is_approved': is_approved,
+                            'new_role': new_role
                         })
                     except ValueError:
                         print(f"❌ Неверный ID пользователя: {user_id}")
@@ -67,12 +77,20 @@ async def load_interview_feedback_from_csv(csv_file_path: str, dry_run: bool = T
         print("📄 Нет данных для обновления в CSV файле")
         return
     
-    print(f"📊 Найдено {len(feedbacks_to_update)} записей с обратной связью:")
+    print(f"📊 Найдено {len(feedbacks_to_update)} записей для обработки:")
     print("-" * 80)
     
     for item in feedbacks_to_update:
+        status_emoji = "✅" if item['is_approved'] else "❌"
+        role_text = item['new_role'].value.upper()
+        
         print(f"👤 ID: {item['user_id']:<12} | @{item['username']:<15} | {item['full_name']}")
-        print(f"💬 Обратная связь: {item['feedback'][:50]}{'...' if len(item['feedback']) > 50 else ''}")
+        print(f"{status_emoji} Оценка: {item['evaluation']:<10} | Роль: {role_text}")
+        
+        if item['feedback']:
+            print(f"💬 Обратная связь: {item['feedback'][:50]}{'...' if len(item['feedback']) > 50 else ''}")
+        else:
+            print(f"💬 Обратная связь: (отсутствует)")
         print("-" * 80)
     
     if dry_run:
@@ -97,16 +115,19 @@ async def load_interview_feedback_from_csv(csv_file_path: str, dry_run: bool = T
                     
                     for item in feedbacks_to_update:
                         try:
-                            # Обновляем поле interview_feedback для пользователя
+                            # Обновляем поле interview_feedback и роли для пользователя
                             await cursor.execute("""
                                 UPDATE users 
-                                SET interview_feedback = %s 
+                                SET interview_feedback = %s,
+                                    roles = %s
                                 WHERE user_id = %s
-                            """, (item['feedback'], item['user_id']))
+                            """, (item['feedback'], f'["{item["new_role"]}"]', item['user_id']))
                             
                             if cursor.rowcount > 0:
                                 updated_count += 1
-                                print(f"✅ Обновлено для пользователя {item['user_id']} (@{item['username']})")
+                                role_text = item['new_role'].value.upper()
+                                feedback_text = "с обратной связью" if item['feedback'] else "без обратной связи"
+                                print(f"✅ Обновлено для пользователя {item['user_id']} (@{item['username']}) - роль: {role_text}, {feedback_text}")
                             else:
                                 print(f"⚠️  Пользователь {item['user_id']} не найден в БД")
                         

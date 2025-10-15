@@ -15,6 +15,7 @@ root_dir = Path(__file__).parent.parent
 sys.path.insert(0, str(root_dir))
 
 from aiogram import Bot
+from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton
 from config.config import load_config
 
 
@@ -73,6 +74,16 @@ def create_acceptance_message(department: int, subdepartment: str, position: str
 Да-да, КБК начинается прямо сейчас!"""
 
 
+def create_acceptance_keyboard() -> InlineKeyboardMarkup:
+    """Создает клавиатуру для сообщения одобрения"""
+    return InlineKeyboardMarkup(inline_keyboard=[
+        [InlineKeyboardButton(
+            text="🏠 Перейти в личный кабинет",
+            callback_data="start_staff_menu"
+        )]
+    ])
+
+
 def create_decline_message() -> str:
     """Создает сообщение об отказе"""
     return """大家好!
@@ -82,6 +93,16 @@ def create_decline_message() -> str:
 
 Мы искренне верим, что впереди будет ещё много моментов, где твой потенциал проявится в полной мере.
 КБК — это не разовый шанс, а большое движение. И мы будем рады видеть тебя снова!"""
+
+
+def create_decline_keyboard() -> InlineKeyboardMarkup:
+    """Создает клавиатуру для сообщения отказа"""
+    return InlineKeyboardMarkup(inline_keyboard=[
+        [InlineKeyboardButton(
+            text="🏠 Перейти в личный кабинет",
+            callback_data="start_guest_menu"
+        )]
+    ])
 
 
 async def parse_csv_and_prepare_messages(csv_file_path: str) -> Dict[str, List[Dict]]:
@@ -225,6 +246,7 @@ async def send_broadcast_messages(csv_file_path: str, dry_run: bool = True):
                 await bot.send_message(
                     chat_id=msg_data['user_id'], 
                     text=msg_data['message'],
+                    reply_markup=create_acceptance_keyboard(),
                     parse_mode=None  # Отключаем парсинг разметки из-за китайских символов
                 )
                 sent_count += 1
@@ -243,6 +265,7 @@ async def send_broadcast_messages(csv_file_path: str, dry_run: bool = True):
                 await bot.send_message(
                     chat_id=msg_data['user_id'], 
                     text=msg_data['message'],
+                    reply_markup=create_decline_keyboard(),
                     parse_mode=None  # Отключаем парсинг разметки из-за китайских символов
                 )
                 sent_count += 1
