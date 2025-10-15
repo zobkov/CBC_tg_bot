@@ -3,7 +3,7 @@ Feedback dialog
 """
 from aiogram_dialog import Dialog, Window
 from aiogram_dialog.widgets.kbd import (
-    Button, Group, Select, Start, Back
+    Button, Group, Select, Start, Back, Cancel
 )
 from aiogram_dialog.widgets.text import Const, Format, Multi
 from magic_filter import F
@@ -41,10 +41,9 @@ feedback_dialog = Dialog(
             ),
             width=1
         ),
-        Start(
+        Cancel(
             Const("🏠 Главное меню"),
-            id="main_menu",
-            state=MainMenuSG.main_menu
+            id="main_menu"
         ),
         state=FeedbackSG.feedback_menu,
         getter=get_user_feedback_positions,
