@@ -3,7 +3,7 @@
 """
 import logging
 from aiogram import Router, F
-from aiogram.filters import Command
+from aiogram.filters import Command, CommandObject
 from aiogram.types import Message
 
 from app.bot.filters.rbac import HasRole
@@ -88,7 +88,7 @@ async def detailed_stats_command(message: Message, db=None):
 
 
 @router.message(Command("user_info"))
-async def user_info_command(message: Message, command: Command, db=None):
+async def user_info_command(message: Message, command: CommandObject, db=None):
     """Информация о конкретном пользователе"""
     try:
         # Используем аргументы команды

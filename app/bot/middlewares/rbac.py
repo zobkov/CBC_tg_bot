@@ -73,7 +73,7 @@ class UserCtxMiddleware(BaseMiddleware):
             # КРИТИЧНО: Ранняя отсечка BANNED пользователей
             if Role.BANNED.value in roles:
                 await self._handle_banned_user(event)
-                return  # Останавливаем обработку
+                return None  # Останавливаем обработку, явно возвращаем None
             
             logger.debug(
                 f"UserCtxMiddleware: пользователь {tg_user.id} с ролями {list(data['roles'])}"

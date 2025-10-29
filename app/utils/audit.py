@@ -2,8 +2,7 @@
 Система аудита и мониторинга попыток несанкционированного доступа
 """
 import logging
-import asyncio
-from datetime import datetime, timedelta
+from datetime import datetime
 from typing import Optional
 
 from app.utils.telegram import get_user_id_from_event, get_username_from_event
@@ -146,23 +145,23 @@ class RBACAuthAuditor:
             count: Количество попыток
             handler_name: Название обработчика
         """
-        alert_message = (
-            f"⚠️ <b>RBAC Security Alert</b>\n\n"
-            f"👤 User: {user_id} (@{username or 'no_username'})\n"
-            f"🔢 Attempts: {count}/{self.window_seconds}s\n"
-            f"🎯 Handler: {handler_name}\n"
-            f"⏰ Time: {datetime.now().strftime('%H:%M:%S')}\n\n"
-            f"Пользователь превысил лимит попыток несанкционированного доступа."
-        )
-        
         logger.error(
             f"FLOOD ALERT: user {user_id} ({count} attempts in {self.window_seconds}s)"
         )
         
-        # TODO: Отправить алерт в админ-чат если настроен
+        # Alert functionality disabled: requires bot instance to be passed
+        # TODO: Implement proper alert system when bot instance is available
+        # The alert would look like this:
+        # "⚠️ RBAC Security Alert\n"
+        # f"👤 User: {user_id} (@{username or 'no_username'})\n"
+        # f"🔢 Attempts: {count}/{self.window_seconds}s\n"
+        # f"🎯 Handler: {handler_name}\n"
+        # f"⏰ Time: {datetime.now().strftime('%H:%M:%S')}\n"
+        # "Пользователь превысил лимит попыток несанкционированного доступа."
         if self.alert_chat_id:
-            # await bot.send_message(self.alert_chat_id, alert_message)
-            pass
+            logger.warning(
+                f"Alert system not implemented. Would send to chat {self.alert_chat_id}"
+            )
 
     async def _handle_ban_threshold(
         self, 
@@ -184,24 +183,24 @@ class RBACAuthAuditor:
         try:
             await self.redis.setex(ban_key, self.ban_duration, "1")
             
-            ban_alert = (
-                f"🚨 <b>RBAC Temporary Ban</b>\n\n"
-                f"👤 User: {user_id} (@{username or 'no_username'})\n"
-                f"🔢 Attempts: {count}\n"
-                f"⏱ Ban Duration: {self.ban_duration // 60} minutes\n"
-                f"⏰ Time: {datetime.now().strftime('%H:%M:%S')}\n\n"
-                f"Пользователь временно заблокирован за превышение лимита попыток."
-            )
-            
             logger.critical(
                 f"TEMPORARY BAN: user {user_id} banned for {self.ban_duration}s "
                 f"due to {count} unauthorized access attempts"
             )
             
-            # TODO: Отправить критический алерт в админ-чат
+            # Critical alert functionality disabled: requires bot instance to be passed
+            # TODO: Implement proper critical alert system when bot instance is available
+            # The alert would look like this:
+            # "🚨 RBAC Temporary Ban\n"
+            # f"👤 User: {user_id} (@{username or 'no_username'})\n"
+            # f"🔢 Attempts: {count}\n"
+            # f"⏱ Ban Duration: {self.ban_duration // 60} minutes\n"
+            # f"⏰ Time: {datetime.now().strftime('%H:%M:%S')}\n"
+            # "Пользователь временно заблокирован за превышение лимита попыток."
             if self.alert_chat_id:
-                # await bot.send_message(self.alert_chat_id, ban_alert)
-                pass
+                logger.warning(
+                    f"Critical alert system not implemented. Would send to chat {self.alert_chat_id}"
+                )
                 
         except Exception as e:
             logger.error(f"Error setting temporary ban: {e}")

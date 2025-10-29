@@ -70,8 +70,25 @@ class _UsersDB:
         data = await cursor.fetchone()
         if data:
             # Преобразуем JSONB в список Python
-            roles = data[9] if data[9] else ["guest"]
-            return UsersModel(*data[:9], roles=roles)
+            # Explicitly unpack columns to avoid fragile index-based access
+            # Order: user_id, created, language, is_alive, is_blocked, 
+            #        submission_status, task_1_submitted, task_2_submitted, 
+            #        task_3_submitted, roles
+            user_id_val, created, language, is_alive, is_blocked, submission_status, \
+                task_1_submitted, task_2_submitted, task_3_submitted, roles = data
+            roles = roles if roles else ["guest"]
+            return UsersModel(
+                user_id=user_id_val,
+                created=created,
+                language=language,
+                is_alive=is_alive,
+                is_blocked=is_blocked,
+                submission_status=submission_status,
+                task_1_submitted=task_1_submitted,
+                task_2_submitted=task_2_submitted,
+                task_3_submitted=task_3_submitted,
+                roles=roles
+            )
         return None
 
     async def update_alive_status(self, *, user_id: int, is_alive: bool = True) -> None:
