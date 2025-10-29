@@ -2,20 +2,12 @@
 Диалог главного меню для гостей
 """
 from aiogram_dialog import Dialog, Window
-from aiogram_dialog.widgets.kbd import Button, Row, Back, Start, SwitchTo
+from aiogram_dialog.widgets.kbd import Row, Back, Start, SwitchTo
 from aiogram_dialog.widgets.text import Format, Const
-from aiogram_dialog.widgets.media import StaticMedia, DynamicMedia
-from aiogram_dialog.api.entities import MediaAttachment, MediaId
-from aiogram.enums import ContentType
+from aiogram_dialog.widgets.media import DynamicMedia
 
 
-from app.utils.optimized_dialog_widgets import get_file_id_for_path
-
-
-from app.bot.states.interview import InterviewSG
-from app.bot.states.feedback import FeedbackSG
 from .getters import get_current_stage_info, get_application_status, get_support_contacts, get_main_menu_media, get_task_button_info, get_interview_button_info, get_feedback_button_info, get_interview_datetime_info, get_interview_feedback
-from .handlers import on_current_stage_clicked, on_support_clicked, on_interview_button_clicked
 from .states import GuestMenuSG
 
 

@@ -1,7 +1,6 @@
-from aiogram.types import Message, CallbackQuery
+from aiogram.types import CallbackQuery
 from aiogram_dialog import DialogManager
 
-from app.bot.states.first_stage import FirstStageSG
 from app.bot.states.main_menu import MainMenuSG
 from app.bot.states.tasks import TasksSG
 from app.infrastructure.database.database.db import DB

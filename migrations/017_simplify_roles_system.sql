@@ -16,6 +16,10 @@ SET roles = '["guest"]'::jsonb
 WHERE roles IS NULL OR roles = '[]'::jsonb OR jsonb_array_length(roles) = 0;
 
 -- Обновляем роли админов (на всякий случай)
+-- NOTE: This is a one-time migration for existing admins
+-- For future admin management, use the bot's role management commands
+-- or update roles through the database directly without hardcoding in migrations
+-- These specific user_ids should be documented in deployment configuration
 UPDATE users 
 SET roles = '["admin"]'::jsonb 
 WHERE user_id IN (257026813, 1905792261);

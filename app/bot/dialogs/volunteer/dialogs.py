@@ -2,7 +2,7 @@
 Диалог главного меню для волонтёров
 """
 from aiogram_dialog import Dialog, Window
-from aiogram_dialog.widgets.text import Const, Format
+from aiogram_dialog.widgets.text import Const
 from aiogram_dialog.widgets.kbd import Button, Column
 
 from .states import VolunteerMenuSG
