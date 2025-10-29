@@ -5,15 +5,15 @@ from typing import List, Dict, Any, Optional
 import psycopg_pool
 from psycopg import AsyncConnection
 
-from config.config import load_config
+from config.config import load_config, Config
 
 
 class FeedbackDAO:
     """Data Access Object for feedback operations"""
     
-    def __init__(self, db_pool: psycopg_pool.AsyncConnectionPool):
+    def __init__(self, db_pool: psycopg_pool.AsyncConnectionPool, config: Config = None):
         self.db_pool = db_pool
-        self.config = load_config()
+        self.config = config or load_config()
     
     async def get_user_feedback_positions(self, user_id: int) -> List[Dict[str, Any]]:
         """Get positions with available feedback for user"""
@@ -131,7 +131,8 @@ class FeedbackDAO:
             async with conn.cursor() as cursor:
                 await cursor.execute("""
                     SELECT a.user_id, a.full_name, a.telegram_username,
-                           COALESCE(u.approved, 0) as approved
+                           COALESCE(u.approved, 0) as approved,
+                           u.interview_feedback
                     FROM applications a
                     LEFT JOIN users u ON a.user_id = u.user_id
                     WHERE a.user_id = %s 
@@ -146,7 +147,8 @@ class FeedbackDAO:
                         "user_id": result[0],
                         "full_name": result[1],
                         "telegram_username": result[2],
-                        "approved": result[3]
+                        "approved": result[3],
+                        "interview_feedback": result[4]
                     }
                 
                 return None

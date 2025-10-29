@@ -58,7 +58,15 @@ class AdminLockMiddleware(BaseMiddleware):
             return await handler(event, data)
         
         user_id = user.id
-        logger.debug(f"Middleware: обрабатываем пользователя {user_id}")
+        
+        # Детальное логирование сообщения
+        message_text = "Unknown"
+        if hasattr(event, 'message') and event.message and hasattr(event.message, 'text'):
+            message_text = event.message.text
+        elif hasattr(event, 'callback_query') and event.callback_query and hasattr(event.callback_query, 'data'):
+            message_text = f"callback: {event.callback_query.data}"
+        
+        logger.debug(f"Middleware: обрабатываем пользователя {user_id}, сообщение: {message_text}")
         
         # Проверяем режим блокировки
         lock_enabled = await self.is_lock_enabled()
@@ -66,7 +74,7 @@ class AdminLockMiddleware(BaseMiddleware):
         
         if not lock_enabled:
             # Блокировка выключена - пропускаем дальше
-            logger.debug(f"Пользователь {user_id} проходит - блокировка выключена")
+            logger.debug(f"Пользователь {user_id} проходит - блокировка выключена, сообщение: {message_text}")
             return await handler(event, data)
         
         # Блокировка включена - проверяем админа

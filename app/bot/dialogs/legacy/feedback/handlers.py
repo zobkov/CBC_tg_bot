@@ -28,7 +28,7 @@ async def on_feedback_position_selected(
         priority = int(item_id.replace("fb_pos_", ""))
         
         # Get position info for the selected priority
-        dao = FeedbackDAO(manager.middleware_data["db_applications"])
+        dao = FeedbackDAO(manager.middleware_data["db_applications"], manager.middleware_data["config"])
         user_id = callback.from_user.id
         
         feedback_positions = await dao.get_user_feedback_positions(user_id)

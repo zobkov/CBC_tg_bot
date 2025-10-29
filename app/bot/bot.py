@@ -18,22 +18,43 @@ from config.config import load_config
 from app.infrastructure.database.connect_to_pg import get_pg_pool
 from app.bot.middlewares.database import DatabaseMiddleware
 from app.bot.middlewares.error_handler import ErrorHandlerMiddleware
+from app.bot.middlewares.rbac import UserCtxMiddleware
 
 from app.bot.handlers.commands import router as commands_router 
 from app.bot.handlers.feedback_callbacks import feedback_callbacks_router 
 from app.bot.handlers.admin_lock import setup_admin_commands_router
 from app.bot.middlewares.admin_lock import AdminLockMiddleware 
 
+# Импортируем роутеры для системы ролей
+from app.bot.routers import (
+    public_router,
+    guest_router,
+    volunteer_router, 
+    staff_router,
+    admin_router
+)
+
+# Импортируем валидатор доступа для диалогов
+from app.bot.dialogs.access import RolesAccessValidator, create_forbidden_handler, create_forbidden_filter
+
+# Импортируем систему аудита
+from app.utils.audit import init_auditor
+
 from app.bot.keyboards.command_menu import set_main_menu
 
-from app.bot.dialogs.test.dialogs import test_dialog
-from app.bot.dialogs.start.dialogs import start_dialog
-from app.bot.dialogs.main_menu.dialogs import main_menu_dialog
-from app.bot.dialogs.first_stage.dialogs import first_stage_dialog
-from app.bot.dialogs.job_selection.dialogs import job_selection_dialog
-from app.bot.dialogs.tasks.dialogs import task_dialog
-from app.bot.dialogs.interview.dialogs import interview_dialog
-from app.bot.dialogs.feedback.dialogs import feedback_dialog
+from app.bot.dialogs.legacy.test.dialogs import test_dialog
+from app.bot.dialogs.legacy.start.dialogs import start_dialog
+from app.bot.dialogs.legacy.main_menu.dialogs import main_menu_dialog
+from app.bot.dialogs.legacy.first_stage.dialogs import first_stage_dialog
+from app.bot.dialogs.legacy.job_selection.dialogs import job_selection_dialog
+from app.bot.dialogs.legacy.tasks.dialogs import task_dialog
+from app.bot.dialogs.legacy.interview.dialogs import interview_dialog
+from app.bot.dialogs.legacy.feedback.dialogs import feedback_dialog
+
+# Новые role-based диалоги
+from app.bot.dialogs.guest.dialogs import guest_menu_dialog
+from app.bot.dialogs.volunteer.dialogs import volunteer_menu_dialog  
+from app.bot.dialogs.staff.dialogs import staff_menu_dialog
 
 from app.services.broadcast_scheduler import BroadcastScheduler
 from app.services.photo_file_id_manager import startup_photo_check
@@ -119,11 +140,17 @@ async def main():
     # Настраиваем админские команды
     admin_commands_router = setup_admin_commands_router(config.admin_ids)
     
+    # Подключаем роутеры системы ролей (в правильном порядке приоритета)
     dp.include_routers(
         admin_commands_router,  # Команды админов /lock /unlock /status
-        commands_router,
+        public_router,          # Публичные команды (/start, /help, /whoami)
+        admin_router,           # Админские команды и функции
+        staff_router,           # Функции для сотрудников
+        volunteer_router,       # Функции для волонтёров  
+        guest_router,           # Функции для гостей
+        commands_router,        # Существующие команды (legacy)
         feedback_callbacks_router
-                       )
+    )
     
     dp.include_routers(
         test_dialog,
@@ -133,17 +160,46 @@ async def main():
         job_selection_dialog,
         task_dialog,
         interview_dialog,
-        feedback_dialog
+        feedback_dialog,
+        # Новые role-based диалоги
+        guest_menu_dialog,
+        volunteer_menu_dialog,
+        staff_menu_dialog
                        )
 
     logger.info("Including middlewares")
     # Добавляем middleware блокировки ПЕРВЫМ (ДО всех остальных)
     dp.update.middleware(AdminLockMiddleware(config.admin_ids, storage))
+    
+    # Инициализируем аудитор для RBAC
+    init_auditor(redis=redis_client)
+    
+    # Создаем middleware для ролей
+    user_ctx_middleware = UserCtxMiddleware(redis=redis_client)
+    
+    # Добавляем middleware для ролей ПОСЛЕ DatabaseMiddleware
     dp.update.middleware(ErrorHandlerMiddleware())
     dp.update.middleware(DatabaseMiddleware())
+    dp.update.middleware(user_ctx_middleware)
+    
+    # Debug middleware для проверки после всех middleware
+    @dp.update.middleware()
+    async def post_dialog_debug_middleware(handler, event, data):
+        # Добавляем ссылку на UserCtxMiddleware и Redis в контекст
+        data["user_ctx_middleware"] = user_ctx_middleware
+        data["redis"] = redis_client
+        result = await handler(event, data)
+        return result
 
     logger.info("Setting up dialogs")
-    bg_factory = setup_dialogs(dp)
+    # Настраиваем валидатор доступа для диалогов (по умолчанию разрешает всем кроме banned)
+    access_validator = RolesAccessValidator()
+    bg_factory = setup_dialogs(dp, stack_access_validator=access_validator)
+    
+    # Добавляем обработчик запрещенного доступа к диалогам с фильтром
+    forbidden_handler = create_forbidden_handler()
+    forbidden_filter = create_forbidden_filter()
+    dp.message.register(forbidden_handler, forbidden_filter)
 
     await set_main_menu(bot)
 
@@ -175,6 +231,7 @@ async def main():
         )
         await scheduler.start()
         await bot.delete_webhook(drop_pending_updates=True)
+        
         await dp.start_polling(
             bot,
             bg_factory=bg_factory,

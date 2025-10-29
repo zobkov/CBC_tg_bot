@@ -115,8 +115,90 @@ def setup_admin_commands_router(admin_ids: list[int]) -> Router:
             f"📋 Доступные команды:\n"
             f"• /lock - переключить блокировку\n"
             f"• /unlock - принудительно выключить блокировку\n"
-            f"• /status - статус системы"
+            f"• /status - статус системы\n"
+            f"• /ch_roles - переключить роли Staff ↔ Guest"
         )
+    
+    @admin_commands_router.message(Command("ch_roles"), admin_check)
+    async def cmd_change_roles(message: Message, db, **kwargs):
+        """Команда /ch_roles - переключает роли между Staff и Guest"""
+        logger.info(f"Админ {message.from_user.id} выполняет команду /ch_roles")
+        
+        # Получаем middleware и Redis из kwargs
+        user_ctx_middleware = kwargs.get("user_ctx_middleware")
+        redis_client = kwargs.get("redis")
+        logger.debug(f"user_ctx_middleware получен: {user_ctx_middleware is not None}")
+        logger.debug(f"redis_client получен: {redis_client is not None}")
+        
+        try:
+            # Получаем текущие роли пользователя
+            current_roles = await db.users.get_user_roles(user_id=message.from_user.id)
+            logger.info(f"Текущие роли админа {message.from_user.id}: {current_roles}")
+            
+            # Определяем новую роль (простое переключение между staff и guest)
+            if "staff" in current_roles:
+                # Переключаем с Staff на Guest
+                new_roles = ["guest"]
+                action = "Staff → Guest"
+                emoji = "👤"
+            elif "guest" in current_roles:
+                # Переключаем с Guest на Staff  
+                new_roles = ["staff"]
+                action = "Guest → Staff"
+                emoji = "👥"
+            else:
+                # Если нет ни staff, ни guest, устанавливаем guest
+                new_roles = ["guest"]
+                action = "Установлена роль Guest"
+                emoji = "👤"
+            
+            # Проверяем, изменились ли роли
+            if set(new_roles) == set(current_roles):
+                await message.answer(
+                    f"ℹ️ Роли уже установлены правильно!\n"
+                    f"📋 Текущие роли: {', '.join(new_roles)}"
+                )
+                return
+            
+            # Обновляем роли
+            await db.users.set_user_roles(
+                user_id=message.from_user.id, 
+                roles=new_roles,
+                granted_by=message.from_user.id
+            )
+            
+            # Инвалидируем кэш пользователя
+            if user_ctx_middleware:
+                await user_ctx_middleware.invalidate_user_cache(message.from_user.id)
+                logger.info(f"Кэш пользователя {message.from_user.id} инвалидирован через middleware")
+            elif redis_client:
+                # Fallback: обращаемся к Redis напрямую
+                try:
+                    cache_key = f"rbac:{message.from_user.id}"
+                    await redis_client.delete(cache_key)
+                    logger.info(f"Кэш пользователя {message.from_user.id} инвалидирован через Redis")
+                except Exception as e:
+                    logger.warning(f"Ошибка инвалидации кэша через Redis: {e}")
+            else:
+                logger.warning("Ни middleware, ни Redis недоступны, кэш не инвалидирован")
+            
+            # Формируем ответ
+            roles_text = ", ".join(new_roles)
+            await message.answer(
+                f"{emoji} Роли успешно изменены!\n\n"
+                f"🔄 Действие: {action}\n"
+                f"📋 Новые роли: {roles_text}\n\n"
+                f"ℹ️ Перезапустите диалог командой /menu для применения изменений."
+            )
+            
+            logger.info(f"Админ {message.from_user.id} изменил свои роли: {current_roles} → {new_roles}")
+            
+        except Exception as e:
+            logger.error(f"Ошибка при изменении ролей админа {message.from_user.id}: {e}")
+            await message.answer(
+                "❌ Произошла ошибка при изменении ролей.\n"
+                "Попробуйте позже или обратитесь к разработчику."
+            )
     
     return admin_commands_router
 

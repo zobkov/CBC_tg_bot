@@ -8,6 +8,8 @@ from aiogram_dialog import DialogManager, StartMode
 from app.bot.states.feedback import FeedbackSG
 from app.bot.states.main_menu import MainMenuSG
 from app.bot.states.interview import InterviewSG
+from app.bot.dialogs.guest.states import GuestMenuSG
+from app.bot.dialogs.staff.states import StaffMenuSG
 
 feedback_callbacks_router = Router()
 
@@ -44,5 +46,29 @@ async def reschedule_interview(callback: CallbackQuery, dialog_manager: DialogMa
     # Start interview dialog to select new time
     await dialog_manager.start(
         InterviewSG.main_menu,
+        mode=StartMode.RESET_STACK
+    )
+
+
+@feedback_callbacks_router.callback_query(F.data == "start_staff_menu")
+async def start_staff_menu(callback: CallbackQuery, dialog_manager: DialogManager):
+    """Handle staff menu start from inline button (for approved users)"""
+    await callback.answer()
+    
+    # Start main menu dialog for staff
+    await dialog_manager.start(
+        StaffMenuSG.MAIN,
+        mode=StartMode.RESET_STACK
+    )
+
+
+@feedback_callbacks_router.callback_query(F.data == "start_guest_menu")
+async def start_guest_menu(callback: CallbackQuery, dialog_manager: DialogManager):
+    """Handle guest menu start from inline button (for declined users)"""
+    await callback.answer()
+    
+    # Start guest menu dialog
+    await dialog_manager.start(
+        GuestMenuSG.MAIN,
         mode=StartMode.RESET_STACK
     )

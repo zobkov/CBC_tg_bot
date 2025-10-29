@@ -1,4 +1,3 @@
-from datetime import datetime
 from typing import Dict, Any
 
 from aiogram.types import User
@@ -60,7 +59,7 @@ async def get_current_stage_info(dialog_manager: DialogManager, **kwargs) -> Dic
                 from app.infrastructure.database.dao.feedback import FeedbackDAO
                 from app.infrastructure.database.dao.interview import InterviewDAO
                 
-                feedback_dao = FeedbackDAO(db_pool)
+                feedback_dao = FeedbackDAO(db_pool, dialog_manager.middleware_data["config"])
                 user_data = await feedback_dao.get_single_user_data(event_from_user.id)
                 
                 if user_data:
@@ -437,4 +436,37 @@ async def get_interview_datetime_info(dialog_manager: DialogManager, **kwargs) -
     
     return {
         "interview_datetime": interview_datetime
+    }
+
+
+async def get_interview_feedback(dialog_manager: DialogManager, **kwargs) -> Dict[str, Any]:
+    """Получаем обратную связь по собеседованию"""
+    event_from_user: User = dialog_manager.event.from_user
+    db_pool = dialog_manager.middleware_data.get("db_applications")
+    
+    interview_feedback = None
+    has_interview_feedback = False
+    
+    if db_pool:
+        try:
+            # Импортируем DAO для получения данных пользователя
+            from app.infrastructure.database.dao.feedback import FeedbackDAO
+            dao = FeedbackDAO(db_pool)
+            
+            # Получаем данные пользователя из таблицы users
+            user_data = await dao.get_single_user_data(event_from_user.id)
+            
+            if user_data and user_data.get('interview_feedback'):
+                interview_feedback = user_data['interview_feedback']
+                has_interview_feedback = True
+            
+        except Exception as e:
+            # В случае ошибки логируем и не показываем фидбек
+            import logging
+            logger = logging.getLogger(__name__)
+            logger.error(f"Error getting interview feedback for user {event_from_user.id}: {e}")
+    
+    return {
+        "interview_feedback": interview_feedback or "Обратная связь по собеседованию пока недоступна.",
+        "has_interview_feedback": has_interview_feedback
     }
