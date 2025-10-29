@@ -1,7 +1,7 @@
 from aiogram_dialog import Dialog, Window
 from aiogram_dialog.widgets.kbd import Row, Back, SwitchTo
 from aiogram_dialog.widgets.text import Format, Const
-from aiogram_dialog.widgets.media import DynamicMedia
+from aiogram_dialog.widgets.media import DynamicMedia, StaticMedia
 
 
 from .states import StaffMenuSG

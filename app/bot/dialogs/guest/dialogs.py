@@ -4,11 +4,11 @@
 from aiogram_dialog import Dialog, Window
 from aiogram_dialog.widgets.kbd import Row, Back, Start, SwitchTo
 from aiogram_dialog.widgets.text import Format, Const
-from aiogram_dialog.widgets.media import DynamicMedia
-
+from aiogram_dialog.widgets.media import DynamicMedia, StaticMedia
 
 from .getters import get_current_stage_info, get_application_status, get_support_contacts, get_main_menu_media, get_task_button_info, get_interview_button_info, get_feedback_button_info, get_interview_datetime_info, get_interview_feedback
 from .states import GuestMenuSG
+from app.bot.states.feedback import FeedbackSG
 
 
 guest_menu_dialog = Dialog(
