@@ -38,7 +38,7 @@ from app.bot.routers import (
 from app.bot.dialogs.access import RolesAccessValidator, create_forbidden_handler, create_forbidden_filter
 
 # Импортируем систему аудита
-from app.utils.audit import init_auditor, get_auditor
+from app.utils.audit import init_auditor
 
 from app.bot.keyboards.command_menu import set_main_menu
 

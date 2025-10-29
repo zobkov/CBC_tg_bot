@@ -7,7 +7,6 @@ from aiogram.filters import Command
 from aiogram.types import Message
 from aiogram_dialog import DialogManager, StartMode
 
-from app.bot.filters.rbac import IsNotBanned
 from app.bot.dialogs.guest.states import GuestMenuSG
 from app.bot.dialogs.volunteer.states import VolunteerMenuSG  
 from app.bot.dialogs.staff.states import StaffMenuSG

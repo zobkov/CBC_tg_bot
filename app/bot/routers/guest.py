@@ -6,7 +6,6 @@ from aiogram import Router
 from aiogram.filters import Command
 from aiogram.types import Message
 
-from app.bot.filters.rbac import HasRole
 from app.bot.filters.legacy_intents import create_rbac_filter_with_legacy_exclusion
 from app.enums.roles import Role
 

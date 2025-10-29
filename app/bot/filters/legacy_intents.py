@@ -4,7 +4,7 @@
 import logging
 from typing import Dict, Any
 from aiogram.filters import Filter
-from aiogram.types import CallbackQuery, Message
+from aiogram.types import CallbackQuery
 
 logger = logging.getLogger(__name__)
 
