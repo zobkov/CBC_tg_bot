@@ -8,6 +8,7 @@ from aiogram_dialog.widgets.media import DynamicMedia, StaticMedia
 
 from .getters import get_current_stage_info, get_application_status, get_support_contacts, get_main_menu_media, get_task_button_info, get_interview_button_info, get_feedback_button_info, get_interview_datetime_info, get_interview_feedback
 from .states import GuestMenuSG
+from app.bot.dialogs.guest.quiz_dod.states import QuizDodSG
 from app.bot.states.feedback import FeedbackSG
 
 
@@ -26,6 +27,13 @@ guest_menu_dialog = Dialog(
                 Const("📝 Получить обратную связь – Тестовое задание"),
                 id="feedback_button",
                 state=FeedbackSG.feedback_menu,
+            ),
+        ),
+        Row(
+            Start(
+                Const("🎯 Квиз КБК"),
+                id="quiz_dod_button",
+                state=QuizDodSG.MAIN,
             ),
         ),
         Row(
