@@ -255,7 +255,7 @@ async def on_certificate_requested(
         except Exception:
             logger.exception("[QUIZ_DOD] Failed to mark certificate requested for user=%s", user.id)
 
-    await callback.message.answer("Готово! Сертификат уже у тебя 🎉")
+
 
 
 async def on_quiz_start(
