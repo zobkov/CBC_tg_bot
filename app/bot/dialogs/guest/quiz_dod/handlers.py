@@ -3,16 +3,29 @@ from typing import Any
 
 from aiogram.types import CallbackQuery, Message
 
-from better_profanity import profanity
-
 from aiogram_dialog import DialogManager, ShowMode
 from aiogram_dialog.widgets.kbd import Button, Select
 
 from app.infrastructure.database.database.db import DB
+from better_profanity import profanity
 from .questions import QUESTIONS
 from .states import QuizDodSG
+from .profanity_list import RUSSIAN_PROFANITY
 
 logger = logging.getLogger(__name__)
+
+_PROFANITY_LOADED = False
+
+
+def _ensure_profanity_loaded() -> None:
+    """Загружает кастомный список нецензурных слов один раз."""
+    global _PROFANITY_LOADED
+    if _PROFANITY_LOADED:
+        return
+
+    profanity.load_censor_words()
+    profanity.add_censor_words(RUSSIAN_PROFANITY)
+    _PROFANITY_LOADED = True
 
 
 # Input error handlers
@@ -23,7 +36,7 @@ async def name_error_handler(
         manager: DialogManager,
         error_: ValueError
 ):
-    message.answer(f"{error_}")
+    logger.debug(f"Wrong name. Error: {error_}")
 
 async def phone_error_handler(
         message: Message,
@@ -44,7 +57,7 @@ async def email_error_handler(
 # Type factory
 
 def name_check(value: str) -> str:
-    profanity.load_censor_words()
+    _ensure_profanity_loaded()
     name = value.strip()
 
     logger.debug(f"Profanity is in name: {profanity.censor(name)}")
@@ -155,6 +168,7 @@ async def on_name_entered(
     value: str,
     **kwargs,
 ):
+    
     dialog_manager.dialog_data["quiz_dod_name"] = value
     await dialog_manager.next()
 
