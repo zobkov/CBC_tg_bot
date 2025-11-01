@@ -23,6 +23,7 @@ async def get_question_data(dialog_manager: DialogManager, **kwargs) -> dict:
 		"current_question": question_index + 1,
 		"max_questions": len(QUESTIONS),
 		"question_text": question.text,
+		"answer_options": "\n".join(question.options),
 		"options": [
 			{"id": str(idx), "text": option}
 			for idx, option in enumerate(question.options)

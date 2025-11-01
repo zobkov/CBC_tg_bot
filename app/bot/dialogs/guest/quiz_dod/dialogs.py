@@ -1,4 +1,4 @@
-"""Диалог квиза на день открытых дверей."""
+
 from aiogram_dialog import Dialog, Window
 from aiogram_dialog.widgets.input import TextInput
 from aiogram_dialog.widgets.kbd import Button, Cancel, Group, Select, Row
@@ -87,7 +87,8 @@ quiz_dod_dialog = Dialog(
         Multi(
             Const("<b>Квиз от КБК</b>"),
             Format("<b>{current_question}/{max_questions}</b>"),
-            Format("❓ <i>{question_text}</i>"),
+            Format("❓ <i>{question_text}</i>\n"),
+            Format("{answer_options}"), # TODO
             sep="\n\n",
         ),
         Group(
