@@ -13,6 +13,7 @@ from .handlers import (
     education_error_handler,
     name_check,
     name_error_handler,
+    on_certificate_requested,
     on_email_entered,
     on_education_entered,
     on_name_entered,
@@ -150,7 +151,12 @@ quiz_dod_dialog = Dialog(
                 id="quiz_dod_restart",
                 on_click=on_quiz_restart,
             ),
-            Button(Const("Получить сертификат")), # TODO move the generating and sending of certificate here. also add column to DB quiz_dod_users_info requested_certificate with bool values. Default is false. Here it is updated to true 
+            Button(
+                Const("Получить сертификат"),
+                id="quiz_dod_get_certificate",
+                on_click=on_certificate_requested,
+                when="can_request_certificate",
+            ),
             Cancel(Const("🏠 В личный кабинет"), id="quiz_dod_cancel_results"),
         ),
         state=QuizDodSG.RESULTS,

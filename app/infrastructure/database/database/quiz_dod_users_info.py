@@ -37,3 +37,42 @@ class _QuizDodUsersInfoDB:
             self.__tablename__,
             user_id,
         )
+
+    async def mark_certificate_requested(self, user_id: int) -> None:
+        cursor = await self.connection.execute(
+            """
+            UPDATE quiz_dod_users_info
+            SET requested_certificate = TRUE
+            WHERE user_id = %s
+            """,
+            (user_id,),
+        )
+
+        if cursor.rowcount == 0:
+            logger.warning(
+                "QuizDoD certificate flag not updated: user_id=%d not found",
+                user_id,
+            )
+        else:
+            logger.info(
+                "QuizDoD certificate requested marked. db='%s', user_id=%d",
+                self.__tablename__,
+                user_id,
+            )
+
+    async def get_certificate_status(self, user_id: int) -> bool | None:
+        cursor = await self.connection.execute(
+            """
+            SELECT requested_certificate
+            FROM quiz_dod_users_info
+            WHERE user_id = %s
+            """,
+            (user_id,),
+        )
+        row = await cursor.fetchone()
+
+        if not row:
+            return None
+
+        requested_certificate = row[0]
+        return bool(requested_certificate)
