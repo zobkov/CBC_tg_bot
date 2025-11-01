@@ -1,8 +1,8 @@
 """
 Диалог квиза на день открытых дверей
 """
-from aiogram_dialog import Dialog, Window
-from aiogram_dialog.widgets.kbd import Row, Back, Start, SwitchTo, Next
+from aiogram_dialog import Dialog, Window, ShowMode
+from aiogram_dialog.widgets.kbd import Row, Back, Start, SwitchTo, Next, Select
 from aiogram_dialog.widgets.text import Format, Const
 from aiogram_dialog.widgets.media import DynamicMedia, StaticMedia
 from aiogram_dialog.widgets.input import TextInput
@@ -17,7 +17,7 @@ from .handlers import (
     email_check,
     phone_check
 )
-from app.bot.states.feedback import FeedbackSG
+
 
 
 quiz_dod_dialog = Dialog(
@@ -32,7 +32,7 @@ quiz_dod_dialog = Dialog(
 Подписывайся на наши соцсети — впереди ещё много всего интересного! 
 
 Не тяни — жми «начать квиз» и вперёд 🚀"""),
-        SwitchTo(),
+        SwitchTo(Const("Начать квиз"), QuizDodSG.name),
         state=QuizDodSG.MAIN,
     ),
 
@@ -40,13 +40,14 @@ quiz_dod_dialog = Dialog(
 
     # name
     Window(
-        Const("Введи свое имя и фамилию:"),
+        Const("Введи своё имя и фамилию:"),
         TextInput(
             id="Q_DOD_name",
             on_error=name_error_handler,
             on_success=Next(),
             type_factory=name_check,
         ),
+        state=QuizDodSG.name
     ),
     # telephone
     Window(
@@ -57,6 +58,7 @@ quiz_dod_dialog = Dialog(
             on_success=Next(),
             type_factory=phone_check,
         ),
+        state=QuizDodSG.phone
     ),
     # e-mail
     Window(
@@ -64,9 +66,41 @@ quiz_dod_dialog = Dialog(
         TextInput(
             id="Q_DOD_email",
             on_error=email_error_handler,
-            on_success=Next(),
+            on_success=Next(show_mode=ShowMode.DELETE_AND_SEND),
             type_factory=email_check,
         ),
+        state=QuizDodSG.email
     ),
+
+    Window(
+        Const("<b>Квиз от КБК</b>\n\n\n"),
+        Format("""<b>{current_question}/{max_questions}</b>
+               
+❓ <i>{question_text}</i>"""), # question TODO
+        Select(),
+        #getter=,
+        state=QuizDodSG.QUESTIONS
+    ),
+
+    Window(
+        Format("""<b>{correct_answers}/{max_questions}</b> – «Настоящий эксперт КБК»
+
+Поздравляем, {name}!
+               
+Ты знаешь Китай и КБК так, будто уже в команде организаторов.
+С таким багажом знаний можно смело лететь в Шанхай и проводить деловые переговоры!
+
+Твой заслуженный стикерпак уже ждёт на стенде!""", when=passed_threshold),
+        Format("""<b>{correct_answers}/{max_questions}</b> – «Ученик КБК»
+
+Хорошее начало, {name}!
+               
+Теперь ты знаешь больше о форуме, традициях Китая и возможностях ВШМ СПбГУ.
+
+Попробуй пройти квиз ещё раз, и помни, что путь к успеху начинается с интереса, а он у тебя уже есть!""", when=not_passed_threshold),
+        SwitchTo(Const("Перепройти квиз"),QuizDodSG.QUESTIONS),
+        state=QuizDodSG.RESULTS,
+    ),
+
 
 )
