@@ -1,36 +1,24 @@
-[tool.poetry]
-name = "aiogram-bot-template"
+[project]
+name = "cbc-tg-bot"
 version = "0.1.0"
-description = "Aiogram 3 bot template by kmsint"
-authors = ["kmsint <kmsrus@gmail.com>"]
+description = "Tht bot for CBC organization"
+authors = [
+    {name = "zobkov",email = "112057887+zobkov@users.noreply.github.com"}
+]
+license = {text = "MIT"}
 readme = "README.md"
+requires-python = ">=3.13"
+dependencies = [
+    "aiogram (>=3.22.0,<4.0.0)",
+    "aiogram-dialog (>=2.4.0,<3.0.0)",
+    "psycopg-pool (>=3.2.7,<4.0.0)",
+    "redis (>=7.0.1,<8.0.0)",
+    "environs (>=14.4.0,<15.0.0)",
+    "pathlib (>=1.0.1,<2.0.0)",
+    "psycopg2-binary (>=2.9.11,<3.0.0)"
+]
 
-[tool.poetry.dependencies]
-python = "^3.12"
-aiogram = "^3.10.0"
-nats-py = "^2.8.0"
-ormsgpack = "^1.5.0"
-aiogram-dialog = "^2.1.0"
-fluentogram = "^1.1.7"
-redis = "^5.0.7"
-alembic = "^1.13.2"
-taskiq-nats = "^0.4.0"
-dynaconf = "^3.2.6"
-psycopg = "^3.2.1"
-psycopg-pool = "^3.2.2"
-taskiq-redis = "^1.0.2"
-ruff = "^0.9.10"
-gspread = "^6.0.0"
-oauth2client = "^4.1.3"
-google-api-python-client = "^2.120.0"
-google-auth-httplib2 = "^0.2.0"
-google-auth-oauthlib = "^1.2.0"
-
-
-[tool.poetry.group.dev.dependencies]
-mypy = "^1.11.0"
-flake8 = "^7.1.0"
 
 [build-system]
-requires = ["poetry-core"]
+requires = ["poetry-core>=2.0.0,<3.0.0"]
 build-backend = "poetry.core.masonry.api"
