@@ -15,10 +15,12 @@ dependencies = [
     "redis (>=7.0.1,<8.0.0)",
     "environs (>=14.4.0,<15.0.0)",
     "pathlib (>=1.0.1,<2.0.0)",
-    "psycopg2-binary (>=2.9.11,<3.0.0)"
+    "psycopg2-binary (>=2.9.11,<3.0.0)",
+    "weasyprint (>=66.0,<67.0)"
 ]
 
 
 [build-system]
 requires = ["poetry-core>=2.0.0,<3.0.0"]
 build-backend = "poetry.core.masonry.api"
+package-mode = false

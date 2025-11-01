@@ -1,12 +1,17 @@
+import asyncio
 import logging
 from typing import Any
 
-from aiogram.types import CallbackQuery, Message
+from aiogram.types import CallbackQuery, Message, FSInputFile
 
 from aiogram_dialog import DialogManager, ShowMode
 from aiogram_dialog.widgets.kbd import Button, Select
 
 from app.infrastructure.database.database.db import DB
+from app.utils.certificate_gen import (
+    CertificateGenerationError,
+    get_certificate_generator,
+)
 from better_profanity import profanity
 from .questions import QUESTIONS
 from .states import QuizDodSG
@@ -15,6 +20,7 @@ from .profanity_list import RUSSIAN_PROFANITY
 logger = logging.getLogger(__name__)
 
 _PROFANITY_LOADED = False
+_CERTIFICATE_GENERATOR = get_certificate_generator()
 
 
 def _ensure_profanity_loaded() -> None:
@@ -107,6 +113,50 @@ def _reset_quiz_progress(manager: DialogManager) -> None:
     manager.dialog_data["quiz_dod_question_index"] = 0
     manager.dialog_data["quiz_dod_correct_answers"] = 0
     manager.dialog_data["quiz_dod_best_updated"] = False
+
+
+async def _send_quiz_certificate(message: Message, dialog_manager: DialogManager) -> None:
+    """Генерирует персональный сертификат и отправляет его пользователю."""
+    full_name = dialog_manager.dialog_data.get("quiz_dod_name")
+    if not full_name:
+        logger.warning("[QUIZ_DOD] Skip certificate generation: name missing in dialog data")
+        return
+
+    loop = asyncio.get_running_loop()
+    try:
+        certificate_path = await loop.run_in_executor(
+            None,
+            _CERTIFICATE_GENERATOR.generate,
+            full_name,
+        )
+    except CertificateGenerationError as exc:
+        logger.exception("[QUIZ_DOD] Failed to generate certificate for name=%s", full_name)
+        await message.answer(
+            "Не удалось подготовить сертификат. Попробуем ещё раз после следующего прохождения квиза 🙈",
+        )
+        await message.answer(
+            "Служебная информация для команды поддержки:\n" f"{exc}",
+        )
+        return
+
+    try:
+        await message.answer_document(
+            document=FSInputFile(certificate_path),
+            caption="Твой персональный сертификат участника квиза! 🎉",
+        )
+    except Exception:  # noqa: BLE001 - важно залогировать полную ошибку
+        logger.exception("[QUIZ_DOD] Failed to send certificate %s", certificate_path)
+        await message.answer(
+            "Мы не смогли отправить файл сертификата. Попробуй, пожалуйста, чуть позже.",
+        )
+    finally:
+        try:
+            certificate_path.unlink(missing_ok=True)
+        except OSError:
+            logger.warning(
+                "[QUIZ_DOD] Unable to remove temporary certificate file %s",
+                certificate_path,
+            )
 
 
 async def save_quiz_result(dialog_manager: DialogManager, user_id: int, score: int) -> None:
@@ -260,6 +310,8 @@ async def on_quiz_answer_selected(
 
         if dialog_data["quiz_dod_best_updated"]:
             await save_quiz_result(dialog_manager, callback.from_user.id, score)
+
+        await _send_quiz_certificate(callback.message, dialog_manager)
 
         await callback.message.answer("""Мы очень ценим твою активность ❤️ 
 
