@@ -165,8 +165,16 @@ async def on_quiz_answer_selected(
 
     if question_index < len(QUESTIONS):
         question = QUESTIONS[question_index]
-        if selected_option == question.correct:
+        correct_answer = question.options[question.correct]
+        is_correct = selected_option == question.correct
+
+        if is_correct:
             dialog_data["quiz_dod_correct_answers"] = dialog_data.get("quiz_dod_correct_answers", 0) + 1
+            feedback_text = "✅ <b>Правильный ответ!</b>"
+        else:
+            feedback_text = f"❌ <b>Неправильно</b>..\n\nПравильный ответ: {correct_answer}"
+
+        await callback.message.answer(feedback_text)
 
     dialog_data["quiz_dod_question_index"] = question_index + 1
 
