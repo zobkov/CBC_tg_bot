@@ -18,17 +18,19 @@ class _QuizDodUsersInfoDB:
         full_name: str,
         phone: str,
         email: str,
+        education: str,
     ) -> None:
         await self.connection.execute(
             """
-            INSERT INTO quiz_dod_users_info (user_id, full_name, phone, email)
-            VALUES (%s, %s, %s, %s)
+            INSERT INTO quiz_dod_users_info (user_id, full_name, phone, email, education)
+            VALUES (%s, %s, %s, %s, %s)
             ON CONFLICT (user_id) DO UPDATE
             SET full_name = EXCLUDED.full_name,
                 phone = EXCLUDED.phone,
-                email = EXCLUDED.email
+                email = EXCLUDED.email,
+                education = EXCLUDED.education
             """,
-            (user_id, full_name, phone, email),
+            (user_id, full_name, phone, email, education),
         )
         logger.info(
             "QuizDoD user info saved. db='%s', user_id=%d",

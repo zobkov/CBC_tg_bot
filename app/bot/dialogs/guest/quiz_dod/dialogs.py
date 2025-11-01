@@ -9,9 +9,12 @@ from .getter import get_intro_data, get_question_data, get_results_data
 from .handlers import (
     email_check,
     email_error_handler,
+    education_check,
+    education_error_handler,
     name_check,
     name_error_handler,
     on_email_entered,
+    on_education_entered,
     on_name_entered,
     on_phone_entered,
     on_quiz_answer_selected,
@@ -81,11 +84,21 @@ quiz_dod_dialog = Dialog(
         state=QuizDodSG.email,
     ),
     Window(
+        Const("Укажи университет или школу, класс или курс.\n\nНапример: ГБОУ СОШ №241, 11 класс; или ВШМ СПбГУ, 1 курс, Международный Менеджмент."),
+        TextInput(
+            id="Q_DOD_education",
+            on_error=education_error_handler,
+            on_success=on_education_entered,
+            type_factory=education_check,
+        ),
+        state=QuizDodSG.education,
+    ),
+    Window(
         Multi(
             Const("<b>Квиз КБК</b>"),
             Format("<b>{current_question}/{max_questions}</b>"),
             Format("❓ <i>{question_text}</i>\n"),
-            Format("{answer_options}"), # TODO
+            Format("{answer_options}"),
             sep="\n\n",
         ),
         Group(

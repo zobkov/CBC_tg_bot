@@ -60,6 +60,14 @@ async def email_error_handler(
 ):
     message.answer(f"{error_}")
 
+async def education_error_handler(
+    message: Message,
+    dialog_: Any,
+    manager: DialogManager,
+    error_: ValueError
+):
+    message.answer(f"{error_}")
+
 # Type factory
 
 def name_check(value: str) -> str:
@@ -106,6 +114,18 @@ def phone_check(value: str) -> str:
         raise ValueError("Некорректный формат телефона. Используйте международный формат, например: +7XXXXXXXXXX, +1XXXXXXXXXX, +86XXXXXXXXXXX")
     
     return phone
+
+
+def education_check(value: str) -> str:
+    education = value.strip()
+
+    if not education:
+        raise ValueError("Поле не может быть пустым. Пожалуйста, укажи учебное заведение и курс или класс.")
+
+    if len(education) < 3:
+        raise ValueError("Укажи, пожалуйста, полное название учебного заведения и класс/курс.")
+
+    return education
 
 
 def _reset_quiz_progress(manager: DialogManager) -> None:
@@ -180,6 +200,7 @@ async def save_user_info(
     full_name: str,
     phone: str,
     email: str,
+    education: str,
 ) -> None:
     """Сохраняет информацию пользователя из мини-анкеты."""
     db: DB | None = dialog_manager.middleware_data.get("db")
@@ -193,6 +214,7 @@ async def save_user_info(
             full_name=full_name,
             phone=phone,
             email=email,
+            education=education,
         )
         logger.info("[QUIZ_DOD] Saved user info user=%s", user_id)
     except Exception:
@@ -242,19 +264,32 @@ async def on_email_entered(
     **kwargs,
 ):
     dialog_manager.dialog_data["quiz_dod_email"] = value
+    await dialog_manager.next()
+
+
+async def on_education_entered(
+    message: Message,
+    widget,
+    dialog_manager: DialogManager,
+    value: str,
+    **kwargs,
+):
+    dialog_manager.dialog_data["quiz_dod_education"] = value
     dialog_manager.dialog_data["quiz_dod_last_score"] = 0
 
     user = message.from_user
     if user:
         full_name = dialog_manager.dialog_data.get("quiz_dod_name", "")
         phone = dialog_manager.dialog_data.get("quiz_dod_phone", "")
+        email = dialog_manager.dialog_data.get("quiz_dod_email", "")
         try:
             await save_user_info(
                 dialog_manager,
                 user.id,
                 full_name=full_name,
                 phone=phone,
-                email=value,
+                email=email,
+                education=value,
             )
         except Exception:
             # Ошибку уже залогировали внутри save_user_info
@@ -265,7 +300,7 @@ async def on_email_entered(
     _reset_quiz_progress(dialog_manager)
     await dialog_manager.switch_to(
         QuizDodSG.QUESTIONS,
-        show_mode=ShowMode.DELETE_AND_SEND,
+        show_mode=ShowMode.SEND,
     )
 
 
