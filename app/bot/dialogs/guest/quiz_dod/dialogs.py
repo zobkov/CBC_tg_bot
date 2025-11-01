@@ -1,7 +1,7 @@
 
 from aiogram_dialog import Dialog, Window
 from aiogram_dialog.widgets.input import TextInput
-from aiogram_dialog.widgets.kbd import Button, Cancel, Group, Select, Row
+from aiogram_dialog.widgets.kbd import Button, Cancel, Group, Select, Row, Column
 from aiogram_dialog.widgets.text import Const, Format, Multi
 from magic_filter import F
 
@@ -43,7 +43,7 @@ quiz_dod_dialog = Dialog(
             ),
             sep="\n\n",
         ),
-        Row(
+        Column(
             Button(Const("Начать квиз"), id="quiz_dod_start", on_click=on_quiz_start),
             Cancel(Const("🏠 В личный кабинет"), id="quiz_dod_cancel_main"),
         ),
@@ -51,7 +51,7 @@ quiz_dod_dialog = Dialog(
         getter=get_intro_data,
     ),
     Window(
-        Const("Введи своё имя и фамилию:"),
+        Const("Напиши свою фамилию, имя и отчество полностью."),
         TextInput(
             id="Q_DOD_name",
             on_error=name_error_handler,
@@ -62,7 +62,7 @@ quiz_dod_dialog = Dialog(
         state=QuizDodSG.name,
     ),
     Window(
-        Const("Введи свой номер телефона:"),
+        Const("Напиши номер телефона в формате <b>+7XXXXXXXXXX</b>."),
         TextInput(
             id="Q_DOD_phone",
             on_error=phone_error_handler,
@@ -73,7 +73,7 @@ quiz_dod_dialog = Dialog(
         state=QuizDodSG.phone,
     ),
     Window(
-        Const("Введи свою электронную почту:"),
+        Const("Укажи действующий e-mail. Не волнуйся, мы не отправляем спам."),
         TextInput(
             id="Q_DOD_email",
             on_error=email_error_handler,
