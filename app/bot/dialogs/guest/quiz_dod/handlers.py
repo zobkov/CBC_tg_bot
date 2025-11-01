@@ -389,11 +389,11 @@ async def on_quiz_answer_selected(
 
 Ниже – один из стикеров. Сохраняй скорей и используй его в чатах и комментариях – пусть все знают, что ты на стороне КБК 💪🏻""")
 
-        await callback.message.answer(
-            "Хочешь персональный сертификат? Просто нажми кнопку «Получить сертификат» ниже 👇"
-        )
+        await asyncio.sleep(5)
 
         await callback.message.answer_sticker('CAACAgIAAxkBAAETmC9pBlc9BAjTquUvcGJ0a04ZH4g6dAACwGoAAkEIMElCkBSwcWM0rDYE')
+
+        await asyncio.sleep(2)
 
         await dialog_manager.switch_to(
             QuizDodSG.RESULTS,
