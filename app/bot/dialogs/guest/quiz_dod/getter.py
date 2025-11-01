@@ -1,10 +1,39 @@
+import logging
+
 from aiogram_dialog import DialogManager
 
+from app.infrastructure.database.database.db import DB
+
 from .questions import QUESTIONS
+
+logger = logging.getLogger(__name__)
+
+
+async def _ensure_best_score(dialog_manager: DialogManager) -> None:
+	"""Гарантирует наличие лучшего результата в состоянии диалога."""
+	if "quiz_dod_score" in dialog_manager.dialog_data:
+		return
+
+	db: DB | None = dialog_manager.middleware_data.get("db")
+	event = getattr(dialog_manager, "event", None)
+	user = getattr(event, "from_user", None) if event else None
+
+	if not db or not user:
+		return
+
+	try:
+		best_score = await db.quiz_dod.get_best_result(user_id=user.id)
+	except Exception:
+		logger.exception("[QUIZ_DOD] Failed to load best score for user=%s", getattr(user, "id", "unknown"))
+		return
+
+	if best_score is not None:
+		dialog_manager.dialog_data["quiz_dod_score"] = best_score
 
 
 async def get_intro_data(dialog_manager: DialogManager, **kwargs) -> dict:
 	"""Подготавливает данные для стартового окна квиза."""
+	await _ensure_best_score(dialog_manager)
 	best_score = dialog_manager.dialog_data.get("quiz_dod_score")
 	return {
 		"best_score": best_score,
@@ -33,6 +62,7 @@ async def get_question_data(dialog_manager: DialogManager, **kwargs) -> dict:
 
 async def get_results_data(dialog_manager: DialogManager, **kwargs) -> dict:
 	"""Готовит данные для окна с результатами квиза."""
+	await _ensure_best_score(dialog_manager)
 	score = dialog_manager.dialog_data.get("quiz_dod_last_score", 0)
 	best_score = dialog_manager.dialog_data.get("quiz_dod_score")
 	name = dialog_manager.dialog_data.get("quiz_dod_name", "друг")

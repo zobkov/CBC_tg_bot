@@ -4,6 +4,8 @@ from app.infrastructure.database.database.users import _UsersDB
 from app.infrastructure.database.database.applications import _ApplicationsDB
 from app.infrastructure.database.database.evaluated_applications import _EvaluatedApplicationsDB
 from app.infrastructure.database.database.task_statistics import _TaskStatisticsDB
+from app.infrastructure.database.database.quiz_dod import _QuizDodDB
+from app.infrastructure.database.database.quiz_dod_users_info import _QuizDodUsersInfoDB
 
 
 class DB:
@@ -13,3 +15,5 @@ class DB:
         self.applications = _ApplicationsDB(connection=applications_connection)
         self.evaluated_applications = _EvaluatedApplicationsDB(connection=applications_connection)
         self.task_statistics = _TaskStatisticsDB(connection=applications_connection)
+        self.quiz_dod = _QuizDodDB(connection=applications_connection)
+        self.quiz_dod_users_info = _QuizDodUsersInfoDB(connection=applications_connection)

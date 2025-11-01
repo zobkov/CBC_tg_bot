@@ -8,6 +8,7 @@ from better_profanity import profanity
 from aiogram_dialog import DialogManager, ShowMode
 from aiogram_dialog.widgets.kbd import Button, Select
 
+from app.infrastructure.database.database.db import DB
 from .questions import QUESTIONS
 from .states import QuizDodSG
 
@@ -95,9 +96,44 @@ def _reset_quiz_progress(manager: DialogManager) -> None:
     manager.dialog_data["quiz_dod_best_updated"] = False
 
 
-async def mock_save_quiz_result(user_id: int, score: int) -> None:
-    """Мок сохранения результата квиза в базу данных."""
-    logger.info("[QUIZ_DOD][MOCK] Save result user=%s score=%s", user_id, score)
+async def save_quiz_result(dialog_manager: DialogManager, user_id: int, score: int) -> None:
+    """Сохраняет лучший результат квиза в базе данных."""
+    db: DB | None = dialog_manager.middleware_data.get("db")
+    if not db:
+        logger.warning("[QUIZ_DOD] Database unavailable; skip saving for user=%s", user_id)
+        return
+
+    try:
+        await db.quiz_dod.upsert_best_result(user_id=user_id, quiz_result=score)
+        logger.info("[QUIZ_DOD] Save result user=%s score=%s", user_id, score)
+    except Exception:
+        logger.exception("[QUIZ_DOD] Failed to save quiz result user=%s score=%s", user_id, score)
+
+
+async def save_user_info(
+    dialog_manager: DialogManager,
+    user_id: int,
+    *,
+    full_name: str,
+    phone: str,
+    email: str,
+) -> None:
+    """Сохраняет информацию пользователя из мини-анкеты."""
+    db: DB | None = dialog_manager.middleware_data.get("db")
+    if not db:
+        logger.warning("[QUIZ_DOD] Database unavailable; skip saving user info for user=%s", user_id)
+        return
+
+    try:
+        await db.quiz_dod_users_info.upsert_user_info(
+            user_id=user_id,
+            full_name=full_name,
+            phone=phone,
+            email=email,
+        )
+        logger.info("[QUIZ_DOD] Saved user info user=%s", user_id)
+    except Exception:
+        logger.exception("[QUIZ_DOD] Failed to save user info user=%s", user_id)
 
 
 async def on_quiz_start(
@@ -143,6 +179,25 @@ async def on_email_entered(
 ):
     dialog_manager.dialog_data["quiz_dod_email"] = value
     dialog_manager.dialog_data["quiz_dod_last_score"] = 0
+
+    user = message.from_user
+    if user:
+        full_name = dialog_manager.dialog_data.get("quiz_dod_name", "")
+        phone = dialog_manager.dialog_data.get("quiz_dod_phone", "")
+        try:
+            await save_user_info(
+                dialog_manager,
+                user.id,
+                full_name=full_name,
+                phone=phone,
+                email=value,
+            )
+        except Exception:
+            # Ошибку уже залогировали внутри save_user_info
+            pass
+    else:
+        logger.warning("[QUIZ_DOD] Can't save user info: message.from_user missing")
+
     _reset_quiz_progress(dialog_manager)
     await dialog_manager.switch_to(
         QuizDodSG.QUESTIONS,
@@ -189,7 +244,8 @@ async def on_quiz_answer_selected(
         else:
             dialog_data["quiz_dod_best_updated"] = False
 
-        await mock_save_quiz_result(callback.from_user.id, score)
+        if dialog_data["quiz_dod_best_updated"]:
+            await save_quiz_result(dialog_manager, callback.from_user.id, score)
 
         await callback.message.answer("""Мы очень ценим твою активность ❤️ 
 
