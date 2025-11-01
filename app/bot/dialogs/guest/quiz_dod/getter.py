@@ -66,7 +66,7 @@ async def get_results_data(dialog_manager: DialogManager, **kwargs) -> dict:
 	score = dialog_manager.dialog_data.get("quiz_dod_last_score", 0)
 	best_score = dialog_manager.dialog_data.get("quiz_dod_score")
 	name = dialog_manager.dialog_data.get("quiz_dod_name", "друг")
-	passed_threshold = score >= len(QUESTIONS)
+	passed_threshold = score >= len(QUESTIONS)-1
 
 	return {
 		"name": name,
