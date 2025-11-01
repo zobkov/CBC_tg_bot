@@ -183,6 +183,14 @@ async def on_quiz_answer_selected(
 
         await mock_save_quiz_result(callback.from_user.id, score)
 
+        await callback.message.answer("""Мы очень ценим твою активность ❤️ 
+
+В знак благодарности приготовили для тебя небольшой подарок – цифровой стикерпак с нашим маскотом 
+
+Ниже – один из стикеров. Сохраняй скорей и используй его в чатах и комментариях – пусть все знают, что ты на стороне КБК 💪🏻""")
+
+        await callback.message.answer_sticker('CAACAgIAAxkBAAETmC9pBlc9BAjTquUvcGJ0a04ZH4g6dAACwGoAAkEIMElCkBSwcWM0rDYE')
+
         await dialog_manager.switch_to(
             QuizDodSG.RESULTS,
             show_mode=ShowMode.DELETE_AND_SEND,
