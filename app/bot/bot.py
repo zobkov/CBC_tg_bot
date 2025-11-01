@@ -140,19 +140,14 @@ async def main():
     
     # Настраиваем админские команды
     admin_commands_router = setup_admin_commands_router(config.admin_ids)
-    
-    # Подключаем роутеры системы ролей (в правильном порядке приоритета)
+
     dp.include_routers(
         admin_commands_router,  # Команды админов /lock /unlock /status
-        public_router,          # Публичные команды (/start, /help, /whoami)
-        admin_router,           # Админские команды и функции
-        staff_router,           # Функции для сотрудников
-        volunteer_router,       # Функции для волонтёров  
-        guest_router,           # Функции для гостей
-        commands_router,        # Существующие команды (legacy)
-        feedback_callbacks_router
-    )
-    
+        #commands_router,        # Существующие команды (legacy)
+        public_router,      
+    )    
+
+
     dp.include_routers(
         test_dialog,
         start_dialog,
@@ -164,10 +159,20 @@ async def main():
         feedback_dialog,
         # Новые role-based диалоги
         guest_menu_dialog,
-    quiz_dod_dialog,
+        quiz_dod_dialog,
         volunteer_menu_dialog,
-        staff_menu_dialog
-                       )
+        staff_menu_dialog,
+    )
+
+    # Остальные роутеры обрабатывают произвольные апдейты и должны идти после диалогов
+    dp.include_routers(
+            # Публичные команды (/start, /help, /whoami)
+        admin_router,           # Админские команды и функции
+        staff_router,           # Функции для сотрудников
+        volunteer_router,       # Функции для волонтёров  
+        guest_router,           # Функции для гостей
+        feedback_callbacks_router,
+    )
 
     logger.info("Including middlewares")
     # Добавляем middleware блокировки ПЕРВЫМ (ДО всех остальных)

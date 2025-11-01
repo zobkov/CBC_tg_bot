@@ -42,9 +42,11 @@ async def email_error_handler(
 
 # Type factory
 
-async def name_check(value: str) -> str:
+def name_check(value: str) -> str:
     profanity.load_censor_words()
     name = value.strip()
+
+    logger.debug(f"Profanity is in name: {profanity.censor(name)}")
 
     if not name:
         raise ValueError("Имя не может быть пустым")
@@ -52,10 +54,9 @@ async def name_check(value: str) -> str:
         raise ValueError("Имя должно содержать минимум 2 символа")
     if profanity.contains_profanity(name):
         raise ValueError("Имя не может содержать нецензурных выражений!")
-    
     return name
 
-async def email_check(value: str) -> str:
+def email_check(value: str) -> str:
     import re
     email = value.strip().lower()
     
@@ -65,7 +66,7 @@ async def email_check(value: str) -> str:
     
     return email
 
-async def phone_check(value: str) -> str:
+def phone_check(value: str) -> str:
     import re
     phone = re.sub(r'[^\d+]', '', value)  # Удаляем все кроме цифр и +
     

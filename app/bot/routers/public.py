@@ -185,11 +185,3 @@ async def whoami_command(message: Message, current_user=None, roles: set[str] = 
     
     await message.answer(info_text)
 
-
-# Debug handler в самом конце, чтобы не блокировать другие команды
-@router.message()
-async def debug_all_messages(message: Message):
-    """Debug: все сообщения"""
-    # Если сообщение не обработано другими хендлерами, отвечаем
-    if message.text and message.text.startswith('/'):
-        await message.answer(f"❓ Команда '{message.text}' не распознана. Используйте /help для справки.")
