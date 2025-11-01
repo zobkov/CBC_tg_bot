@@ -58,7 +58,6 @@ quiz_dod_dialog = Dialog(
             on_success=on_name_entered,
             type_factory=name_check,
         ),
-        Cancel(Const("🏠 В личный кабинет"), id="quiz_dod_cancel_name"),
         state=QuizDodSG.name,
     ),
     Window(
@@ -69,7 +68,6 @@ quiz_dod_dialog = Dialog(
             on_success=on_phone_entered,
             type_factory=phone_check,
         ),
-        Cancel(Const("🏠 В личный кабинет"), id="quiz_dod_cancel_phone"),
         state=QuizDodSG.phone,
     ),
     Window(
@@ -80,7 +78,6 @@ quiz_dod_dialog = Dialog(
             on_success=on_email_entered,
             type_factory=email_check,
         ),
-        Cancel(Const("🏠 В личный кабинет"), id="quiz_dod_cancel_email"),
         state=QuizDodSG.email,
     ),
     Window(
@@ -101,7 +98,6 @@ quiz_dod_dialog = Dialog(
             ),
             width=1,
         ),
-        Cancel(Const("🏠 В личный кабинет"), id="quiz_dod_cancel_questions"),
         state=QuizDodSG.QUESTIONS,
         getter=get_question_data,
     ),
