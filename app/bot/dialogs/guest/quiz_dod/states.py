@@ -8,5 +8,6 @@ class QuizDodSG(StatesGroup):
     name = State()
     phone = State()
     email = State()
+    education = State()
     QUESTIONS = State()
     RESULTS = State()

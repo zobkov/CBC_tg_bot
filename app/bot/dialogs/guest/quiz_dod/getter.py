@@ -67,6 +67,27 @@ async def get_results_data(dialog_manager: DialogManager, **kwargs) -> dict:
 	best_score = dialog_manager.dialog_data.get("quiz_dod_score")
 	name = dialog_manager.dialog_data.get("quiz_dod_name", "друг")
 	passed_threshold = score >= len(QUESTIONS)-1
+	certificate_requested = dialog_manager.dialog_data.get("quiz_dod_certificate_sent")
+
+	if certificate_requested is None:
+		db: DB | None = dialog_manager.middleware_data.get("db")
+		event = getattr(dialog_manager, "event", None)
+		user = getattr(event, "from_user", None) if event else None
+
+		if db and user:
+			try:
+				certificate_requested = await db.quiz_dod_users_info.get_certificate_status(user.id)
+			except Exception:
+				logger.exception(
+					"[QUIZ_DOD] Failed to load certificate status for user=%s",
+					getattr(user, "id", "unknown"),
+				)
+				certificate_requested = None
+
+		if certificate_requested is None:
+			certificate_requested = False
+		else:
+			dialog_manager.dialog_data["quiz_dod_certificate_sent"] = certificate_requested
 
 	return {
 		"name": name,
@@ -76,4 +97,5 @@ async def get_results_data(dialog_manager: DialogManager, **kwargs) -> dict:
 		"has_previous_score": best_score is not None,
 		"passed_threshold": passed_threshold,
 		"best_updated": dialog_manager.dialog_data.get("quiz_dod_best_updated", False),
+		"can_request_certificate": not certificate_requested,
 	}

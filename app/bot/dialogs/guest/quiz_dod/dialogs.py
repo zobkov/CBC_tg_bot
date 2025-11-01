@@ -1,7 +1,7 @@
 
 from aiogram_dialog import Dialog, Window
 from aiogram_dialog.widgets.input import TextInput
-from aiogram_dialog.widgets.kbd import Button, Cancel, Group, Select, Row
+from aiogram_dialog.widgets.kbd import Button, Cancel, Group, Select, Row, Column
 from aiogram_dialog.widgets.text import Const, Format, Multi
 from magic_filter import F
 
@@ -9,9 +9,13 @@ from .getter import get_intro_data, get_question_data, get_results_data
 from .handlers import (
     email_check,
     email_error_handler,
+    education_check,
+    education_error_handler,
     name_check,
     name_error_handler,
+    on_certificate_requested,
     on_email_entered,
+    on_education_entered,
     on_name_entered,
     on_phone_entered,
     on_quiz_answer_selected,
@@ -43,7 +47,7 @@ quiz_dod_dialog = Dialog(
             ),
             sep="\n\n",
         ),
-        Row(
+        Column(
             Button(Const("Начать квиз"), id="quiz_dod_start", on_click=on_quiz_start),
             Cancel(Const("🏠 В личный кабинет"), id="quiz_dod_cancel_main"),
         ),
@@ -51,44 +55,51 @@ quiz_dod_dialog = Dialog(
         getter=get_intro_data,
     ),
     Window(
-        Const("Введи своё имя и фамилию:"),
+        Const("Напиши свою фамилию, имя и отчество полностью."),
         TextInput(
             id="Q_DOD_name",
             on_error=name_error_handler,
             on_success=on_name_entered,
             type_factory=name_check,
         ),
-        Cancel(Const("🏠 В личный кабинет"), id="quiz_dod_cancel_name"),
         state=QuizDodSG.name,
     ),
     Window(
-        Const("Введи свой номер телефона:"),
+        Const("Напиши номер телефона в формате <b>+7XXXXXXXXXX</b>."),
         TextInput(
             id="Q_DOD_phone",
             on_error=phone_error_handler,
             on_success=on_phone_entered,
             type_factory=phone_check,
         ),
-        Cancel(Const("🏠 В личный кабинет"), id="quiz_dod_cancel_phone"),
         state=QuizDodSG.phone,
     ),
     Window(
-        Const("Введи свою электронную почту:"),
+        Const("Укажи действующий e-mail. Не волнуйся, мы не отправляем спам."),
         TextInput(
             id="Q_DOD_email",
             on_error=email_error_handler,
             on_success=on_email_entered,
             type_factory=email_check,
         ),
-        Cancel(Const("🏠 В личный кабинет"), id="quiz_dod_cancel_email"),
         state=QuizDodSG.email,
+    ),
+    Window(
+        Const("Укажи школу / университет, класс / курс.\n\nНапример: <b>ГБОУ СОШ №241, 11 класс</b>  /  <b>ВШМ СПбГУ, 1 курс, Международный Менеджмент.</b>"),
+        TextInput(
+            id="Q_DOD_education",
+            on_error=education_error_handler,
+            on_success=on_education_entered,
+            type_factory=education_check,   
+        ),
+        state=QuizDodSG.education,
     ),
     Window(
         Multi(
             Const("<b>Квиз КБК</b>"),
             Format("<b>{current_question}/{max_questions}</b>"),
             Format("❓ <i>{question_text}</i>\n"),
-            Format("{answer_options}"), # TODO
+            Format("{answer_options}"),
             sep="\n\n",
         ),
         Group(
@@ -101,7 +112,6 @@ quiz_dod_dialog = Dialog(
             ),
             width=1,
         ),
-        Cancel(Const("🏠 В личный кабинет"), id="quiz_dod_cancel_questions"),
         state=QuizDodSG.QUESTIONS,
         getter=get_question_data,
     ),
@@ -135,11 +145,17 @@ quiz_dod_dialog = Dialog(
             ),
             sep="\n\n",
         ),
-        Row(
+        Column(
             Button(
                 Const("Перепройти квиз"),
                 id="quiz_dod_restart",
                 on_click=on_quiz_restart,
+            ),
+            Button(
+                Const("Получить сертификат"),
+                id="quiz_dod_get_certificate",
+                on_click=on_certificate_requested,
+                when="can_request_certificate",
             ),
             Cancel(Const("🏠 В личный кабинет"), id="quiz_dod_cancel_results"),
         ),

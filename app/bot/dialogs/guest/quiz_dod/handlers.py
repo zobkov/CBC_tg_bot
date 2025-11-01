@@ -60,6 +60,14 @@ async def email_error_handler(
 ):
     message.answer(f"{error_}")
 
+async def education_error_handler(
+    message: Message,
+    dialog_: Any,
+    manager: DialogManager,
+    error_: ValueError
+):
+    message.answer(f"{error_}")
+
 # Type factory
 
 def name_check(value: str) -> str:
@@ -108,6 +116,18 @@ def phone_check(value: str) -> str:
     return phone
 
 
+def education_check(value: str) -> str:
+    education = value.strip()
+
+    if not education:
+        raise ValueError("Поле не может быть пустым. Пожалуйста, укажи учебное заведение и курс или класс.")
+
+    if len(education) < 3:
+        raise ValueError("Укажи, пожалуйста, полное название учебного заведения и класс/курс.")
+
+    return education
+
+
 def _reset_quiz_progress(manager: DialogManager) -> None:
     """Сбрасывает прогресс квиза перед новым прохождением."""
     manager.dialog_data["quiz_dod_question_index"] = 0
@@ -115,12 +135,15 @@ def _reset_quiz_progress(manager: DialogManager) -> None:
     manager.dialog_data["quiz_dod_best_updated"] = False
 
 
-async def _send_quiz_certificate(message: Message, dialog_manager: DialogManager) -> None:
+async def _send_quiz_certificate(message: Message, dialog_manager: DialogManager) -> bool:
     """Генерирует персональный сертификат и отправляет его пользователю."""
     full_name = dialog_manager.dialog_data.get("quiz_dod_name")
     if not full_name:
         logger.warning("[QUIZ_DOD] Skip certificate generation: name missing in dialog data")
-        return
+        await message.answer(
+            "Не получилось найти твои данные для сертификата. Попробуй пройти квиз ещё раз, пожалуйста."
+        )
+        return False
 
     loop = asyncio.get_running_loop()
     try:
@@ -137,13 +160,15 @@ async def _send_quiz_certificate(message: Message, dialog_manager: DialogManager
         await message.answer(
             "Служебная информация для команды поддержки:\n" f"{exc}",
         )
-        return
+        return False
 
+    success = False
     try:
         await message.answer_document(
             document=FSInputFile(certificate_path),
             caption="Твой персональный сертификат участника квиза! 🎉",
         )
+        success = True
     except Exception:  # noqa: BLE001 - важно залогировать полную ошибку
         logger.exception("[QUIZ_DOD] Failed to send certificate %s", certificate_path)
         await message.answer(
@@ -157,6 +182,8 @@ async def _send_quiz_certificate(message: Message, dialog_manager: DialogManager
                 "[QUIZ_DOD] Unable to remove temporary certificate file %s",
                 certificate_path,
             )
+
+    return success
 
 
 async def save_quiz_result(dialog_manager: DialogManager, user_id: int, score: int) -> None:
@@ -180,6 +207,7 @@ async def save_user_info(
     full_name: str,
     phone: str,
     email: str,
+    education: str,
 ) -> None:
     """Сохраняет информацию пользователя из мини-анкеты."""
     db: DB | None = dialog_manager.middleware_data.get("db")
@@ -193,10 +221,41 @@ async def save_user_info(
             full_name=full_name,
             phone=phone,
             email=email,
+            education=education,
         )
         logger.info("[QUIZ_DOD] Saved user info user=%s", user_id)
     except Exception:
         logger.exception("[QUIZ_DOD] Failed to save user info user=%s", user_id)
+
+
+async def on_certificate_requested(
+    callback: CallbackQuery,
+    button: Button,
+    dialog_manager: DialogManager,
+    **kwargs,
+):
+    await callback.answer()
+
+    if dialog_manager.dialog_data.get("quiz_dod_certificate_sent"):
+        await callback.message.answer("Мы уже отправили тебе сертификат. Проверь чат 📄")
+        return
+
+    certificate_sent = await _send_quiz_certificate(callback.message, dialog_manager)
+    if not certificate_sent:
+        return
+
+    dialog_manager.dialog_data["quiz_dod_certificate_sent"] = True
+
+    db: DB | None = dialog_manager.middleware_data.get("db")
+    user = callback.from_user
+
+    if db and user:
+        try:
+            await db.quiz_dod_users_info.mark_certificate_requested(user.id)
+        except Exception:
+            logger.exception("[QUIZ_DOD] Failed to mark certificate requested for user=%s", user.id)
+
+    await callback.message.answer("Готово! Сертификат уже у тебя 🎉")
 
 
 async def on_quiz_start(
@@ -242,19 +301,32 @@ async def on_email_entered(
     **kwargs,
 ):
     dialog_manager.dialog_data["quiz_dod_email"] = value
+    await dialog_manager.next()
+
+
+async def on_education_entered(
+    message: Message,
+    widget,
+    dialog_manager: DialogManager,
+    value: str,
+    **kwargs,
+):
+    dialog_manager.dialog_data["quiz_dod_education"] = value
     dialog_manager.dialog_data["quiz_dod_last_score"] = 0
 
     user = message.from_user
     if user:
         full_name = dialog_manager.dialog_data.get("quiz_dod_name", "")
         phone = dialog_manager.dialog_data.get("quiz_dod_phone", "")
+        email = dialog_manager.dialog_data.get("quiz_dod_email", "")
         try:
             await save_user_info(
                 dialog_manager,
                 user.id,
                 full_name=full_name,
                 phone=phone,
-                email=value,
+                email=email,
+                education=value,
             )
         except Exception:
             # Ошибку уже залогировали внутри save_user_info
@@ -265,7 +337,7 @@ async def on_email_entered(
     _reset_quiz_progress(dialog_manager)
     await dialog_manager.switch_to(
         QuizDodSG.QUESTIONS,
-        show_mode=ShowMode.DELETE_AND_SEND,
+        show_mode=ShowMode.SEND,
     )
 
 
@@ -311,15 +383,17 @@ async def on_quiz_answer_selected(
         if dialog_data["quiz_dod_best_updated"]:
             await save_quiz_result(dialog_manager, callback.from_user.id, score)
 
-        await _send_quiz_certificate(callback.message, dialog_manager)
-
         await callback.message.answer("""Мы очень ценим твою активность ❤️ 
 
 В знак благодарности приготовили для тебя небольшой подарок – цифровой стикерпак с нашим маскотом 
 
 Ниже – один из стикеров. Сохраняй скорей и используй его в чатах и комментариях – пусть все знают, что ты на стороне КБК 💪🏻""")
 
+        await asyncio.sleep(5)
+
         await callback.message.answer_sticker('CAACAgIAAxkBAAETmC9pBlc9BAjTquUvcGJ0a04ZH4g6dAACwGoAAkEIMElCkBSwcWM0rDYE')
+
+        await asyncio.sleep(2)
 
         await dialog_manager.switch_to(
             QuizDodSG.RESULTS,
