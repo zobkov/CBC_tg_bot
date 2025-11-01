@@ -84,12 +84,12 @@ quiz_dod_dialog = Dialog(
         state=QuizDodSG.email,
     ),
     Window(
-        Const("Укажи университет или школу, класс или курс.\n\nНапример: ГБОУ СОШ №241, 11 класс; или ВШМ СПбГУ, 1 курс, Международный Менеджмент."),
+        Const("Укажи школу / университет, класс / курс.\n\nНапример: <b>ГБОУ СОШ №241, 11 класс</b>  /  <b>ВШМ СПбГУ, 1 курс, Международный Менеджмент.</b>"),
         TextInput(
             id="Q_DOD_education",
             on_error=education_error_handler,
             on_success=on_education_entered,
-            type_factory=education_check,
+            type_factory=education_check,   
         ),
         state=QuizDodSG.education,
     ),
@@ -144,12 +144,13 @@ quiz_dod_dialog = Dialog(
             ),
             sep="\n\n",
         ),
-        Row(
+        Column(
             Button(
                 Const("Перепройти квиз"),
                 id="quiz_dod_restart",
                 on_click=on_quiz_restart,
             ),
+            Button(Const("Получить сертификат")), # TODO move the generating and sending of certificate here. also add column to DB quiz_dod_users_info requested_certificate with bool values. Default is false. Here it is updated to true 
             Cancel(Const("🏠 В личный кабинет"), id="quiz_dod_cancel_results"),
         ),
         state=QuizDodSG.RESULTS,
