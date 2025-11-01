@@ -31,7 +31,7 @@ guest_menu_dialog = Dialog(
         ),
         Row(
             Start(
-                Const("🎯 Квиз ДОД"),
+                Const("🎯 Квиз КБК"),
                 id="quiz_dod_button",
                 state=QuizDodSG.MAIN,
             ),

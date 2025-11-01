@@ -1,12 +1,14 @@
 from aiogram_dialog import Dialog, Window
-from aiogram_dialog.widgets.kbd import Row, Back, SwitchTo
+from aiogram_dialog.widgets.kbd import Row, Back, SwitchTo, Start
 from aiogram_dialog.widgets.text import Format, Const
 from aiogram_dialog.widgets.media import DynamicMedia, StaticMedia
 
+from app.bot.dialogs.guest.quiz_dod.states import QuizDodSG
 
 from .states import StaffMenuSG
 
 from .getters import get_current_stage_info, get_application_status, get_support_contacts, get_main_menu_media, get_task_button_info, get_interview_button_info, get_feedback_button_info, get_interview_datetime_info
+
 
 
 staff_menu_dialog = Dialog(
@@ -19,6 +21,13 @@ staff_menu_dialog = Dialog(
 Пройди анкетирование: 
 🔗 https://forms.yandex.ru/cloud/68eeb01402848ff3fe9134ee
 """
+        ),
+        Row(
+            Start(
+                Const("🎯 Квиз КБК"),
+                id="quiz_dod_button",
+                state=QuizDodSG.MAIN,
+            ),
         ),
         Row(
             SwitchTo(

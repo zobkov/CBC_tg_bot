@@ -85,7 +85,7 @@ quiz_dod_dialog = Dialog(
     ),
     Window(
         Multi(
-            Const("<b>Квиз от КБК</b>"),
+            Const("<b>Квиз КБК</b>"),
             Format("<b>{current_question}/{max_questions}</b>"),
             Format("❓ <i>{question_text}</i>\n"),
             Format("{answer_options}"), # TODO
