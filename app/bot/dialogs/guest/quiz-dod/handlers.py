@@ -17,7 +17,7 @@ async def name_error_handler(
         manager: DialogManager,
         error_: ValueError
 ):
-    NotImplemented # TODO
+    message.answer(f"{error_}")
 
 async def phone_error_handler(
         message: Message,
@@ -25,7 +25,7 @@ async def phone_error_handler(
         manager: DialogManager,
         error_: ValueError
 ):
-    NotImplemented # TODO
+    message.answer(f"{error_}")
 
 async def email_error_handler(
         message: Message,
@@ -33,7 +33,7 @@ async def email_error_handler(
         manager: DialogManager,
         error_: ValueError
 ):
-    NotImplemented # TODO
+    message.answer(f"{error_}")
 
 # Type factory
 

@@ -40,12 +40,12 @@ quiz_dod_dialog = Dialog(
 
     # name
     Window(
-        Const("Введи свое имя:"),
+        Const("Введи свое имя и фамилию:"),
         TextInput(
             id="Q_DOD_name",
             on_error=name_error_handler,
             on_success=Next(),
-            type_factory=name_type_factory,
+            type_factory=name_check,
         ),
     ),
     # telephone
@@ -53,9 +53,9 @@ quiz_dod_dialog = Dialog(
         Const("Введи свой номер телефона:"),
         TextInput(
             id="Q_DOD_phone",
-            on_error=error,
+            on_error=phone_error_handler,
             on_success=Next(),
-            type_factory=int,
+            type_factory=phone_check,
         ),
     ),
     # e-mail
@@ -63,9 +63,9 @@ quiz_dod_dialog = Dialog(
         Const("Введи свою электронную почту:"),
         TextInput(
             id="Q_DOD_email",
-            on_error=error,
+            on_error=email_error_handler,
             on_success=Next(),
-            type_factory=int,
+            type_factory=email_check,
         ),
     ),
 
