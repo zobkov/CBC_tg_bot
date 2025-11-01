@@ -53,6 +53,7 @@ from app.bot.dialogs.legacy.feedback.dialogs import feedback_dialog
 
 # Новые role-based диалоги
 from app.bot.dialogs.guest.dialogs import guest_menu_dialog
+from app.bot.dialogs.guest.quiz_dod.dialogs import quiz_dod_dialog
 from app.bot.dialogs.volunteer.dialogs import volunteer_menu_dialog  
 from app.bot.dialogs.staff.dialogs import staff_menu_dialog
 
@@ -163,6 +164,7 @@ async def main():
         feedback_dialog,
         # Новые role-based диалоги
         guest_menu_dialog,
+    quiz_dod_dialog,
         volunteer_menu_dialog,
         staff_menu_dialog
                        )

@@ -107,6 +107,7 @@ async def on_quiz_start(
 ):
     await callback.answer()
     _reset_quiz_progress(dialog_manager)
+    dialog_manager.dialog_data["quiz_dod_last_score"] = 0
     await dialog_manager.switch_to(QuizDodSG.name)
 
 
