@@ -3,10 +3,11 @@ from typing import Any
 from aiogram.fsm.state import State, StatesGroup
 from aiogram.types import Message
 
+from better_profanity import profanity
+
 from aiogram_dialog import (
     DialogManager
 )
-
 
 
 # Input error handlers
@@ -38,12 +39,16 @@ async def email_error_handler(
 # Type factory
 
 async def name_check(value: str) -> str:
+    profanity.load_censor_words()
     name = value.strip()
 
     if not name:
         raise ValueError("Имя не может быть пустым")
     if len(name) < 2:
         raise ValueError("Имя должно содержать минимум 2 символа")
+    if profanity.contains_profanity(name):
+        raise ValueError("Имя не может содержать нецензурных выражений!")
+    
     return name
 
 async def email_check(value: str) -> str:

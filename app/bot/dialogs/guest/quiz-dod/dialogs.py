@@ -7,7 +7,7 @@ from aiogram_dialog.widgets.text import Format, Const
 from aiogram_dialog.widgets.media import DynamicMedia, StaticMedia
 from aiogram_dialog.widgets.input import TextInput
 
-from .getters import *
+# from .getters import *
 from .states import QuizDodSG
 from .handlers import (
     name_error_handler,
