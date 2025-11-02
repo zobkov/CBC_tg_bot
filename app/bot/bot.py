@@ -189,17 +189,7 @@ async def main():
     dp.update.middleware(DatabaseMiddleware())
     dp.update.middleware(user_ctx_middleware)
     
-    # Debug middleware для проверки после всех middleware
-    @dp.update.middleware()
-    async def post_dialog_debug_middleware(handler, event, data):
-        # Добавляем ссылку на UserCtxMiddleware и Redis в контекст
-        data["user_ctx_middleware"] = user_ctx_middleware
-        data["redis"] = redis_client
-        result = await handler(event, data)
-        return result
-
-    logger.info("Setting up dialogs")
-    # Настраиваем валидатор доступа для диалогов (по умолчанию разрешает всем кроме banned)
+    # Валидатор доступа для диалогов (по умолчанию разрешает всем кроме banned)
     access_validator = RolesAccessValidator()
     bg_factory = setup_dialogs(dp, stack_access_validator=access_validator)
     
