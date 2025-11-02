@@ -123,6 +123,7 @@ async def main():
     # Добавляем конфигурацию в диспетчер
     dp["config"] = config
     dp["bot"] = bot
+    dp["redis"] = redis_client
     
     # Подключение к базе данных заявок
     db_applications_pool = await get_pg_pool(
@@ -183,6 +184,7 @@ async def main():
     
     # Создаем middleware для ролей
     user_ctx_middleware = UserCtxMiddleware(redis=redis_client)
+    dp["user_ctx_middleware"] = user_ctx_middleware
     
     # Добавляем middleware для ролей ПОСЛЕ DatabaseMiddleware
     dp.update.middleware(ErrorHandlerMiddleware())
