@@ -1,19 +1,27 @@
 """
 DAO for feedback operations
 """
+import logging
 from typing import List, Dict, Any, Optional
+
 import psycopg_pool
 from psycopg import AsyncConnection
 
 from config.config import load_config, Config
 
 
+logger = logging.getLogger(__name__)
+
+
 class FeedbackDAO:
     """Data Access Object for feedback operations"""
     
-    def __init__(self, db_pool: psycopg_pool.AsyncConnectionPool, config: Config = None):
+    def __init__(self, db_pool: psycopg_pool.AsyncConnectionPool, config: Optional[Config] = None):
         self.db_pool = db_pool
-        self.config = config or load_config()
+        if config is None:
+            logger.debug("FeedbackDAO initialized without explicit config, falling back to cached config")
+            config = load_config()
+        self.config = config
     
     async def get_user_feedback_positions(self, user_id: int) -> List[Dict[str, Any]]:
         """Get positions with available feedback for user"""

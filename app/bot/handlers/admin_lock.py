@@ -120,13 +120,19 @@ def setup_admin_commands_router(admin_ids: list[int]) -> Router:
         )
     
     @admin_commands_router.message(Command("ch_roles"), admin_check)
-    async def cmd_change_roles(message: Message, db, **kwargs):
+    async def cmd_change_roles(
+        message: Message,
+        db,
+        user_ctx_middleware=None,
+        redis=None,
+        **kwargs,
+    ):
         """Команда /ch_roles - переключает роли между Staff и Guest"""
         logger.info(f"Админ {message.from_user.id} выполняет команду /ch_roles")
         
-        # Получаем middleware и Redis из kwargs
-        user_ctx_middleware = kwargs.get("user_ctx_middleware")
-        redis_client = kwargs.get("redis")
+        # Получаем middleware и Redis из зависимостей/kwargs
+        user_ctx_middleware = user_ctx_middleware or kwargs.get("user_ctx_middleware")
+        redis_client = redis or kwargs.get("redis")
         logger.debug(f"user_ctx_middleware получен: {user_ctx_middleware is not None}")
         logger.debug(f"redis_client получен: {redis_client is not None}")
         

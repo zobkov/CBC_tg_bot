@@ -123,6 +123,7 @@ async def main():
     # Добавляем конфигурацию в диспетчер
     dp["config"] = config
     dp["bot"] = bot
+    dp["redis"] = redis_client
     
     # Подключение к базе данных заявок
     db_applications_pool = await get_pg_pool(
@@ -183,23 +184,14 @@ async def main():
     
     # Создаем middleware для ролей
     user_ctx_middleware = UserCtxMiddleware(redis=redis_client)
+    dp["user_ctx_middleware"] = user_ctx_middleware
     
     # Добавляем middleware для ролей ПОСЛЕ DatabaseMiddleware
     dp.update.middleware(ErrorHandlerMiddleware())
     dp.update.middleware(DatabaseMiddleware())
     dp.update.middleware(user_ctx_middleware)
     
-    # Debug middleware для проверки после всех middleware
-    @dp.update.middleware()
-    async def post_dialog_debug_middleware(handler, event, data):
-        # Добавляем ссылку на UserCtxMiddleware и Redis в контекст
-        data["user_ctx_middleware"] = user_ctx_middleware
-        data["redis"] = redis_client
-        result = await handler(event, data)
-        return result
-
-    logger.info("Setting up dialogs")
-    # Настраиваем валидатор доступа для диалогов (по умолчанию разрешает всем кроме banned)
+    # Валидатор доступа для диалогов (по умолчанию разрешает всем кроме banned)
     access_validator = RolesAccessValidator()
     bg_factory = setup_dialogs(dp, stack_access_validator=access_validator)
     

@@ -36,12 +36,16 @@ class DatabaseMiddleware(BaseMiddleware):
         db_applications_pool = None
         bot = None
         config = None
-        
+        redis_client = None
+        user_ctx_middleware = None
+
         if dispatcher:
             db_pool = dispatcher.get("db")
             db_applications_pool = dispatcher.get("db_applications")
             bot = dispatcher.get("bot")
             config = dispatcher.get("config")
+            redis_client = dispatcher.get("redis")
+            user_ctx_middleware = dispatcher.get("user_ctx_middleware")
         
         # Если не нашли в диспетчере, попробуем в самих данных
         if not db_pool:
@@ -55,6 +59,10 @@ class DatabaseMiddleware(BaseMiddleware):
             
         if not config:
             config = data.get("config")
+        if not redis_client:
+            redis_client = data.get("redis")
+        if not user_ctx_middleware:
+            user_ctx_middleware = data.get("user_ctx_middleware")
         
         if not db_applications_pool:
             logger.warning("Пул соединений с БД заявок не найден в middleware")
@@ -100,6 +108,10 @@ class DatabaseMiddleware(BaseMiddleware):
                         data["bot"] = bot
                     if config:
                         data["config"] = config
+                    if redis_client:
+                        data["redis"] = redis_client
+                    if user_ctx_middleware:
+                        data["user_ctx_middleware"] = user_ctx_middleware
                     
                     logger.debug(f"🎯 Вызываем обработчик для пользователя {user.id}")
                     

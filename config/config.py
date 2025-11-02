@@ -1,13 +1,12 @@
 import logging
-from datetime import datetime
-from typing import Optional, Dict, Any
 import os
 import json
+from dataclasses import dataclass, field
+from typing import Optional, Dict, Any
+
 from environs import Env
 
 logger = logging.getLogger(__name__)
-
-from dataclasses import dataclass, field
 
 @dataclass
 class DatabaseConfig:
@@ -61,21 +60,27 @@ class Config:
     google: Optional[GoogleConfig] = None
     admin_ids: list[int] = field(default_factory=list)
 
-def load_config(path: str = None) -> Config:
+
+_CONFIG_CACHE: Optional[Config] = None
+
+
+def _build_config(path: str | None = None) -> Config:
     # Загружаем JSON конфигурацию
-    config_path = os.path.join(os.path.dirname(__file__), 'selection_config.json')
-    with open(config_path, 'r', encoding='utf-8') as f:
-        json_config = json.load(f)
-    
+    config_path = os.path.join(os.path.dirname(__file__), "selection_config.json")
+    with open(config_path, "r", encoding="utf-8") as file:
+        json_config = json.load(file)
+
     # Загружаем departments.json с под-отделами
-    departments_path = os.path.join(os.path.dirname(__file__), 'departments.json')
-    with open(departments_path, 'r', encoding='utf-8') as f:
-        departments_config = json.load(f)
-    
+    departments_path = os.path.join(os.path.dirname(__file__), "departments.json")
+    with open(departments_path, "r", encoding="utf-8") as file:
+        departments_config = json.load(file)
+
     # Загружаем переменные окружения для секретных данных
     env = Env()
-    env.read_env()
-    
+    if path:
+        env.read_env(path)
+    else:
+        env.read_env()
 
     tg_bot = TgBot(token=env.str("BOT_TOKEN"))
     db_config = DatabaseConfig(
@@ -83,61 +88,68 @@ def load_config(path: str = None) -> Config:
         password=env.str("DB_PASS"),
         database=env.str("DB_NAME"),
         host=env.str("DB_HOST"),
-        port=env.int("DB_PORT", 5432)
+        port=env.int("DB_PORT", 5432),
     )
-    
+
     db_applications_config = ApplicationsDatabaseConfig(
         user=env.str("DB_APPLICATIONS_USER"),
         password=env.str("DB_APPLICATIONS_PASS"),
         database=env.str("DB_APPLICATIONS_NAME"),
         host=env.str("DB_APPLICATIONS_HOST"),
-        port=env.int("DB_APPLICATIONS_PORT", 5432)
+        port=env.int("DB_APPLICATIONS_PORT", 5432),
     )
 
     redis = RedisConfig(
         host=env.str("REDIS_HOST"),
         port=env.int("REDIS_PORT", 6379),
-        password=env.str("REDIS_PASSWORD")
+        password=env.str("REDIS_PASSWORD"),
     )
-    
+
     # Настройки Google (опциональные)
     google_config = None
     credentials_path = env.str("GOOGLE_CREDENTIALS_PATH", None)
     spreadsheet_id = env.str("GOOGLE_SPREADSHEET_ID", None)
     drive_folder_id = env.str("GOOGLE_DRIVE_FOLDER_ID", None)
-    enable_drive = env.bool("GOOGLE_ENABLE_DRIVE", False)  # По умолчанию Drive отключен
-    
-    logger.info(f"Google credentials check: credentials_path={credentials_path}, spreadsheet_id={spreadsheet_id}")
-    logger.info(f"Google Drive settings: drive_folder_id={drive_folder_id}, enable_drive={enable_drive}")
-    
+    enable_drive = env.bool("GOOGLE_ENABLE_DRIVE", False)
+
+    logger.info(
+        "Google credentials check: credentials_path=%s, spreadsheet_id=%s",
+        credentials_path,
+        spreadsheet_id,
+    )
+    logger.info(
+        "Google Drive settings: drive_folder_id=%s, enable_drive=%s",
+        drive_folder_id,
+        enable_drive,
+    )
+
     if credentials_path and spreadsheet_id:
         google_config = GoogleConfig(
             credentials_path=credentials_path,
             spreadsheet_id=spreadsheet_id,
             drive_folder_id=drive_folder_id,
-            enable_drive=enable_drive
+            enable_drive=enable_drive,
         )
-        logger.info(f"Google config создан: {google_config}")
-        logger.info(f"Google Drive {'включен' if enable_drive else 'отключен'}")
+        logger.info("Google config создан: %s", google_config)
+        logger.info("Google Drive %s", "включен" if enable_drive else "отключен")
     else:
         logger.warning("Некоторые переменные Google не заданы, Google сервисы отключены")
-    
+
     selection_config = SelectionConfig(
         stages=json_config["selection_stages"],
-        departments=departments_config["departments"],  # Используем departments.json
+        departments=departments_config["departments"],
         how_found_options=json_config["how_found_options"],
-        support_contacts=json_config["support_contacts"]
+        support_contacts=json_config["support_contacts"],
     )
-    
-    # Получаем список ID администраторов
+
     admin_ids_str = env.str("ADMIN_IDS", "")
-    admin_ids = []
+    admin_ids: list[int] = []
     if admin_ids_str:
         try:
-            admin_ids = [int(x.strip()) for x in admin_ids_str.split(",") if x.strip()]
+            admin_ids = [int(value.strip()) for value in admin_ids_str.split(",") if value.strip()]
         except ValueError:
-            logger.warning(f"Некорректный формат ADMIN_IDS: {admin_ids_str}")
-    
+            logger.warning("Некорректный формат ADMIN_IDS: %s", admin_ids_str)
+
     return Config(
         tg_bot=tg_bot,
         db=db_config,
@@ -145,5 +157,16 @@ def load_config(path: str = None) -> Config:
         redis=redis,
         selection=selection_config,
         google=google_config,
-        admin_ids=admin_ids
+        admin_ids=admin_ids,
     )
+
+
+def load_config(path: str | None = None, *, force_reload: bool = False) -> Config:
+    global _CONFIG_CACHE
+
+    if _CONFIG_CACHE is not None and not force_reload:
+        return _CONFIG_CACHE
+
+    config = _build_config(path)
+    _CONFIG_CACHE = config
+    return config
