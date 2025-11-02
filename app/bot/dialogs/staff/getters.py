@@ -1,13 +1,31 @@
-from typing import Dict, Any
+from typing import Dict, Any, Optional
 
 from aiogram.types import User
 from aiogram_dialog import DialogManager
 from aiogram_dialog.api.entities import MediaAttachment, MediaId
 from aiogram.enums import ContentType
 
-from config.config import Config
+from config.config import Config, load_config
 from app.infrastructure.database.database.db import DB
 from app.utils.optimized_dialog_widgets import get_file_id_for_path
+
+
+def _get_config(dialog_manager: DialogManager) -> Config:
+    config: Optional[Config] = dialog_manager.middleware_data.get("config")
+    if config:
+        return config
+
+    dispatcher = (
+        dialog_manager.middleware_data.get("_dispatcher")
+        or dialog_manager.middleware_data.get("dispatcher")
+        or dialog_manager.middleware_data.get("dp")
+    )
+    if dispatcher:
+        config = dispatcher.get("config")
+        if config:
+            return config
+
+    return load_config()
 
 
 async def get_user_info(dialog_manager: DialogManager, event_from_user: User, **kwargs) -> Dict[str, Any]:
@@ -25,7 +43,7 @@ async def get_current_stage_info(dialog_manager: DialogManager, **kwargs) -> Dic
     """Получаем информацию о текущем этапе отбора"""
     from app.utils.deadline_checker import is_task_submission_closed, format_results_date
     
-    config: Config = dialog_manager.middleware_data.get("config")
+    config: Config = dialog_manager.middleware_data.get("config") or _get_config(dialog_manager)
     db: DB = dialog_manager.middleware_data.get("db")
     event_from_user: User = dialog_manager.event.from_user
     
@@ -59,7 +77,7 @@ async def get_current_stage_info(dialog_manager: DialogManager, **kwargs) -> Dic
                 from app.infrastructure.database.dao.feedback import FeedbackDAO
                 from app.infrastructure.database.dao.interview import InterviewDAO
                 
-                feedback_dao = FeedbackDAO(db_pool, dialog_manager.middleware_data["config"])
+                feedback_dao = FeedbackDAO(db_pool, config)
                 user_data = await feedback_dao.get_single_user_data(event_from_user.id)
                 
                 if user_data:
@@ -73,7 +91,7 @@ async def get_current_stage_info(dialog_manager: DialogManager, **kwargs) -> Dic
                         # Пользователь одобрен - проверяем статус интервью
                         stage_name = "Онлайн-собеседование"
                         
-                        interview_dao = InterviewDAO(db_pool)
+                        interview_dao = InterviewDAO(db_pool, config)
                         current_booking = await interview_dao.get_user_current_booking(event_from_user.id)
                         
                         if current_booking:
@@ -107,6 +125,7 @@ async def get_application_status(dialog_manager: DialogManager, **kwargs) -> Dic
     # Получаем объект DB из middleware_data
     db: DB = dialog_manager.middleware_data.get("db")
     db_pool = dialog_manager.middleware_data.get("db_applications")
+    config = _get_config(dialog_manager)
     
     if not db:
         return {
@@ -130,7 +149,7 @@ async def get_application_status(dialog_manager: DialogManager, **kwargs) -> Dic
                 try:
                     # Получаем статус одобрения из таблицы users
                     from app.infrastructure.database.dao.feedback import FeedbackDAO
-                    feedback_dao = FeedbackDAO(db_pool)
+                    feedback_dao = FeedbackDAO(db_pool, config)
                     user_data = await feedback_dao.get_single_user_data(event_from_user.id)
                     
                     if user_data:
@@ -142,7 +161,7 @@ async def get_application_status(dialog_manager: DialogManager, **kwargs) -> Dic
                         else:
                             # Пользователь одобрен - проверяем, выбрал ли он слот для интервью
                             from app.infrastructure.database.dao.interview import InterviewDAO
-                            interview_dao = InterviewDAO(db_pool)
+                            interview_dao = InterviewDAO(db_pool, config)
                             current_booking = await interview_dao.get_user_current_booking(event_from_user.id)
                             
                             if current_booking:
@@ -296,6 +315,7 @@ async def get_interview_button_info(dialog_manager: DialogManager, **kwargs) -> 
     """Получаем информацию для кнопки интервью"""
     event_from_user: User = dialog_manager.event.from_user
     db_pool = dialog_manager.middleware_data.get("db_applications")
+    config = _get_config(dialog_manager)
     
     # По умолчанию кнопка скрыта
     show_interview_button = False
@@ -306,7 +326,7 @@ async def get_interview_button_info(dialog_manager: DialogManager, **kwargs) -> 
         try:
             # Импортируем DAO для интервью
             from app.infrastructure.database.dao.interview import InterviewDAO
-            dao = InterviewDAO(db_pool)
+            dao = InterviewDAO(db_pool, config)
             
             # Проверяем статус одобрения пользователя
             approved_dept = await dao.get_user_approved_department(event_from_user.id)
@@ -354,6 +374,7 @@ async def get_feedback_button_info(dialog_manager: DialogManager, **kwargs) -> D
     """Получаем информацию для кнопки обратной связи"""
     event_from_user: User = dialog_manager.event.from_user
     db_pool = dialog_manager.middleware_data.get("db_applications")
+    config = _get_config(dialog_manager)
     
     # По умолчанию кнопка скрыта
     show_feedback_button = False
@@ -362,7 +383,7 @@ async def get_feedback_button_info(dialog_manager: DialogManager, **kwargs) -> D
         try:
             # Импортируем DAO для feedback
             from app.infrastructure.database.dao.feedback import FeedbackDAO
-            dao = FeedbackDAO(db_pool)
+            dao = FeedbackDAO(db_pool, config)
             
             # Проверяем статус одобрения пользователя (approved = 0 значит отклонен)
             user_data = await dao.get_single_user_data(event_from_user.id)
@@ -385,6 +406,7 @@ async def get_interview_datetime_info(dialog_manager: DialogManager, **kwargs) -
     """Получаем информацию о дате и времени интервью"""
     event_from_user: User = dialog_manager.event.from_user
     db_pool = dialog_manager.middleware_data.get("db_applications")
+    config = _get_config(dialog_manager)
     
     interview_datetime = ""
     
@@ -392,7 +414,7 @@ async def get_interview_datetime_info(dialog_manager: DialogManager, **kwargs) -
         try:
             # Импортируем DAO для интервью
             from app.infrastructure.database.dao.interview import InterviewDAO
-            dao = InterviewDAO(db_pool)
+            dao = InterviewDAO(db_pool, config)
             
             # Получаем текущую бронь пользователя
             current_booking = await dao.get_user_current_booking(event_from_user.id)

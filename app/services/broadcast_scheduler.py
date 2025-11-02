@@ -118,17 +118,8 @@ class BroadcastScheduler:
             return
         
         # Setup APScheduler with fallback to memory storage
-        try:
-            from config.config import load_config
-            config = load_config()
-            
-            # Use memory jobstore to avoid pickle issues with Redis
-            jobstore = MemoryJobStore()
-            logger.info("Using memory jobstore for APScheduler (Redis disabled due to pickle issues)")
-            
-        except Exception as e:
-            logger.error("Failed to get config for APScheduler: %s", e)
-            jobstore = MemoryJobStore()
+        jobstore = MemoryJobStore()
+        logger.info("Using memory jobstore for APScheduler (Redis disabled due to pickle issues)")
     
         # Setup APScheduler
         jobstores = {
