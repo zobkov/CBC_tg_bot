@@ -69,7 +69,7 @@ class DatabaseMiddleware(BaseMiddleware):
                         logger.info("👤 Создаем нового пользователя: %s (@%s)", user.id, user.username)
                         await database.users.add(
                             user_id=user.id,
-                            language=user.language_code or "ru",
+                            roles=["guest"],
                         )
                         logger.info("✅ Новый пользователь создан: %s", user.id)
                     else:
