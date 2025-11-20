@@ -22,7 +22,7 @@ logger = logging.getLogger(__name__)
 
 @dataclass(slots=True)
 class EngineConfig:
-	dsn: str
+	dsn: URL
 	pool_size: int = 5
 	max_overflow: int = 10
 	pool_timeout: float = 30.0
@@ -36,17 +36,23 @@ _session_factory: Optional[async_sessionmaker[AsyncSession]] = None
 _engine_config: Optional[EngineConfig] = None
 
 
-def _build_dsn(db_cfg: DatabaseConfig, connect_timeout: int) -> str:
-	return str(
-		URL.create(
-			drivername="postgresql+psycopg_async",
-			username=db_cfg.user,
-			password=db_cfg.password,
-			host=db_cfg.host,
-			port=db_cfg.port,
-			database=db_cfg.database,
-			query={"connect_timeout": str(connect_timeout)},
-		)
+def _build_dsn(
+	db_cfg: DatabaseConfig,
+	connect_timeout: int,
+	statement_timeout_ms: int,
+) -> URL:
+	query = {"connect_timeout": str(connect_timeout)}
+	if statement_timeout_ms > 0:
+		query["options"] = f"-c statement_timeout={statement_timeout_ms}"
+
+	return URL.create(
+		drivername="postgresql+psycopg_async",
+		username=db_cfg.user,
+		password=db_cfg.password,
+		host=db_cfg.host,
+		port=db_cfg.port,
+		database=db_cfg.database,
+		query=query,
 	)
 
 
@@ -66,7 +72,7 @@ def _load_engine_config(config: Config) -> EngineConfig:
 	echo_sql = bool(getattr(eng_cfg, "db_echo_sql", False))
 
 	_engine_config = EngineConfig(
-		dsn=_build_dsn(db_cfg, connect_timeout),
+		dsn=_build_dsn(db_cfg, connect_timeout, statement_timeout_ms),
 		pool_size=pool_size,
 		max_overflow=max_overflow,
 		pool_timeout=pool_timeout,
@@ -99,14 +105,13 @@ def get_engine() -> AsyncEngine:
 		max_overflow=engine_cfg.max_overflow,
 		pool_timeout=engine_cfg.pool_timeout,
 	)
-
 	_session_factory = async_sessionmaker(
 		bind=_engine,
 		expire_on_commit=False,
 		autoflush=False,
 	)
 
-	_register_events(_engine, engine_cfg.statement_timeout_ms)
+	_register_events(_engine)
 	return _engine
 
 
@@ -148,16 +153,7 @@ async def healthcheck() -> bool:
 		return False
 
 
-def _register_events(engine: AsyncEngine, statement_timeout_ms: int) -> None:
-	@event.listens_for(engine.sync_engine, "connect")
-	def _configure_connection(dbapi_connection, _) -> None:  # type: ignore[override]
-		if statement_timeout_ms > 0:
-			with dbapi_connection.cursor() as cursor:
-				cursor.execute(
-					"SET statement_timeout = %s",
-					(statement_timeout_ms,),
-				)
-
+def _register_events(engine: AsyncEngine) -> None:
 	@event.listens_for(engine.sync_engine, "before_cursor_execute")
 	def _before_cursor_execute(_, __, ___, ____, context, _____) -> None:  # type: ignore[override]
 		context._query_start_time = time.perf_counter()
