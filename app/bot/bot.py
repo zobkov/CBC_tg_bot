@@ -15,7 +15,9 @@ from aiogram_dialog.api.exceptions import UnknownIntent, UnknownState
 from config.config import load_config
 from app.infrastructure.database.sqlalchemy_core import (
     dispose_engine,
+    get_engine,
     get_session_factory,
+    healthcheck,
 )
 from app.bot.middlewares.database import DatabaseMiddleware
 from app.bot.middlewares.error_handler import ErrorHandlerMiddleware
@@ -117,14 +119,46 @@ async def main():
         logger.error("Bot cannot start without Redis connection")
         raise
 
+    db_cfg = config.db
+
+    missing_db_fields = [
+        field_name
+        for field_name in ("host", "port", "database", "user", "password")
+        if not getattr(db_cfg, field_name, None)
+    ]
+    if missing_db_fields:
+        logger.critical("Database configuration is missing values: %s", ", ".join(missing_db_fields))
+        raise RuntimeError("Incomplete database configuration; aborting startup")
+
+    try:
+        engine = get_engine()
+        
+        session_factory = get_session_factory()
+        logger.info("SQLAlchemy session factory initialised successfully")
+
+        logger.info("Running database connectivity healthcheck...")
+        db_ok = await healthcheck()
+        if not db_ok:
+            raise RuntimeError("Database healthcheck returned False")
+        logger.info("Database connectivity check succeeded")
+    except Exception as db_exc:
+        logger.exception(
+            "Database initialisation failed. Verify credentials, network access, and that the DB is reachable"
+        )
+        if redis_client:
+            try:
+                await redis_client.aclose()
+                logger.info("Redis connection closed after database initialisation failure")
+            except Exception as close_exc:  # pragma: no cover - protective logging
+                logger.warning("Failed to close Redis connection during error handling: %s", close_exc)
+        raise
+
     dp = Dispatcher(storage=storage)
     
     # Добавляем конфигурацию в диспетчер
     dp["config"] = config
     dp["bot"] = bot
     dp["redis"] = redis_client
-
-    session_factory = get_session_factory()
     dp["db_session_factory"] = session_factory
 
     logger.info("Including routers")
