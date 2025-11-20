@@ -14,21 +14,18 @@ LOCK_KEY = "bot:lock_mode"
 
 
 class AdminLockMiddleware(BaseMiddleware):
-    """Middleware для блокировки не-админов во время технических работ"""
-    
     def __init__(self, admin_ids: list[int], storage: RedisStorage):
         self.admin_ids = set(admin_ids)
         self.storage = storage
-        logger.info(f"AdminLockMiddleware инициализирован с админами: {admin_ids}")
+        logger.info(f"AdminLockMiddleware is initialized with admins: {admin_ids}")
     
     async def is_lock_enabled(self) -> bool:
-        """Проверяет, включен ли режим блокировки"""
         try:
             redis = self.storage.redis
             result = await redis.get(LOCK_KEY)
             return result == b"1" if result else False
         except Exception as e:
-            logger.error(f"Ошибка при проверке режима блокировки: {e}")
+            logger.error(f"Error checking for admin lock: {e}")
             return False
     
     async def __call__(
@@ -37,12 +34,11 @@ class AdminLockMiddleware(BaseMiddleware):
         event: TelegramObject,
         data: Dict[str, Any]
     ) -> Any:
-        """Основная логика middleware"""
         
-        # Получаем пользователя из события
+        # Get user from update
         user = None
         
-        # Проверяем разные типы событий в Update
+        # Check different update types
         if hasattr(event, 'message') and event.message and hasattr(event.message, 'from_user'):
             user = event.message.from_user
         elif hasattr(event, 'callback_query') and event.callback_query and hasattr(event.callback_query, 'from_user'):
@@ -53,46 +49,47 @@ class AdminLockMiddleware(BaseMiddleware):
             user = event.from_user
         
         if not user:
-            # Если нет пользователя, пропускаем дальше
             logger.debug(f"Нет пользователя в событии {type(event).__name__}")
             return await handler(event, data)
         
         user_id = user.id
+        username = user.username
         
-        # Детальное логирование сообщения
+        # Logging 
         message_text = "Unknown"
         if hasattr(event, 'message') and event.message and hasattr(event.message, 'text'):
             message_text = event.message.text
         elif hasattr(event, 'callback_query') and event.callback_query and hasattr(event.callback_query, 'data'):
             message_text = f"callback: {event.callback_query.data}"
         
-        logger.debug(f"Middleware: обрабатываем пользователя {user_id}, сообщение: {message_text}")
+        logger.debug(f"Middleware: processing user id={user_id} @{username}, message: {message_text}")
         
-        # Проверяем режим блокировки
+
         lock_enabled = await self.is_lock_enabled()
-        logger.debug(f"Middleware: режим блокировки = {lock_enabled}")
+        logger.debug(f"AdminLockMiddleware: lock status = {lock_enabled}")
         
+        # No lock – go further
         if not lock_enabled:
-            # Блокировка выключена - пропускаем дальше
             logger.debug(f"Пользователь {user_id} проходит - блокировка выключена, сообщение: {message_text}")
             return await handler(event, data)
         
-        # Блокировка включена - проверяем админа
+
         is_admin = user_id in self.admin_ids
-        logger.debug(f"Пользователь {user_id} админ: {is_admin}")
         
         if is_admin:
-            # Админ - пропускаем дальше
+            # Admin – go
             logger.debug(f"Админ {user_id} проходит - режим блокировки включен")
             return await handler(event, data)
         
-        # Не-админ при включенной блокировке - блокируем
-        logger.warning(f"🚫 ЗАБЛОКИРОВАН пользователь {user_id} (@{user.username}) - режим блокировки включен")
+        # No admin? Go f yourself
+        logger.info(f"ADMIN LOCK — {user_id} (@{user.username}) update dropped. Admin lock is on.")
         
-        # Отправляем сообщение о блокировке
+
+        # Send lock message
         message_to_answer = None
         callback_to_answer = None
         
+
         if hasattr(event, 'message') and event.message:
             message_to_answer = event.message
         elif hasattr(event, 'callback_query') and event.callback_query:
@@ -109,35 +106,33 @@ class AdminLockMiddleware(BaseMiddleware):
                 "Попробуйте позже."
             )
         
-        # Не вызываем следующий хендлер
+        # Drop update
         return None
 
 
 async def set_lock_mode(storage: RedisStorage, enabled: bool) -> bool:
-    """Устанавливает режим блокировки"""
     try:
         redis = storage.redis
         if enabled:
-            await redis.set(LOCK_KEY, "1")
-            logger.info("Режим блокировки установлен в Redis: 1")
+            await redis.set(LOCK_KEY, "1") # enabled
+            logger.debug("Lock status in Redis: 1")
         else:
-            await redis.set(LOCK_KEY, "0")
-            logger.info("Режим блокировки установлен в Redis: 0")
+            await redis.set(LOCK_KEY, "0") # disabled
+            logger.debug("Lock status in Redis: 0")
         return True
     except Exception as e:
-        logger.error(f"Ошибка при установке режима блокировки: {e}")
+        logger.error(f"Excpetion while setting admin lock status in Redis: {e}")
         return False
 
 
 async def is_lock_mode_enabled(storage: RedisStorage) -> bool:
-    """Проверяет, включен ли режим блокировки"""
     try:
         redis = storage.redis
         result = await redis.get(LOCK_KEY)
-        logger.debug(f"Значение в Redis для ключа {LOCK_KEY}: {result} (тип: {type(result)})")
+        logger.debug(f"Redis value for key {LOCK_KEY}: {result} (type: {type(result)})")
         is_enabled = result == b"1" if result else False
-        logger.debug(f"Режим блокировки включен: {is_enabled}")
+        logger.debug(f"Admin lock enabled: {is_enabled}")
         return is_enabled
     except Exception as e:
-        logger.error(f"Ошибка при проверке режима блокировки: {e}")
+        logger.error(f"Exception while checking admin lock status: {e}")
         return False
