@@ -107,9 +107,9 @@ class UserCtxMiddleware(BaseMiddleware):
             try:
                 cached_data = await self.redis.get(cache_key)
                 if cached_data:
-                    user_data = json.loads(cached_data)
-                    # Восстанавливаем объект пользователя из кэша
-                    user = UsersModel(**user_data)
+                    if isinstance(cached_data, (bytes, bytearray)):
+                        cached_data = cached_data.decode("utf-8")
+                    user = UsersModel.from_cache(json.loads(cached_data))
                     logger.debug(f"User {user_id} loaded from cache")
             except Exception as e:
                 logger.warning(f"Failed to load user {user_id} from cache: {e}")
@@ -122,23 +122,8 @@ class UserCtxMiddleware(BaseMiddleware):
             if user and self.redis:
                 try:
                     # Сериализуем пользователя для кэша
-                    user_dict = {
-                        "user_id": user.user_id,
-                        "created": user.created.isoformat(),
-                        "language": user.language,
-                        "is_alive": user.is_alive,
-                        "is_blocked": user.is_blocked,
-                        "submission_status": user.submission_status,
-                        "task_1_submitted": user.task_1_submitted,
-                        "task_2_submitted": user.task_2_submitted,
-                        "task_3_submitted": user.task_3_submitted,
-                        "roles": user.roles,
-                    }
-                    await self.redis.setex(
-                        cache_key, 
-                        self.cache_ttl, 
-                        json.dumps(user_dict, default=str)
-                    )
+                    payload = json.dumps(user.to_cache_dict(), default=str)
+                    await self.redis.setex(cache_key, self.cache_ttl, payload)
                     logger.debug(f"User {user_id} cached for {self.cache_ttl}s")
                 except Exception as e:
                     logger.warning(f"Failed to cache user {user_id}: {e}")

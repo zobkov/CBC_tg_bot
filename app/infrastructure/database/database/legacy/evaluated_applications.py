@@ -3,7 +3,7 @@ from datetime import datetime, timezone
 
 from psycopg import AsyncConnection, AsyncCursor
 
-from app.infrastructure.database.models.evaluated_applications import EvaluatedApplicationModel
+from app.infrastructure.database.models.legacy.evaluated_applications import EvaluatedApplicationModel
 
 logger = logging.getLogger(__name__)
 

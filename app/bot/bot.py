@@ -1,8 +1,6 @@
 import asyncio
 import logging
 
-import psycopg_pool
-
 from redis.asyncio import Redis
 
 from aiogram import Bot, Dispatcher
@@ -15,7 +13,12 @@ from aiogram_dialog import setup_dialogs
 from aiogram_dialog.api.exceptions import UnknownIntent, UnknownState
 
 from config.config import load_config
-from app.infrastructure.database.connect_to_pg import get_pg_pool
+from app.infrastructure.database.sqlalchemy_core import (
+    dispose_engine,
+    get_engine,
+    get_session_factory,
+    healthcheck,
+)
 from app.bot.middlewares.database import DatabaseMiddleware
 from app.bot.middlewares.error_handler import ErrorHandlerMiddleware
 from app.bot.middlewares.rbac import UserCtxMiddleware
@@ -49,10 +52,10 @@ from app.bot.dialogs.legacy.first_stage.dialogs import first_stage_dialog
 from app.bot.dialogs.legacy.job_selection.dialogs import job_selection_dialog
 from app.bot.dialogs.legacy.tasks.dialogs import task_dialog
 from app.bot.dialogs.legacy.interview.dialogs import interview_dialog
-from app.bot.dialogs.legacy.feedback.dialogs import feedback_dialog
 
 # Новые role-based диалоги
 from app.bot.dialogs.guest.dialogs import guest_menu_dialog
+from app.bot.dialogs.guest.feedback import feedback_dialog
 from app.bot.dialogs.guest.quiz_dod.dialogs import quiz_dod_dialog
 from app.bot.dialogs.volunteer.dialogs import volunteer_menu_dialog  
 from app.bot.dialogs.staff.dialogs import staff_menu_dialog
@@ -60,7 +63,6 @@ from app.bot.dialogs.staff.dialogs import staff_menu_dialog
 from app.services.broadcast_scheduler import BroadcastScheduler
 from app.services.photo_file_id_manager import startup_photo_check
 from pathlib import Path
-from app.infrastructure.database.database.db import DB
 
 logger = logging.getLogger(__name__)
 
@@ -73,7 +75,6 @@ async def main():
     
     # Инициализируем переменные для корректного закрытия соединений
     redis_client = None
-    db_applications_pool = None
 
     bot = Bot(
         token=config.tg_bot.token,
@@ -118,24 +119,47 @@ async def main():
         logger.error("Bot cannot start without Redis connection")
         raise
 
+    db_cfg = config.db
+
+    missing_db_fields = [
+        field_name
+        for field_name in ("host", "port", "database", "user", "password")
+        if not getattr(db_cfg, field_name, None)
+    ]
+    if missing_db_fields:
+        logger.critical("Database configuration is missing values: %s", ", ".join(missing_db_fields))
+        raise RuntimeError("Incomplete database configuration; aborting startup")
+
+    try:
+        engine = get_engine()
+        
+        session_factory = get_session_factory()
+        logger.info("SQLAlchemy session factory initialised successfully")
+
+        logger.info("Running database connectivity healthcheck...")
+        db_ok = await healthcheck()
+        if not db_ok:
+            raise RuntimeError("Database healthcheck returned False")
+        logger.info("Database connectivity check succeeded")
+    except Exception as db_exc:
+        logger.exception(
+            "Database initialisation failed. Verify credentials, network access, and that the DB is reachable"
+        )
+        if redis_client:
+            try:
+                await redis_client.aclose()
+                logger.info("Redis connection closed after database initialisation failure")
+            except Exception as close_exc:  # pragma: no cover - protective logging
+                logger.warning("Failed to close Redis connection during error handling: %s", close_exc)
+        raise
+
     dp = Dispatcher(storage=storage)
     
     # Добавляем конфигурацию в диспетчер
     dp["config"] = config
     dp["bot"] = bot
     dp["redis"] = redis_client
-    
-    # Подключение к базе данных заявок
-    db_applications_pool = await get_pg_pool(
-        db_name=config.db_applications.database,
-        host=config.db_applications.host,
-        port=config.db_applications.port,
-        user=config.db_applications.user,
-        password=config.db_applications.password,
-    )
-    dp["db_applications"] = db_applications_pool
-    # Пул для обратной совместимости ключа db
-    dp["db"] = db_applications_pool
+    dp["db_session_factory"] = session_factory
 
     logger.info("Including routers")
     
@@ -223,26 +247,16 @@ async def main():
 
     # Launch polling and broadcast scheduler
     try:
-        scheduler = BroadcastScheduler(
-            bot=bot,
-            db_pool=db_applications_pool,
-            json_path=Path("config/broadcasts.json")
-        )
-        await scheduler.start()
         await bot.delete_webhook(drop_pending_updates=True)
         
         await dp.start_polling(
             bot,
             bg_factory=bg_factory,
-            _db_applications_pool=db_applications_pool,
+            db_session_factory=session_factory,
         )
     except Exception as e:
         logger.exception(e)
     finally:
-        try:
-            await scheduler.stop()  # type: ignore
-        except Exception:
-            pass
         
         # Закрываем соединение с Redis
         if redis_client:
@@ -252,10 +266,7 @@ async def main():
             except Exception as e:
                 logger.error(f"Error closing Redis connection: {e}")
         
-        # Закрываем соединение с Postgres
-        if db_applications_pool:
-            try:
-                await db_applications_pool.close()
-                logger.info("Connection to Postgres closed")
-            except Exception as e:
-                logger.error(f"Error closing Postgres connection: {e}")
+        try:
+            await dispose_engine()
+        except Exception as e:
+            logger.error(f"Error disposing SQLAlchemy engine: {e}")

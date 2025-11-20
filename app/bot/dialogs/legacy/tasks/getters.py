@@ -12,7 +12,6 @@ from app.infrastructure.database.database.db import DB
 from app.utils.optimized_dialog_widgets import get_file_id_for_path
 from app.utils.task_statistics import record_task_statistics
 
-from app.infrastructure.database.models.applications import ApplicationsModel
 
 logger = logging.getLogger(__name__)
 

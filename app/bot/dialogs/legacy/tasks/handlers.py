@@ -10,7 +10,6 @@ from app.bot.states.main_menu import MainMenuSG
 from app.bot.states.tasks import TasksSG
 from app.utils.user_files_manager import UserFilesManager
 from app.infrastructure.database.database.db import DB
-from app.infrastructure.database.models.applications import ApplicationsModel
 
 logger = logging.getLogger(__name__)
 

@@ -4,7 +4,7 @@ from typing import Optional
 
 from psycopg import AsyncConnection, AsyncCursor
 
-from app.infrastructure.database.models.task_statistics import TaskStatisticsModel
+from app.infrastructure.database.models.legacy.task_statistics import TaskStatisticsModel
 
 logger = logging.getLogger(__name__)
 

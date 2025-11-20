@@ -1,7 +1,10 @@
 from typing import Callable, Dict, Any, Awaitable
+
+import logging
 from aiogram import BaseMiddleware
 from aiogram.types import TelegramObject, User
-import logging
+
+from sqlalchemy.ext.asyncio import async_sessionmaker, AsyncSession
 
 from app.infrastructure.database.database.db import DB
 
@@ -15,95 +18,65 @@ class DatabaseMiddleware(BaseMiddleware):
         self,
         handler: Callable[[TelegramObject, Dict[str, Any]], Awaitable[Any]],
         event: TelegramObject,
-        data: Dict[str, Any]
+        data: Dict[str, Any],
     ) -> Any:
-        """
-        Обработчик middleware
-        
-        Args:
-            handler: Следующий обработчик в цепочке
-            event: Событие Telegram
-            data: Данные для передачи обработчику
-            
-        Returns:
-            Результат выполнения обработчика
-        """
-        # Получаем пулы соединений с БД из диспетчера
         dispatcher = data.get("_dispatcher") or data.get("dispatcher") or data.get("dp")
-        
-        # Попробуем получить из различных источников
-        db_pool = None
-        db_applications_pool = None
+
+        session_factory: async_sessionmaker[AsyncSession] | None = None
         bot = None
         config = None
         redis_client = None
         user_ctx_middleware = None
 
         if dispatcher:
-            db_pool = dispatcher.get("db")
-            db_applications_pool = dispatcher.get("db_applications")
+            session_factory = dispatcher.get("db_session_factory")
             bot = dispatcher.get("bot")
             config = dispatcher.get("config")
             redis_client = dispatcher.get("redis")
             user_ctx_middleware = dispatcher.get("user_ctx_middleware")
-        
-        # Если не нашли в диспетчере, попробуем в самих данных
-        if not db_pool:
-            db_pool = data.get("_db_pool")
-            
-        if not db_applications_pool:
-            db_applications_pool = data.get("_db_applications_pool")
-        
-        if not bot:
+
+        if session_factory is None:
+            session_factory = data.get("db_session_factory")
+
+        if bot is None:
             bot = data.get("bot")
-            
-        if not config:
+        if config is None:
             config = data.get("config")
-        if not redis_client:
+        if redis_client is None:
             redis_client = data.get("redis")
-        if not user_ctx_middleware:
+        if user_ctx_middleware is None:
             user_ctx_middleware = data.get("user_ctx_middleware")
-        
-        if not db_applications_pool:
-            logger.warning("Пул соединений с БД заявок не найден в middleware")
+
+        if session_factory is None:
+            logger.warning("SQLAlchemy session factory not found in DatabaseMiddleware")
             return await handler(event, data)
-        
-        # Получаем пользователя из события
-        user: User = data.get("event_from_user")
-        
-        if user:
-            logger.debug(f"🔍 DatabaseMiddleware: обрабатываем пользователя {user.id} (@{user.username})")
-            try:
-                # Создаем соединения с БД
-                async with db_applications_pool.connection() as applications_connection:
-                    
-                    logger.debug(f"💾 Соединения с БД установлены")
-                    database = DB(applications_connection, applications_connection)
-                    
-                    # Проверяем существование пользователя
-                    logger.debug(f"🔍 Проверяем существование пользователя {user.id}")
+
+        user: User | None = data.get("event_from_user")
+        if not user:
+            logger.debug("⚠️ Пользователь не найден в событии, пропускаем DatabaseMiddleware")
+            return await handler(event, data)
+
+        logger.debug("🔍 DatabaseMiddleware: обрабатываем пользователя %s (@%s)", user.id, user.username)
+        try:
+            async with session_factory() as session:
+                async with session.begin():
+                    database = DB(session=session)
+
+                    logger.debug("🔍 Проверяем существование пользователя %s", user.id)
                     user_record = await database.users.get_user_record(user_id=user.id)
-                    
+
                     if not user_record:
-                        # Создаем нового пользователя
-                        logger.info(f"👤 Создаем нового пользователя: {user.id} (@{user.username})")
+                        logger.info("👤 Создаем нового пользователя: %s (@%s)", user.id, user.username)
                         await database.users.add(
                             user_id=user.id,
-                            language=user.language_code or "ru",
+                            roles=["guest"],
                         )
-                        logger.info(f"✅ Новый пользователь создан: {user.id}")
+                        logger.info("✅ Новый пользователь создан: %s", user.id)
                     else:
-                        # Обновляем статус активности
-                        logger.debug(f"🔄 Обновляем статус активности пользователя {user.id}")
-                        await database.users.update_alive_status(
-                            user_id=user.id, 
-                            is_alive=True
-                        )
-                    
-                    # Добавляем объект БД в данные для использования в обработчиках
+                        logger.debug("🔄 Обновляем статус активности пользователя %s", user.id)
+                        await database.users.update_alive_status(user_id=user.id, is_alive=True)
+
                     data["db"] = database
-                    
-                    # Добавляем дополнительные данные в middleware_data для доступа в диалогах
                     if bot:
                         data["bot"] = bot
                     if config:
@@ -112,26 +85,14 @@ class DatabaseMiddleware(BaseMiddleware):
                         data["redis"] = redis_client
                     if user_ctx_middleware:
                         data["user_ctx_middleware"] = user_ctx_middleware
-                    
-                    logger.debug(f"🎯 Вызываем обработчик для пользователя {user.id}")
-                    
-                    # Вызываем обработчик в контексте соединений
+
+                    logger.debug("🎯 Вызываем обработчик для пользователя %s", user.id)
                     result = await handler(event, data)
-                    
-                    # Коммитим изменения в обеих БД
-                    logger.debug(f"💾 Коммитим изменения в БД для пользователя {user.id}")
-                    await applications_connection.commit()
-                    
-                    logger.debug(f"✅ DatabaseMiddleware: обработка пользователя {user.id} завершена")
-                    return result
-                    
-            except Exception as e:
-                logger.error(f"❌ Критическая ошибка в DatabaseMiddleware для пользователя {user.id}: {e}")
-                logger.error(f"📋 Тип события: {type(event).__name__}")
-                logger.error(f"📋 Данные события: {data}")
-                # Возвращаем результат по умолчанию если что-то пошло не так
-                return await handler(event, data)
-        else:
-            # Если пользователь не авторизован, просто передаем дальше
-            logger.debug("⚠️ Пользователь не найден в событии, пропускаем DatabaseMiddleware")
+
+                logger.debug("✅ DatabaseMiddleware: обработка пользователя %s завершена", user.id)
+                return result
+        except Exception as exc:  # pragma: no cover
+            logger.error("❌ Критическая ошибка в DatabaseMiddleware для пользователя %s: %s", user.id, exc)
+            logger.error("📋 Тип события: %s", type(event).__name__)
+            logger.error("📋 Данные события: %s", data)
             return await handler(event, data)
