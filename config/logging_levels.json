@@ -1,0 +1,28 @@
+{
+  "handlers": {
+    "console": {
+      "levels": {
+        "SQLALCHEMY#DEBUG": false,
+        "AIOGRAM#DEBUG": false,
+        "AIOGRAM_DIALOG#DEBUG": false,
+        "DEBUG": true,
+        "INFO": true,
+        "WARNING": true,
+        "ERROR": true,
+        "CRITICAL": true
+      }
+    },
+    "file": {
+      "levels": {
+        "SQLALCHEMY#DEBUG": true,
+        "AIOGRAM#DEBUG": true,
+        "AIOGRAM_DIALOG#DEBUG": true,
+        "DEBUG": true,
+        "INFO": true,
+        "WARNING": true,
+        "ERROR": true,
+        "CRITICAL": true
+      }
+    }
+  }
+}
