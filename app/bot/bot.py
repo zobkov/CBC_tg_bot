@@ -213,12 +213,6 @@ async def main():
 
     # Launch polling and broadcast scheduler
     try:
-        scheduler = BroadcastScheduler(
-            bot=bot,
-            session_factory=session_factory,
-            json_path=Path("config/broadcasts.json"),
-        )
-        await scheduler.start()
         await bot.delete_webhook(drop_pending_updates=True)
         
         await dp.start_polling(
@@ -229,10 +223,6 @@ async def main():
     except Exception as e:
         logger.exception(e)
     finally:
-        try:
-            await scheduler.stop()  # type: ignore
-        except Exception:
-            pass
         
         # Закрываем соединение с Redis
         if redis_client:

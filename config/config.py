@@ -57,9 +57,9 @@ class Config:
     db: DatabaseConfig
     redis: RedisConfig
     selection: SelectionConfig
+    sqlalchemy_eng: SQLAlchemyEngineConfig
     google: Optional[GoogleConfig] = None
     admin_ids: list[int] = field(default_factory=list)
-    sqlalchemy_eng: SQLAlchemyEngineConfig
 
 
 _CONFIG_CACHE: Optional[Config] = None
