@@ -70,7 +70,7 @@ class AdminLockMiddleware(BaseMiddleware):
         
         # No lock – go further
         if not lock_enabled:
-            logger.debug(f"Пользователь {user_id} проходит - блокировка выключена, сообщение: {message_text}")
+            logger.debug(f"User {user_id} goes through - admin lock is off, message: {message_text}")
             return await handler(event, data)
         
 
@@ -78,11 +78,11 @@ class AdminLockMiddleware(BaseMiddleware):
         
         if is_admin:
             # Admin – go
-            logger.debug(f"Админ {user_id} проходит - режим блокировки включен")
+            logger.debug(f"Admin {user_id} goes thorugh - admin lock is ON")
             return await handler(event, data)
         
         # No admin? Go f yourself
-        logger.info(f"ADMIN LOCK — {user_id} (@{user.username}) update dropped. Admin lock is on.")
+        logger.info(f"ADMIN LOCK — {user_id} (@{user.username}) update dropped. Admin lock is ON.")
         
 
         # Send lock message

@@ -58,11 +58,11 @@ class UserCtxMiddleware(BaseMiddleware):
 
         try:
             # Get user with roles from cache or DB
-            user = await self._load_user_with_roles(user, db)
+            user_db = await self._load_user_with_roles(user, db)
             
-            roles = set(user.roles) if user else {Role.GUEST.value}
+            roles = set(user_db.roles) if user_db else {Role.GUEST.value}
             
-            data["current_user"] = user
+            data["current_user"] = user_db
             data["roles"] = roles  
             
             # Drop banned users' update
