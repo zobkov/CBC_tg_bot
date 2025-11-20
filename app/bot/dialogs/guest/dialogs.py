@@ -35,7 +35,7 @@ guest_menu_dialog = Dialog(
             Start(
                 Const("🎦 Обратная связь – Собеседование"),
                 id="feedback_interview_button",
-                state=GuestMenuSG.interview_feedback,
+                state=FeedbackSG.interview_feedback,
                 when="has_interview_feedback",
             ),
         ),
@@ -69,13 +69,5 @@ guest_menu_dialog = Dialog(
         Back(Const("◀️ Назад")),
         state=GuestMenuSG.support,
         getter=get_support_contacts
-    ),
-    Window(
-        Format("🎦 <b>Обратная связь по собеседованию</b>\n\n"
-               "{interview_feedback}"
-               ),
-        SwitchTo(Const("◀️ Назад"), id="back_menu", state=GuestMenuSG.MAIN),
-        state=GuestMenuSG.interview_feedback,
-        getter=get_interview_feedback
     ),
 )

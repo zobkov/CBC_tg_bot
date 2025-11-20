@@ -9,4 +9,3 @@ class GuestMenuSG(StatesGroup):
     current_stage_info = State()
     support = State()
     not_availabe = State()
-    interview_feedback = State()

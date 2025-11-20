@@ -52,10 +52,10 @@ from app.bot.dialogs.legacy.first_stage.dialogs import first_stage_dialog
 from app.bot.dialogs.legacy.job_selection.dialogs import job_selection_dialog
 from app.bot.dialogs.legacy.tasks.dialogs import task_dialog
 from app.bot.dialogs.legacy.interview.dialogs import interview_dialog
-from app.bot.dialogs.legacy.feedback.dialogs import feedback_dialog
 
 # Новые role-based диалоги
 from app.bot.dialogs.guest.dialogs import guest_menu_dialog
+from app.bot.dialogs.guest.feedback import feedback_dialog
 from app.bot.dialogs.guest.quiz_dod.dialogs import quiz_dod_dialog
 from app.bot.dialogs.volunteer.dialogs import volunteer_menu_dialog  
 from app.bot.dialogs.staff.dialogs import staff_menu_dialog
