@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import logging
-from typing import Any, Dict
+from typing import Any, Dict, List
 
 from aiogram.types import User
 from aiogram_dialog import DialogManager
@@ -27,22 +27,37 @@ async def _fetch_feedback_model(dialog_manager: DialogManager) -> FeedbackModel 
         return None
 
 
-async def get_tasks_feedback(dialog_manager: DialogManager, **_: Any) -> Dict[str, Any]:
+async def get_tasks_feedback_menu(dialog_manager: DialogManager, **_: Any) -> Dict[str, Any]:
     feedback_model = await _fetch_feedback_model(dialog_manager)
 
+    tasks: List[Dict[str, Any]] = []
     if feedback_model and feedback_model.can_show_tasks_feedback():
-        parts: list[str] = []
         for idx, text in feedback_model.iter_task_feedback():
-            parts.append(f"<b>Задание {idx}:</b>\n{text}")
-        feedback_text = "\n\n".join(parts)
-        has_feedback = True
-    else:
-        feedback_text = "Обратная связь по тестовым заданиям недоступна."
-        has_feedback = False
+            tasks.append({
+                "task_id": str(idx),
+                "title": f"Задание {idx}",
+                "text": text,
+            })
+
+    dialog_manager.dialog_data["tasks_cache"] = tasks
 
     return {
-        "has_task_feedback": has_feedback,
-        "task_feedback_text": feedback_text,
+        "has_task_feedback": bool(tasks),
+        "tasks": tasks,
+    }
+
+
+async def get_task_feedback_details(dialog_manager: DialogManager, **_: Any) -> Dict[str, Any]:
+    selected = dialog_manager.dialog_data.get("selected_task")
+    if not selected:
+        return {
+            "task_title": "Задание",
+            "task_feedback_text": "Обратная связь недоступна.",
+        }
+
+    return {
+        "task_title": selected.get("title", "Задание"),
+        "task_feedback_text": selected.get("text", "Обратная связь недоступна."),
     }
 
 

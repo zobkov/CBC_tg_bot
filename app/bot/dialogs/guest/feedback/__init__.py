@@ -1,3 +1,3 @@
-from .dialogs import tasks_feedback_dialog, interview_feedback_dialog
+from .dialogs import feedback_dialog
 
-__all__ = ["tasks_feedback_dialog", "interview_feedback_dialog"]
+__all__ = ["feedback_dialog"]
