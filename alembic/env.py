@@ -1,11 +1,18 @@
 from __future__ import annotations
 
 import os
+import sys
+from pathlib import Path
 from logging.config import fileConfig
 
 from alembic import context
 from sqlalchemy import engine_from_config, pool
 from sqlalchemy.engine import Connection
+
+BASE_DIR = Path(__file__).resolve().parent
+PROJECT_ROOT = BASE_DIR.parent
+if PROJECT_ROOT.as_posix() not in sys.path:
+    sys.path.insert(0, PROJECT_ROOT.as_posix())
 
 from app.infrastructure.database.orm.base import Base
 
@@ -71,8 +78,12 @@ def run_migrations_offline() -> None:
 
 
 def run_migrations_online() -> None:
+    database_url = _build_database_url()
+    configuration = config.get_section(config.config_ini_section) or {}
+    configuration["sqlalchemy.url"] = database_url
+
     connectable = engine_from_config(
-        config.get_section(config.config_ini_section),  # type: ignore[arg-type]
+        configuration,
         prefix="sqlalchemy.",
         poolclass=pool.NullPool,
     )
