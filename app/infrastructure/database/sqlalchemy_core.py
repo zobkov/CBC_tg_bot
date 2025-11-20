@@ -15,7 +15,7 @@ from sqlalchemy.ext.asyncio import (
 	create_async_engine,
 )
 
-from config.config import Config, ApplicationsDatabaseConfig, load_config
+from config.config import Config, DatabaseConfig, load_config
 
 logger = logging.getLogger(__name__)
 
@@ -36,7 +36,7 @@ _session_factory: Optional[async_sessionmaker[AsyncSession]] = None
 _engine_config: Optional[EngineConfig] = None
 
 
-def _build_dsn(db_cfg: ApplicationsDatabaseConfig, connect_timeout: int) -> str:
+def _build_dsn(db_cfg: DatabaseConfig, connect_timeout: int) -> str:
 	return str(
 		URL.create(
 			drivername="postgresql+psycopg_async",
@@ -55,14 +55,15 @@ def _load_engine_config(config: Config) -> EngineConfig:
 	if _engine_config is not None:
 		return _engine_config
 
-	db_cfg = config.db_applications
+	db_cfg = config.db
+	eng_cfg = config.sqlalchemy_eng 
 
-	pool_size = int(getattr(config, "db_pool_size", 5))
-	max_overflow = int(getattr(config, "db_pool_max_overflow", 10))
-	pool_timeout = float(getattr(config, "db_pool_timeout", 30.0))
-	statement_timeout_ms = int(getattr(config, "db_statement_timeout_ms", 30_000))
-	connect_timeout = int(getattr(config, "db_connect_timeout", 10))
-	echo_sql = bool(getattr(config, "db_echo_sql", False))
+	pool_size = int(getattr(eng_cfg, "db_pool_size", 5))
+	max_overflow = int(getattr(eng_cfg, "db_pool_max_overflow", 10))
+	pool_timeout = float(getattr(eng_cfg, "db_pool_timeout", 30.0))
+	statement_timeout_ms = int(getattr(eng_cfg, "db_statement_timeout_ms", 30_000))
+	connect_timeout = int(getattr(eng_cfg, "db_connect_timeout", 10))
+	echo_sql = bool(getattr(eng_cfg, "db_echo_sql", False))
 
 	_engine_config = EngineConfig(
 		dsn=_build_dsn(db_cfg, connect_timeout),

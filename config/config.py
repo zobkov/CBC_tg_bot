@@ -17,14 +17,6 @@ class DatabaseConfig:
     port: int = 5432
 
 @dataclass
-class ApplicationsDatabaseConfig:
-    user: str
-    password: str
-    database: str
-    host: str
-    port: int = 5432
-
-@dataclass
 class RedisConfig:
     password: str
     host: str = "0.0.0.0"
@@ -51,14 +43,23 @@ class SelectionConfig:
     support_contacts: Dict[str, str]
 
 @dataclass
+class SQLAlchemyEngineConfig:
+    db_pool_size: int
+    db_pool_max_overflow: int
+    db_pool_timeout: float
+    db_statement_timeout_ms: int
+    db_connect_timeout: int
+    db_echo_sql: bool
+
+@dataclass
 class Config:
     tg_bot: TgBot
     db: DatabaseConfig
-    db_applications: ApplicationsDatabaseConfig
     redis: RedisConfig
     selection: SelectionConfig
     google: Optional[GoogleConfig] = None
     admin_ids: list[int] = field(default_factory=list)
+    sqlalchemy_eng: SQLAlchemyEngineConfig
 
 
 _CONFIG_CACHE: Optional[Config] = None
@@ -89,14 +90,6 @@ def _build_config(path: str | None = None) -> Config:
         database=env.str("DB_NAME"),
         host=env.str("DB_HOST"),
         port=env.int("DB_PORT", 5432),
-    )
-
-    db_applications_config = ApplicationsDatabaseConfig(
-        user=env.str("DB_APPLICATIONS_USER"),
-        password=env.str("DB_APPLICATIONS_PASS"),
-        database=env.str("DB_APPLICATIONS_NAME"),
-        host=env.str("DB_APPLICATIONS_HOST"),
-        port=env.int("DB_APPLICATIONS_PORT", 5432),
     )
 
     redis = RedisConfig(
@@ -150,14 +143,23 @@ def _build_config(path: str | None = None) -> Config:
         except ValueError:
             logger.warning("Некорректный формат ADMIN_IDS: %s", admin_ids_str)
 
+    sqlalchemy_eng=SQLAlchemyEngineConfig(
+        db_pool_size=env.int("DB_POOL_SIZE", 5),
+        db_pool_max_overflow=env.int("DB_POOL_MAX_OVERFLOW", 10),
+        db_pool_timeout=env.float("DB_POOL_TIMEOUT", 30.0),
+        db_statement_timeout_ms=env.int("DB_STATEMENT_TIMEOUT_MS", 30_000),
+        db_connect_timeout=env.int("DB_CONNECT_TIMEOUT", 10),
+        db_echo_sql=env.bool("DB_ECHO_SQL", False)
+    )
+
     return Config(
         tg_bot=tg_bot,
         db=db_config,
-        db_applications=db_applications_config,
         redis=redis,
         selection=selection_config,
         google=google_config,
         admin_ids=admin_ids,
+        sqlalchemy_eng=sqlalchemy_eng
     )
 
 
