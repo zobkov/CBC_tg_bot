@@ -3,8 +3,11 @@ from aiogram.fsm.state import State, StatesGroup
 
 class FeedbackSG(StatesGroup):
     """Feedback dialog states"""
-    # Main feedback menu with available feedback buttons
+    # Общий экран обратной связи по тестовым заданиям
     feedback_menu = State()
-    
-    # Show specific feedback for a position
+
+    # Зарезервировано для устаревшего сценария показа по позициям
     show_feedback = State()
+
+    # Экран обратной связи после интервью
+    interview_feedback = State()

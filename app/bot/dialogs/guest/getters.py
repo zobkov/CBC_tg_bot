@@ -1,3 +1,4 @@
+import logging
 from typing import Dict, Any, Optional
 
 from aiogram.types import User
@@ -373,30 +374,18 @@ async def get_main_menu_media(dialog_manager: DialogManager, **kwargs) -> Dict[s
 async def get_feedback_button_info(dialog_manager: DialogManager, **kwargs) -> Dict[str, Any]:
     """Получаем информацию для кнопки обратной связи"""
     event_from_user: User = dialog_manager.event.from_user
-    db_pool = dialog_manager.middleware_data.get("db_applications")
-    config = _get_config(dialog_manager)
-    
-    # По умолчанию кнопка скрыта
+    db: DB | None = dialog_manager.middleware_data.get("db")
+
     show_feedback_button = False
-    
-    if db_pool:
+
+    if db:
         try:
-            # Импортируем DAO для feedback
-            from app.infrastructure.database.dao.feedback import FeedbackDAO
-            dao = FeedbackDAO(db_pool, config)
-            
-            # Проверяем статус одобрения пользователя (approved = 0 значит отклонен)
-            user_data = await dao.get_single_user_data(event_from_user.id)
-            if user_data:
-                approved = int(user_data['approved']) if user_data['approved'] else 0
-                show_feedback_button = approved == 0
-            
-        except Exception as e:
-            # В случае ошибки логируем и скрываем кнопку
-            import logging
+            feedback_model = await db.feedback.get_user_feedback(user_id=event_from_user.id)
+            show_feedback_button = bool(feedback_model and feedback_model.can_show_tasks_feedback())
+        except Exception as exc:  # pragma: no cover - defensive logging
             logger = logging.getLogger(__name__)
-            logger.error(f"Error checking feedback status for user {event_from_user.id}: {e}")
-    
+            logger.error("Error checking task feedback availability for user %s: %s", event_from_user.id, exc)
+
     return {
         "show_feedback_button": show_feedback_button
     }
@@ -464,32 +453,22 @@ async def get_interview_datetime_info(dialog_manager: DialogManager, **kwargs) -
 async def get_interview_feedback(dialog_manager: DialogManager, **kwargs) -> Dict[str, Any]:
     """Получаем обратную связь по собеседованию"""
     event_from_user: User = dialog_manager.event.from_user
-    db_pool = dialog_manager.middleware_data.get("db_applications")
-    config = _get_config(dialog_manager)
-    
-    interview_feedback = None
+    db: DB | None = dialog_manager.middleware_data.get("db")
+
+    interview_feedback_text = "Обратная связь по собеседованию пока недоступна."
     has_interview_feedback = False
-    
-    if db_pool:
+
+    if db:
         try:
-            # Импортируем DAO для получения данных пользователя
-            from app.infrastructure.database.dao.feedback import FeedbackDAO
-            dao = FeedbackDAO(db_pool, config)
-            
-            # Получаем данные пользователя из таблицы users
-            user_data = await dao.get_single_user_data(event_from_user.id)
-            
-            if user_data and user_data.get('interview_feedback'):
-                interview_feedback = user_data['interview_feedback']
+            feedback_model = await db.feedback.get_user_feedback(user_id=event_from_user.id)
+            if feedback_model and feedback_model.can_show_interview_feedback():
+                interview_feedback_text = (feedback_model.interview_feedback or "").strip() or interview_feedback_text
                 has_interview_feedback = True
-            
-        except Exception as e:
-            # В случае ошибки логируем и не показываем фидбек
-            import logging
+        except Exception as exc:  # pragma: no cover - defensive logging
             logger = logging.getLogger(__name__)
-            logger.error(f"Error getting interview feedback for user {event_from_user.id}: {e}")
-    
+            logger.error("Error getting interview feedback for user %s: %s", event_from_user.id, exc)
+
     return {
-        "interview_feedback": interview_feedback or "Обратная связь по собеседованию пока недоступна.",
+        "interview_feedback": interview_feedback_text,
         "has_interview_feedback": has_interview_feedback
     }
