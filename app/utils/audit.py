@@ -2,7 +2,6 @@
 Система аудита и мониторинга попыток несанкционированного доступа
 """
 import logging
-from datetime import datetime
 from typing import Optional
 
 from app.utils.telegram import get_user_id_from_event, get_username_from_event
@@ -91,7 +90,7 @@ class RBACAuthAuditor:
             
             return count
         except Exception as e:
-            logger.error(f"Error incrementing attempt counter: {e}")
+            logger.error("Error incrementing attempt counter: %s", e)
             return 0
 
     async def _check_flood_protection(
@@ -127,14 +126,13 @@ class RBACAuthAuditor:
                 await self._handle_flood_alert(user_id, username, count, handler_name)
                 
         except Exception as e:
-            logger.error(f"Error in flood protection check: {e}")
+            logger.error("Error in flood protection check: %s", e)
 
     async def _handle_flood_alert(
         self, 
         user_id: int, 
         username: Optional[str], 
         count: int, 
-        handler_name: str
     ):
         """
         Отправляет алерт о превышении лимита попыток доступа
@@ -146,21 +144,16 @@ class RBACAuthAuditor:
             handler_name: Название обработчика
         """
         logger.error(
-            f"FLOOD ALERT: user {user_id} ({count} attempts in {self.window_seconds}s)"
+            "FLOOD ALERT: user id=%s @%s (%s attempts in %ss)",
+            user_id, username, count, self.window_seconds
         )
         
-        # Alert functionality disabled: requires bot instance to be passed
         # TODO: Implement proper alert system when bot instance is available
-        # The alert would look like this:
-        # "⚠️ RBAC Security Alert\n"
-        # f"👤 User: {user_id} (@{username or 'no_username'})\n"
-        # f"🔢 Attempts: {count}/{self.window_seconds}s\n"
-        # f"🎯 Handler: {handler_name}\n"
-        # f"⏰ Time: {datetime.now().strftime('%H:%M:%S')}\n"
-        # "Пользователь превысил лимит попыток несанкционированного доступа."
+
         if self.alert_chat_id:
             logger.warning(
-                f"Alert system not implemented. Would send to chat {self.alert_chat_id}"
+                "Alert system not implemented. Would send to chat %s",
+                self.alert_chat_id
             )
 
     async def _handle_ban_threshold(
@@ -184,26 +177,21 @@ class RBACAuthAuditor:
             await self.redis.setex(ban_key, self.ban_duration, "1")
             
             logger.critical(
-                f"TEMPORARY BAN: user {user_id} banned for {self.ban_duration}s "
-                f"due to {count} unauthorized access attempts"
+                "TEMPORARY BAN: user %s %s banned for %ss due to %s unauthorized access attempts",
+                user_id, username, self.ban_duration, count
             )
             
             # Critical alert functionality disabled: requires bot instance to be passed
             # TODO: Implement proper critical alert system when bot instance is available
-            # The alert would look like this:
-            # "🚨 RBAC Temporary Ban\n"
-            # f"👤 User: {user_id} (@{username or 'no_username'})\n"
-            # f"🔢 Attempts: {count}\n"
-            # f"⏱ Ban Duration: {self.ban_duration // 60} minutes\n"
-            # f"⏰ Time: {datetime.now().strftime('%H:%M:%S')}\n"
-            # "Пользователь временно заблокирован за превышение лимита попыток."
+
             if self.alert_chat_id:
                 logger.warning(
-                    f"Critical alert system not implemented. Would send to chat {self.alert_chat_id}"
+                    "Critical alert system not implemented. Would send to chat %s",
+                    self.alert_chat_id
                 )
                 
         except Exception as e:
-            logger.error(f"Error setting temporary ban: {e}")
+            logger.error("Error setting temporary ban: %s", e)
 
     async def is_temporarily_banned(self, user_id: int) -> bool:
         """
@@ -222,7 +210,7 @@ class RBACAuthAuditor:
             ban_key = f"audit:tempban:{user_id}"
             return bool(await self.redis.get(ban_key))
         except Exception as e:
-            logger.error(f"Error checking temporary ban: {e}")
+            logger.error("Error checking temporary ban: %s", e)
             return False
 
     async def get_user_attempt_stats(self, user_id: int) -> dict:
@@ -252,7 +240,7 @@ class RBACAuthAuditor:
                 "window": self.window_seconds
             }
         except Exception as e:
-            logger.error(f"Error getting user stats: {e}")
+            logger.error("Error getting user stats: %s", e)
             return {"attempts": 0, "banned": False}
 
     async def clear_user_violations(self, user_id: int):
@@ -271,9 +259,9 @@ class RBACAuthAuditor:
             
             await self.redis.delete(attempt_key, ban_key)
             
-            logger.info(f"Cleared violations for user {user_id}")
+            logger.info("Cleared violations for user %s", e)
         except Exception as e:
-            logger.error(f"Error clearing violations: {e}")
+            logger.error(f"Error clearing violations: %s", e)
 
 
 # Глобальный экземпляр аудитора

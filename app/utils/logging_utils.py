@@ -15,7 +15,7 @@ def _make_logger_method(level: int):
 
     def log_for_level(self: logging.Logger, message: str, *args: Any, **kwargs: Any) -> None:
         if self.isEnabledFor(level):
-            self._log(level, message, args, **kwargs)
+            logging.Logger.log(self, level, message, *args, **kwargs)
 
     return log_for_level
 
@@ -71,6 +71,7 @@ class HandlerLevelToggleFilter(logging.Filter):
             return True
         return record.levelname.upper() in self._approved_levels
 
+
 logger = logging.getLogger(__name__)
 
 
@@ -94,7 +95,7 @@ def log_user_action(action_name: str, log_level: int = logging.INFO):
                     user_id = arg.from_user.id
                     username = arg.from_user.username
                     break
-                elif hasattr(arg, 'event') and hasattr(arg.event, 'from_user'):
+                if hasattr(arg, 'event') and hasattr(arg.event, 'from_user'):
                     user_id = arg.event.from_user.id
                     username = arg.event.from_user.username
                     break
@@ -102,21 +103,39 @@ def log_user_action(action_name: str, log_level: int = logging.INFO):
             start_time = datetime.now()
             
             # Логируем начало действия
-            logger.log(log_level, f"🎯 {action_name} | Пользователь: {user_id} (@{username}) | Начало")
+            logger.log(
+                log_level,
+                "🎯 %s | Пользователь: %s (@%s) | Начало",
+                action_name,
+                user_id,
+                username,
+            )
             
             try:
                 result = await func(*args, **kwargs)
                 
                 # Логируем успешное завершение
                 duration = (datetime.now() - start_time).total_seconds()
-                logger.log(log_level, f"✅ {action_name} | Пользователь: {user_id} | Завершено за {duration:.2f}с")
+                logger.log(
+                    log_level,
+                    "✅ %s | Пользователь: %s | Завершено за %.2fс",
+                    action_name,
+                    user_id,
+                    duration,
+                )
                 
                 return result
                 
             except Exception as e:
                 # Логируем ошибку
                 duration = (datetime.now() - start_time).total_seconds()
-                logger.error(f"❌ {action_name} | Пользователь: {user_id} | Ошибка за {duration:.2f}с: {e}")
+                logger.error(
+                    "❌ %s | Пользователь: %s | Ошибка за %.2fс: %s",
+                    action_name,
+                    user_id,
+                    duration,
+                    e,
+                )
                 raise
                 
         return wrapper
@@ -147,19 +166,19 @@ def log_data_operation(operation_name: str, sensitive_fields: list = None):
                 else:
                     safe_kwargs[key] = str(value)[:100]  # Ограничиваем длину для читаемости
             
-            logger.info(f"📊 {operation_name} | Начало | Параметры: {safe_kwargs}")
+            logger.info("📊 %s | Начало | Параметры: %s", operation_name, safe_kwargs)
             
             try:
                 result = await func(*args, **kwargs)
                 
                 duration = (datetime.now() - start_time).total_seconds()
-                logger.info(f"✅ {operation_name} | Успешно завершено за {duration:.2f}с")
+                logger.info("✅ %s | Успешно завершено за %.2fс", operation_name, duration)
                 
                 return result
                 
             except Exception as e:
                 duration = (datetime.now() - start_time).total_seconds()
-                logger.error(f"❌ {operation_name} | Ошибка за {duration:.2f}с: {e}")
+                logger.error("❌ %s | Ошибка за %.2fс: %s", operation_name, duration, e)
                 raise
                 
         return wrapper
@@ -180,13 +199,13 @@ def log_api_call(service_name: str, endpoint: str = None):
             start_time = datetime.now()
             
             endpoint_info = f" | Endpoint: {endpoint}" if endpoint else ""
-            logger.info(f"🌐 API Call | {service_name}{endpoint_info} | Начало")
+            logger.info("🌐 API Call | %s%s | Начало", service_name, endpoint_info)
             
             try:
                 result = await func(*args, **kwargs)
                 
                 duration = (datetime.now() - start_time).total_seconds()
-                logger.info(f"✅ API Call | {service_name} | Успешно за {duration:.2f}с")
+                logger.info("✅ API Call | %s | Успешно за %.2fс", service_name, duration)
                 
                 return result
                 
@@ -196,15 +215,15 @@ def log_api_call(service_name: str, endpoint: str = None):
                 
                 # Специальная обработка API ошибок
                 if "403" in str(e):
-                    logger.warning(f"🚫 API Call | {service_name} | Доступ запрещен (403) за {duration:.2f}с")
+                    logger.warning("🚫 API Call | %s | Доступ запрещен (403) за %.2fс", service_name, duration)
                 elif "401" in str(e):
-                    logger.warning(f"🔐 API Call | {service_name} | Неавторизован (401) за {duration:.2f}с")
+                    logger.warning("🔐 API Call | %s | Неавторизован (401) за %.2fс", service_name, duration)
                 elif "404" in str(e):
-                    logger.warning(f"🔍 API Call | {service_name} | Не найдено (404) за {duration:.2f}с")
+                    logger.warning("🔍 API Call | %s | Не найдено (404) за %.2fс", service_name, duration)
                 elif "quotaExceeded" in str(e) or "storageQuotaExceeded" in str(e):
-                    logger.warning(f"📊 API Call | {service_name} | Превышена квота за {duration:.2f}с")
+                    logger.warning("📊 API Call | %s | Превышена квота за %.2fс", service_name, duration)
                 else:
-                    logger.error(f"❌ API Call | {service_name} | {error_type} за {duration:.2f}с: {e}")
+                    logger.error("❌ API Call | %s | %s за %.2fс: %s", service_name, error_type, duration, e)
                 
                 raise
                 
@@ -234,7 +253,7 @@ class ProcessLogger:
         if details:
             step_info += f" | {details}"
             
-        logger.info(step_info)
+        logger.info("%s", step_info)
         
         self.steps.append({
             'step': step_name,
@@ -256,13 +275,13 @@ class ProcessLogger:
         if final_message:
             completion_info += f" | {final_message}"
             
-        logger.info(completion_info)
+        logger.info("%s", completion_info)
         
         # Логируем сводку по шагам
         if self.steps:
-            logger.debug(f"📊 {self.process_name} | Сводка по шагам: {len(self.steps)} шагов")
+            logger.debug("📊 %s | Сводка по шагам: %d шагов", self.process_name, len(self.steps))
             for i, step in enumerate(self.steps, 1):
-                logger.debug(f"   {i}. {step['step']} ({step['duration']:.2f}с)")
+                logger.debug("   %d. %s (%.2fс)", i, step['step'], step['duration'])
 
 
 def create_process_logger(process_name: str, user_id: int = None) -> ProcessLogger:

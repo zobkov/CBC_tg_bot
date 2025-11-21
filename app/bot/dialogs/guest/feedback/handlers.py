@@ -1,3 +1,5 @@
+"""Callback handlers for guest feedback dialogs."""
+
 from __future__ import annotations
 
 import logging
@@ -8,12 +10,12 @@ from aiogram_dialog.widgets.kbd import Button, Select
 
 from app.bot.states.feedback import FeedbackSG
 
-logger = logging.getLogger(__name__)
+LOGGER = logging.getLogger(__name__)
 
 
 async def on_task_selected(
-    callback: Any,
-    widget: Select,
+    _callback: Any,
+    _widget: Select,
     dialog_manager: DialogManager,
     task_id: str,
 ) -> None:
@@ -21,7 +23,7 @@ async def on_task_selected(
     tasks = dialog_manager.dialog_data.get("tasks_cache", []) or []
     selected = next((task for task in tasks if task.get("task_id") == str(task_id)), None)
     if selected is None:
-        logger.warning("Task feedback not found for id=%s", task_id)
+        LOGGER.warning("Task feedback not found for id=%s", task_id)
         return
 
     dialog_manager.dialog_data["selected_task"] = selected

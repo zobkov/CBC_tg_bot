@@ -59,6 +59,8 @@ class NotLegacyIntent(Filter):
         return True
 
 
+# TODO Should be deprecated
+
 def create_rbac_filter_with_legacy_exclusion(*roles):
     """
     Создает комбинированный фильтр, который проверяет роли только для не-legacy событий

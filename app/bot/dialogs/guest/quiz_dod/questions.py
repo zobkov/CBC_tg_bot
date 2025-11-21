@@ -1,8 +1,12 @@
+"""Static question bank for the DoD quiz."""
+
 from dataclasses import dataclass
 
 
 @dataclass(frozen=True)
 class Question:
+    """Question definition with answer options and index of the correct one."""
+
     text: str
     options: list[str]
     correct: int  # индекс правильного варианта

@@ -1,29 +1,40 @@
-"""
-Диалог главного меню для гостей
-"""
-from aiogram_dialog import Dialog, Window
-from aiogram_dialog.widgets.kbd import Row, Back, Start, SwitchTo
-from aiogram_dialog.widgets.text import Format, Const
-from aiogram_dialog.widgets.media import DynamicMedia, StaticMedia
+"""Guest dialog window definitions."""
 
-from .getters import get_current_stage_info, get_application_status, get_support_contacts, get_main_menu_media, get_task_button_info, get_interview_button_info, get_feedback_button_info, get_interview_datetime_info, get_interview_feedback
-from .states import GuestMenuSG
+from aiogram_dialog import Dialog, Window
+from aiogram_dialog.widgets.kbd import Back, Row, Start, SwitchTo
+from aiogram_dialog.widgets.media import DynamicMedia, StaticMedia
+from aiogram_dialog.widgets.text import Const, Format
+
+from app.bot.dialogs.guest import getters as guest_getters
 from app.bot.dialogs.guest.quiz_dod.states import QuizDodSG
+from app.bot.dialogs.guest.states import GuestMenuSG
 from app.bot.states.feedback import FeedbackSG
+
+_MAIN_MENU_TEXT = (
+    "🏠 <b>Личный кабинет участника КБК'26</b>\n\n"
+    "Здесь ты можешь найти всю актуальную информацию о проекте! Совсем скоро мы "
+    "начнём добавлять новые форматы, поэтому подписывайся на наши медиа, чтобы "
+    "ничего не пропустить:\n"
+    "<a href=\"https://t.me/forumcbc\">Мы в ТГ</a>\n"
+    "<a href=\"https://vk.com/forumcbc\">Мы в ВК</a>"
+)
+
+_SUPPORT_TEXT = (
+    "📞 <b>Поддержка</b>\n\n"
+    "Если возникнут вопросы, мы всегда на связи! Ты можешь обратиться к одному "
+    "из контактов ниже и задать все интересующие тебя вопросы.\n\n"
+    "<b>По общим вопросам:</b> {general_support}\n"
+    "<b>Техническая поддержка:</b> {technical_support}\n\n"
+    "Частые вопросы: "
+    "https://docs.google.com/document/d/1fV2IA_k5eY3TSM4Xue1sYR1OS8-AkHDGN_t4ub"
+    "KNMlA/edit?usp=sharing"
+)
 
 
 guest_menu_dialog = Dialog(
     Window(
-        DynamicMedia(
-            "media"
-        ),
-        Format("""🏠 <b>Личный кабинет участника КБК'26</b>
-               
-Здесь ты можешь найти всю актуальную информацию о проекте! Совсем скоро мы начнём добавлять новые форматы, поэтому подписывайся на наши медиа, чтобы ничего не пропустить:
-<a href="https://t.me/forumcbc">Мы в ТГ</a>
-<a href="https://vk.com/forumcbc">Мы в ВК</a>
-               """
-        ),
+        DynamicMedia("media"),
+        Format(_MAIN_MENU_TEXT),
         Row(
             Start(
                 Const("📝 Обратная связь – Тестовое задание"),
@@ -50,24 +61,19 @@ guest_menu_dialog = Dialog(
             SwitchTo(
                 Const("📞 Поддержка"),
                 id="support",
-                state=GuestMenuSG.support
+                state=GuestMenuSG.support,
             ),
         ),
         state=GuestMenuSG.MAIN,
-        getter=[get_current_stage_info, get_application_status, get_main_menu_media, get_task_button_info, get_interview_button_info, get_feedback_button_info, get_interview_datetime_info, get_interview_feedback]
+        getter=[
+            guest_getters.get_main_menu_media
+        ],
     ),
     Window(
-        StaticMedia(
-            path="app/bot/assets/images/support/support.png"
-        ),
-        Format("📞 <b>Поддержка</b>\n\n"
-               "Если возникнут вопросы, мы всегда на связи! Ты можешь обратиться к одному из контактов ниже и задать все интересующие тебя вопросы.\n\n"
-               "<b>По общим вопросам:</b> {general_support}\n"
-               "<b>Техническая поддержка:</b> {technical_support}\n"
-               "\nЧастые вопросы: https://docs.google.com/document/d/1fV2IA_k5eY3TSM4Xue1sYR1OS8-AkHDGN_t4ubKNMlA/edit?usp=sharing"
-               ),
+        StaticMedia(path="app/bot/assets/images/support/support.png"),
+        Format(_SUPPORT_TEXT),
         Back(Const("◀️ Назад")),
         state=GuestMenuSG.support,
-        getter=get_support_contacts
+        getter=guest_getters.get_support_contacts,
     ),
 )
