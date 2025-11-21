@@ -1,11 +1,75 @@
-"""
-Утилиты для расширенного логирования
-"""
-import logging
+"""Утилиты для расширенного логирования и настройки уровней."""
 import functools
+import logging
 from datetime import datetime
-from typing import Callable, Any
-import json
+from typing import Any, Callable, Dict
+
+# Custom log levels placed between DEBUG (10) and INFO (20) to keep verbose flow
+SQLALCHEMY_DEBUG_LEVEL = logging.DEBUG + 1
+AIOGRAM_DEBUG_LEVEL = logging.DEBUG + 2
+AIOGRAM_DIALOG_DEBUG_LEVEL = logging.DEBUG + 3
+
+
+def _make_logger_method(level: int):
+    """Generate a bound logger method for emitting records at a custom level."""
+
+    def log_for_level(self: logging.Logger, message: str, *args: Any, **kwargs: Any) -> None:
+        if self.isEnabledFor(level):
+            self._log(level, message, args, **kwargs)
+
+    return log_for_level
+
+
+def register_custom_log_levels() -> None:
+    """Register custom log levels and helper methods once per interpreter."""
+    custom_levels: Dict[int, tuple[str, str]] = {
+        SQLALCHEMY_DEBUG_LEVEL: ("SQLALCHEMY#DEBUG", "sqlalchemy_debug"),
+        AIOGRAM_DEBUG_LEVEL: ("AIOGRAM#DEBUG", "aiogram_debug"),
+        AIOGRAM_DIALOG_DEBUG_LEVEL: ("AIOGRAM_DIALOG#DEBUG", "aiogram_dialog_debug"),
+    }
+
+    for level, (name, method_name) in custom_levels.items():
+        if logging.getLevelName(level) != name:
+            logging.addLevelName(level, name)
+
+        if not hasattr(logging.Logger, method_name):
+            setattr(logging.Logger, method_name, _make_logger_method(level))
+
+
+register_custom_log_levels()
+
+
+class LoggerLevelOverrideFilter(logging.Filter):
+    """Remap DEBUG records from selected loggers to dedicated custom levels."""
+
+    def __init__(self, overrides: Dict[str, int]):
+        super().__init__()
+        self._overrides = overrides
+
+    def filter(self, record: logging.LogRecord) -> bool:
+        for logger_name, level in self._overrides.items():
+            if record.name == logger_name or record.name.startswith(f"{logger_name}."):
+                if record.levelno == logging.DEBUG and record.levelno != level:
+                    record.levelno = level
+                    record.levelname = logging.getLevelName(level)
+                break
+        return True
+
+
+class HandlerLevelToggleFilter(logging.Filter):
+    """Filter records by allowing only explicitly enabled level names."""
+
+    def __init__(self, levels: Dict[str, bool]):
+        super().__init__()
+        # Uppercase names for case-insensitive matching and keep only truthy ones
+        self._approved_levels = {
+            name.upper(): bool(is_enabled) for name, is_enabled in levels.items() if bool(is_enabled)
+        }
+
+    def filter(self, record: logging.LogRecord) -> bool:
+        if not self._approved_levels:
+            return True
+        return record.levelname.upper() in self._approved_levels
 
 logger = logging.getLogger(__name__)
 

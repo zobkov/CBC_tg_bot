@@ -6,7 +6,7 @@ import logging
 from typing import Any, Awaitable, Callable, Dict
 
 from aiogram import BaseMiddleware
-from aiogram.types import Message, TelegramObject
+from aiogram.types import Message, TelegramObject, User
 
 from app.infrastructure.database.models.users import UsersModel
 from app.utils.telegram import get_event_user
@@ -17,20 +17,16 @@ logger = logging.getLogger(__name__)
 
 class UserCtxMiddleware(BaseMiddleware):
     """
-    Middleware для загрузки контекста пользователя и ролей.
-    Обеспечивает:
-    - Загрузку пользователя и его ролей из БД с кэшем в Redis
-    - Раннюю отсечку заблокированных пользователей (BANNED роль)
-    - Предоставление current_user и roles в контексте обработчиков
+    Middleware for loading user context and role
+
+    Gets roles from Redis cache
+    Drops banned users' updates
+    Passes current_user and roles to handlers
     """
 
     def __init__(self, redis=None):
-        """
-        Args:
-            redis: Redis клиент для кэширования
-        """
         self.redis = redis
-        self.cache_ttl = 120  # TTL кэша 120 секунд
+        self.cache_ttl = 60*5  # Cache life
 
     async def __call__(
         self,
@@ -49,60 +45,53 @@ class UserCtxMiddleware(BaseMiddleware):
         Returns:
             Результат выполнения обработчика или None для заблокированных пользователей
         """
-        tg_user = get_event_user(event)
-        if not tg_user:
-            # Если нет пользователя в событии, просто пропускаем дальше
+        user: User = get_event_user(event)
+        if not user:
+            # With no user in an update – skip mw
             return await handler(event, data)
 
-        # Получаем БД из контекста (должна быть установлена DatabaseMiddleware)
+        # Get DB from context
         db = data.get("db")
         if not db:
             logger.warning("Database not found in middleware context")
             return await handler(event, data)
 
         try:
-            # Загружаем пользователя с ролями из кэша или БД
-            user = await self._load_user_with_roles(tg_user.id, db)
+            # Get user with roles from cache or DB
+            user_db = await self._load_user_with_roles(user, db)
             
-            roles = set(user.roles) if user else {Role.GUEST.value}
+            roles = set(user_db.roles) if user_db else {Role.GUEST.value}
             
-            # Добавляем данные в контекст
-            data["current_user"] = user
-            data["roles"] = roles  # roles уже строки из БД
+            data["current_user"] = user_db
+            data["roles"] = roles  
             
-            # КРИТИЧНО: Ранняя отсечка BANNED пользователей
+            # Drop banned users' update
             if Role.BANNED.value in roles:
                 await self._handle_banned_user(event)
-                return None  # Останавливаем обработку, явно возвращаем None
+                return None  
             
-            logger.debug(
-                f"UserCtxMiddleware: пользователь {tg_user.id} с ролями {list(data['roles'])}"
-            )
+
+            logger.debug(f"UserCtxMiddleware: user id={user.id} @{user.username} — roles: {list(data['roles'])}")
             
             return await handler(event, data)
             
         except Exception as e:
-            logger.error(f"Error in UserCtxMiddleware for user {tg_user.id}: {e}")
-            # В случае ошибки устанавливаем базовые значения
+            logger.error(f"Error in UserCtxMiddleware for user {user.id}: {e}")
+            # Set default value 
             data["current_user"] = None
-            data["roles"] = {Role.GUEST.value}  # Конвертируем в строку
+            data["roles"] = {Role.GUEST.value} 
             return await handler(event, data)
 
-    async def _load_user_with_roles(self, user_id: int, db) -> UsersModel | None:
+    async def _load_user_with_roles(self, user_tg: User, db) -> UsersModel | None:
         """
-        Загружает пользователя с ролями из кэша или БД
-        
-        Args:
-            user_id: ID пользователя
-            db: Объект базы данных
-            
-        Returns:
-            Модель пользователя с ролями или None
+        Load user info either from cache or DB
         """
+        user_id = user_tg.id
+
         cache_key = f"rbac:{user_id}"
         user = None
         
-        # Пытаемся получить из кэша
+        # Try to get from cache
         if self.redis:
             try:
                 cached_data = await self.redis.get(cache_key)
@@ -112,16 +101,19 @@ class UserCtxMiddleware(BaseMiddleware):
                     user = UsersModel.from_cache(json.loads(cached_data))
                     logger.debug(f"User {user_id} loaded from cache")
             except Exception as e:
-                logger.warning(f"Failed to load user {user_id} from cache: {e}")
+                logger.debug(f"Failed to load user {user_id} from cache: {e}")
         
-        # Если не нашли в кэше, загружаем из БД
+        # Try to get from DB
         if not user:
-            user = await db.users.get_user_record(user_id=user_id)
+            try:
+                user = await db.users.get_user_record(user_id=user_id)
+            except Exception as e:
+                logging.exception(f"Failed to get user id={user_id} @{user_tg.username} from DB")
             
-            # Сохраняем в кэш
+            # Save to cache
             if user and self.redis:
                 try:
-                    # Сериализуем пользователя для кэша
+                    # Serialize for cache
                     payload = json.dumps(user.to_cache_dict(), default=str)
                     await self.redis.setex(cache_key, self.cache_ttl, payload)
                     logger.debug(f"User {user_id} cached for {self.cache_ttl}s")
@@ -130,33 +122,25 @@ class UserCtxMiddleware(BaseMiddleware):
         
         return user
 
+
     async def _handle_banned_user(self, event: TelegramObject):
-        """
-        Обрабатывает заблокированного пользователя
-        
-        Args:
-            event: Telegram событие
-        """
-        # Если это сообщение, отвечаем о блокировке
+        # If message, answer 
         if isinstance(event, Message):
             try:
                 await event.answer("⛔ Доступ запрещён.")
             except Exception as e:
                 logger.warning(f"Failed to send ban message: {e}")
         
-        # Логируем попытку доступа заблокированного пользователя
+        # Log attmept to access by banned user
         user = get_event_user(event)
         if user:
-            logger.warning(
-                f"Banned user {user.id} (@{user.username}) tried to access bot"
-            )
+            logger.warning(f"Banned user {user.id} (@{user.username}) tried to access bot")
+
 
     async def invalidate_user_cache(self, user_id: int):
         """
-        Инвалидирует кэш пользователя (полезно при изменении ролей)
-        
-        Args:
-            user_id: ID пользователя
+        Invalidates (deletes) user cache.
+        Used for role changes. Change role in DB and invalidate it in cache. Less headache :)
         """
         if self.redis:
             try:

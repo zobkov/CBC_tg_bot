@@ -28,7 +28,7 @@ from app.bot.handlers.feedback_callbacks import feedback_callbacks_router
 from app.bot.handlers.admin_lock import setup_admin_commands_router
 from app.bot.middlewares.admin_lock import AdminLockMiddleware 
 
-# Импортируем роутеры для системы ролей
+# Roles routers
 from app.bot.routers import (
     public_router,
     guest_router,
@@ -37,10 +37,9 @@ from app.bot.routers import (
     admin_router
 )
 
-# Импортируем валидатор доступа для диалогов
 from app.bot.dialogs.access import RolesAccessValidator, create_forbidden_handler, create_forbidden_filter
 
-# Импортируем систему аудита
+
 from app.utils.audit import init_auditor
 
 from app.bot.keyboards.command_menu import set_main_menu
@@ -53,7 +52,6 @@ from app.bot.dialogs.legacy.job_selection.dialogs import job_selection_dialog
 from app.bot.dialogs.legacy.tasks.dialogs import task_dialog
 from app.bot.dialogs.legacy.interview.dialogs import interview_dialog
 
-# Новые role-based диалоги
 from app.bot.dialogs.guest.dialogs import guest_menu_dialog
 from app.bot.dialogs.guest.feedback import feedback_dialog
 from app.bot.dialogs.guest.quiz_dod.dialogs import quiz_dod_dialog
@@ -73,7 +71,6 @@ async def main():
 
     logger.info("Starting bot")
     
-    # Инициализируем переменные для корректного закрытия соединений
     redis_client = None
 
     bot = Bot(
@@ -81,42 +78,41 @@ async def main():
         default=DefaultBotProperties(parse_mode=ParseMode.HTML),
     )
     
-    # Иннициализируем redis
+    # redis init
     logger.info("Connecting to Redis...")
     try:
         if config.redis.password:
             redis_url = f"redis://:{config.redis.password}@{config.redis.host}:{config.redis.port}/0"
-            logger.info(f"Connecting to Redis with password at {config.redis.host}:{config.redis.port}")
+            logger.debug(f"Connecting to Redis with password at {config.redis.host}:{config.redis.port}")
             redis_client = Redis.from_url(redis_url, decode_responses=False)
         else:
             redis_url = f"redis://{config.redis.host}:{config.redis.port}/0"
-            logger.info(f"Connecting to Redis without password at {config.redis.host}:{config.redis.port}")
+            logger.debug(f"Connecting to Redis without password at {config.redis.host}:{config.redis.port}")
             redis_client = Redis.from_url(redis_url, decode_responses=False)
         
-        # Проверяем подключение к Redis
+        # Connection test to Redis
         logger.info("Testing Redis connection...")
         ping_result = await redis_client.ping()
         logger.info(f"Redis ping result: {ping_result}")
         logger.info(f"Successfully connected to Redis at {config.redis.host}:{config.redis.port}")
         
-        # Создаем storage для FSM
-        logger.info("Creating Redis storage for FSM...")
         storage = RedisStorage(
             redis=redis_client,
             key_builder=DefaultKeyBuilder(with_bot_id=True, with_destiny=True),
-            state_ttl=86400,  # время жизни состояния в секунду (например, 1 день)
-            data_ttl=86400   # время жизни данных
+            state_ttl=86400,  # FSM state life (seconds)
+            data_ttl=86400   # date life (seconds)
         )
-        logger.info("Redis storage created successfully")
+        logger.info("Redis FSM storage created successfully")
         
     except ConnectionError as e:
         logger.error(f"Connection error to Redis at {config.redis.host}:{config.redis.port}: {e}")
         logger.error("Check if Redis server is running and accessible")
+        logger.critical("Bot cannot start without Redis connection. Shutdown")
         raise
     except Exception as e:
         logger.error(f"Failed to connect to Redis at {config.redis.host}:{config.redis.port}: {e}")
         logger.error(f"Error type: {type(e).__name__}")
-        logger.error("Bot cannot start without Redis connection")
+        logger.critical("Bot cannot start without Redis connection. Shutdown")
         raise
 
     db_cfg = config.db
@@ -155,7 +151,7 @@ async def main():
 
     dp = Dispatcher(storage=storage)
     
-    # Добавляем конфигурацию в диспетчер
+    # Pass configs to dispatcher
     dp["config"] = config
     dp["bot"] = bot
     dp["redis"] = redis_client
@@ -163,12 +159,13 @@ async def main():
 
     logger.info("Including routers")
     
-    # Настраиваем админские команды
     admin_commands_router = setup_admin_commands_router(config.admin_ids)
 
+    # The order of router registry is crucial
+    # First registered – first checked when update comes
+
     dp.include_routers(
-        admin_commands_router,  # Команды админов /lock /unlock /status
-        #commands_router,        # Существующие команды (legacy)
+        admin_commands_router,  # Admin commands /lock /unlock /status /ch_roles
         public_router,      
     )    
 
@@ -182,60 +179,63 @@ async def main():
         task_dialog,
         interview_dialog,
         feedback_dialog,
-        # Новые role-based диалоги
         guest_menu_dialog,
         quiz_dod_dialog,
         volunteer_menu_dialog,
         staff_menu_dialog,
     )
 
-    # Остальные роутеры обрабатывают произвольные апдейты и должны идти после диалогов
+    # 
     dp.include_routers(
-            # Публичные команды (/start, /help, /whoami)
-        admin_router,           # Админские команды и функции
-        staff_router,           # Функции для сотрудников
-        volunteer_router,       # Функции для волонтёров  
-        guest_router,           # Функции для гостей
-        feedback_callbacks_router,
+        admin_router,           
+        staff_router,           # Staff
+        volunteer_router,       
+        guest_router,           # Guests
+        
+        # here broadcasting callbacks can be placed as they are very specific
+        feedback_callbacks_router, 
     )
 
     logger.info("Including middlewares")
-    # Добавляем middleware блокировки ПЕРВЫМ (ДО всех остальных)
+
+    # First is ALWAYS lock middleware
     dp.update.middleware(AdminLockMiddleware(config.admin_ids, storage))
     
-    # Инициализируем аудитор для RBAC
     init_auditor(redis=redis_client)
     
-    # Создаем middleware для ролей
-    user_ctx_middleware = UserCtxMiddleware(redis=redis_client)
-    dp["user_ctx_middleware"] = user_ctx_middleware
+
     
-    # Добавляем middleware для ролей ПОСЛЕ DatabaseMiddleware
+    
     dp.update.middleware(ErrorHandlerMiddleware())
     dp.update.middleware(DatabaseMiddleware())
+
+    # Role middleware – must be init after DB mw
+    user_ctx_middleware = UserCtxMiddleware(redis=redis_client)
+    dp["user_ctx_middleware"] = user_ctx_middleware
+
     dp.update.middleware(user_ctx_middleware)
     
-    # Валидатор доступа для диалогов (по умолчанию разрешает всем кроме banned)
+
+    # Access validator
     access_validator = RolesAccessValidator()
     bg_factory = setup_dialogs(dp, stack_access_validator=access_validator)
     
-    # Добавляем обработчик запрещенного доступа к диалогам с фильтром
     forbidden_handler = create_forbidden_handler()
     forbidden_filter = create_forbidden_filter()
     dp.message.register(forbidden_handler, forbidden_filter)
 
-    await set_main_menu(bot)
+    # await set_main_menu(bot) is deprecated. Use botfather app instead
 
-    # Проверяем новые фотографии и обновляем file_id при старте
+    # ––– PHOTO FILE_ID CHECK
     logger.info("Checking for new photos and updating file_ids...")
     try:
         file_ids = await startup_photo_check(bot)
         logger.info(f"Photo file_id check completed. Total photos: {len(file_ids)}")
     except Exception as e:
         logger.error(f"Error during photo file_id check: {e}")
-        # Не останавливаем бота из-за ошибки с фотографиями
 
-    # Проверяем новые файлы заданий и обновляем file_id при старте
+
+    # ––– TASK FILE_ID CHECK (LEGACY)
     logger.info("Checking for new task files and updating file_ids...")
     try:
         from app.services.task_file_id_manager import startup_task_files_check
@@ -243,9 +243,9 @@ async def main():
         logger.info(f"Task file_id check completed. Total task files: {len(task_file_ids)}")
     except Exception as e:
         logger.error(f"Error during task file_id check: {e}")
-        # Не останавливаем бота из-за ошибки с файлами заданий
 
-    # Launch polling and broadcast scheduler
+
+    # Launch polling and broadcast scheduler (TODO)
     try:
         await bot.delete_webhook(drop_pending_updates=True)
         
@@ -258,7 +258,6 @@ async def main():
         logger.exception(e)
     finally:
         
-        # Закрываем соединение с Redis
         if redis_client:
             try:
                 await redis_client.aclose()

@@ -12,14 +12,14 @@ logger = logging.getLogger(__name__)
 
 
 class DatabaseMiddleware(BaseMiddleware):
-    """Middleware для работы с базой данных"""
-
     async def __call__(
         self,
         handler: Callable[[TelegramObject, Dict[str, Any]], Awaitable[Any]],
         event: TelegramObject,
         data: Dict[str, Any],
     ) -> Any:
+        
+        # Get dispatcher 
         dispatcher = data.get("_dispatcher") or data.get("dispatcher") or data.get("dp")
 
         session_factory: async_sessionmaker[AsyncSession] | None = None
@@ -47,33 +47,34 @@ class DatabaseMiddleware(BaseMiddleware):
         if user_ctx_middleware is None:
             user_ctx_middleware = data.get("user_ctx_middleware")
 
+
         if session_factory is None:
             logger.warning("SQLAlchemy session factory not found in DatabaseMiddleware")
             return await handler(event, data)
 
+
         user: User | None = data.get("event_from_user")
         if not user:
-            logger.debug("⚠️ Пользователь не найден в событии, пропускаем DatabaseMiddleware")
+            logger.debug("User not found in update, skip DatabaseMiddleware")
             return await handler(event, data)
 
-        logger.debug("🔍 DatabaseMiddleware: обрабатываем пользователя %s (@%s)", user.id, user.username)
+        logger.debug("DatabaseMiddleware: processing user id=%s (@%s)", user.id, user.username)
         try:
             async with session_factory() as session:
                 async with session.begin():
                     database = DB(session=session)
 
-                    logger.debug("🔍 Проверяем существование пользователя %s", user.id)
                     user_record = await database.users.get_user_record(user_id=user.id)
 
                     if not user_record:
-                        logger.info("👤 Создаем нового пользователя: %s (@%s)", user.id, user.username)
+                        logger.info("User not found, creating new one: id=%s (@%s)", user.id, user.username)
                         await database.users.add(
                             user_id=user.id,
                             roles=["guest"],
                         )
-                        logger.info("✅ Новый пользователь создан: %s", user.id)
+                        logger.info("New user created: id=%s, @%s", user.id, user.username)
                     else:
-                        logger.debug("🔄 Обновляем статус активности пользователя %s", user.id)
+                        logger.debug("Update alive status user id=%s", user.id)
                         await database.users.update_alive_status(user_id=user.id, is_alive=True)
 
                     data["db"] = database
@@ -86,13 +87,12 @@ class DatabaseMiddleware(BaseMiddleware):
                     if user_ctx_middleware:
                         data["user_ctx_middleware"] = user_ctx_middleware
 
-                    logger.debug("🎯 Вызываем обработчик для пользователя %s", user.id)
+                    logger.debug("Hadnler call for id=%s", user.id)
                     result = await handler(event, data)
 
-                logger.debug("✅ DatabaseMiddleware: обработка пользователя %s завершена", user.id)
                 return result
-        except Exception as exc:  # pragma: no cover
-            logger.error("❌ Критическая ошибка в DatabaseMiddleware для пользователя %s: %s", user.id, exc)
-            logger.error("📋 Тип события: %s", type(event).__name__)
-            logger.error("📋 Данные события: %s", data)
+        except Exception as e:  # pragma: no cover
+            logger.error("❌ Error in DatabaseMIddleware for id=%s: %s", user.id, e)
+            logger.error("📋 Update type: %s", type(event).__name__)
+            logger.error("📋 Update data: %s", data)
             return await handler(event, data)

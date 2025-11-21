@@ -164,7 +164,7 @@ def _register_events(engine: AsyncEngine) -> None:
 		if start is None:
 			return
 		duration_ms = (time.perf_counter() - start) * 1000
-		logger.debug("SQL %.1f ms: %s", duration_ms, statement.splitlines()[0].strip())
+		logger.sqlalchemy_debug("SQL %.1f ms: %s", duration_ms, statement.splitlines()[0].strip())
 
 
 __all__ = [

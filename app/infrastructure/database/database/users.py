@@ -64,7 +64,7 @@ class _UsersDB:
             .values(is_alive=is_alive)
         )
         await self.session.execute(stmt)
-        logger.info(
+        logger.debug(
             "User updated. db='%s', user_id=%d, is_alive=%s",
             self.__tablename__,
             user_id,
