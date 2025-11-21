@@ -3,6 +3,7 @@
 import asyncio
 import logging
 import re
+from dataclasses import dataclass
 from functools import lru_cache
 from typing import Any
 
@@ -30,6 +31,16 @@ _CERTIFICATE_GENERATOR = get_certificate_generator()
 EMAIL_PATTERN = re.compile(r"^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$")
 PHONE_PATTERN = re.compile(r"^\+\d{10,15}$")
 NON_DIGIT_PATTERN = re.compile(r"[^\d+]")
+
+
+@dataclass(frozen=True)
+class QuizUserInfo:
+    """Collected contact information for quiz participants."""
+
+    full_name: str
+    phone: str
+    email: str
+    education: str
 
 
 @lru_cache(maxsize=1)
@@ -235,11 +246,7 @@ async def save_quiz_result(dialog_manager: DialogManager, user_id: int, score: i
 async def save_user_info(
     dialog_manager: DialogManager,
     user_id: int,
-    *,
-    full_name: str,
-    phone: str,
-    email: str,
-    education: str,
+    user_info: QuizUserInfo,
 ) -> None:
     """Сохраняет информацию пользователя из мини-анкеты."""
     db: DB | None = dialog_manager.middleware_data.get("db")
@@ -253,10 +260,10 @@ async def save_user_info(
     try:
         await db.quiz_dod_users_info.upsert_user_info(
             user_id=user_id,
-            full_name=full_name,
-            phone=phone,
-            email=email,
-            education=education,
+            full_name=user_info.full_name,
+            phone=user_info.phone,
+            email=user_info.email,
+            education=user_info.education,
         )
         logger.info("[QUIZ_DOD] Saved user info user=%s", user_id)
     except Exception:  # pylint: disable=broad-exception-caught
@@ -358,14 +365,13 @@ async def on_education_entered(
         full_name = dialog_manager.dialog_data.get("quiz_dod_name", "")
         phone = dialog_manager.dialog_data.get("quiz_dod_phone", "")
         email = dialog_manager.dialog_data.get("quiz_dod_email", "")
-        await save_user_info(
-            dialog_manager,
-            user.id,
+        user_info = QuizUserInfo(
             full_name=full_name,
             phone=phone,
             email=email,
             education=value,
         )
+        await save_user_info(dialog_manager, user.id, user_info)
     else:
         logger.warning("[QUIZ_DOD] Can't save user info: message.from_user missing")
 

@@ -1,7 +1,9 @@
+"""Dialog definitions for the guest feedback flow."""
+
 from __future__ import annotations
 
 from aiogram_dialog import Dialog, Window
-from aiogram_dialog.widgets.kbd import Cancel, Group, Select, Button
+from aiogram_dialog.widgets.kbd import Button, Cancel, Group, Select
 from aiogram_dialog.widgets.text import Const, Format, Multi
 from magic_filter import F
 
@@ -18,9 +20,15 @@ feedback_dialog = Dialog(
     Window(
         Multi(
             Const("📝 <b>Обратная связь – Тестовое задание</b>\n"),
-            Const("Выбери задание, чтобы посмотреть комментарии.", when=F["has_task_feedback"]),
-            Const("⚠️ Обратная связь по тестовым заданиям недоступна.", when=~F["has_task_feedback"]),
-            sep="\n"
+            Const(
+                "Выбери задание, чтобы посмотреть комментарии.",
+                when=F["has_task_feedback"],
+            ),
+            Const(
+                "⚠️ Обратная связь по тестовым заданиям недоступна.",
+                when=~F["has_task_feedback"],
+            ),
+            sep="\n",
         ),
         Group(
             Select(
@@ -45,8 +53,15 @@ feedback_dialog = Dialog(
             sep="\n"
         ),
         Group(
-            Button(Const("↩️ Назад"), id="task_feedback_back", on_click=on_back_to_tasks),
-            Cancel(Const("🏠 Главное меню"), id="tasks_feedback_close_from_details"),
+            Button(
+                Const("↩️ Назад"),
+                id="task_feedback_back",
+                on_click=on_back_to_tasks,
+            ),
+            Cancel(
+                Const("🏠 Главное меню"),
+                id="tasks_feedback_close_from_details",
+            ),
             width=1,
         ),
         state=FeedbackSG.show_feedback,
@@ -55,9 +70,15 @@ feedback_dialog = Dialog(
     Window(
         Multi(
             Const("🎦 <b>Обратная связь – Собеседование</b>\n"),
-            Format("{interview_feedback_text}", when=F["has_interview_feedback"]),
-            Const("⚠️ Обратная связь по собеседованию недоступна.", when=~F["has_interview_feedback"]),
-            sep="\n"
+            Format(
+                "{interview_feedback_text}",
+                when=F["has_interview_feedback"],
+            ),
+            Const(
+                "⚠️ Обратная связь по собеседованию недоступна.",
+                when=~F["has_interview_feedback"],
+            ),
+            sep="\n",
         ),
         Cancel(Const("🏠 Главное меню"), id="interview_feedback_close"),
         state=FeedbackSG.interview_feedback,
