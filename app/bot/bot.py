@@ -30,7 +30,7 @@ from app.bot.middlewares.error_handler import ErrorHandlerMiddleware
 from app.bot.middlewares.rbac import UserCtxMiddleware
 
 from app.bot.handlers.feedback_callbacks import feedback_callbacks_router
-from app.bot.handlers.admin_lock import setup_admin_commands_router
+from app.bot.handlers.admin_lock import setup_admin_lock_router
 from app.bot.middlewares.admin_lock import AdminLockMiddleware
 
 # Roles routers
@@ -199,10 +199,10 @@ def _configure_dispatcher(
 
     logger.info("Including routers")
 
-    admin_commands_router = setup_admin_commands_router(config.admin_ids)
+    admin_lock_router = setup_admin_lock_router(config.admin_ids)
 
     dp.include_routers(
-        admin_commands_router,
+        admin_lock_router,
         public_router,
     )
 

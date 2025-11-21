@@ -5,8 +5,10 @@ import logging
 from typing import Callable, Dict, Any, Awaitable
 
 from aiogram import BaseMiddleware
-from aiogram.types import TelegramObject, Message, CallbackQuery
+from aiogram.types import TelegramObject
 from aiogram.fsm.storage.redis import RedisStorage
+
+from app.utils.rbac import is_lock_mode_enabled
 
 logger = logging.getLogger(__name__)
 
@@ -17,16 +19,7 @@ class AdminLockMiddleware(BaseMiddleware):
     def __init__(self, admin_ids: list[int], storage: RedisStorage):
         self.admin_ids = set(admin_ids)
         self.storage = storage
-        logger.info(f"AdminLockMiddleware is initialized with admins: {admin_ids}")
-    
-    async def is_lock_enabled(self) -> bool:
-        try:
-            redis = self.storage.redis
-            result = await redis.get(LOCK_KEY)
-            return result == b"1" if result else False
-        except Exception as e:
-            logger.error(f"Error checking for admin lock: {e}")
-            return False
+        logger.info("AdminLockMiddleware is initialized with admins: %s", admin_ids)
     
     async def __call__(
         self,
@@ -65,7 +58,7 @@ class AdminLockMiddleware(BaseMiddleware):
         logger.debug(f"Middleware: processing user id={user_id} @{username}, message: {message_text}")
         
 
-        lock_enabled = await self.is_lock_enabled()
+        lock_enabled = await is_lock_mode_enabled(self.storage.redis)
         logger.debug(f"AdminLockMiddleware: lock status = {lock_enabled}")
         
         # No lock – go further
@@ -108,31 +101,3 @@ class AdminLockMiddleware(BaseMiddleware):
         
         # Drop update
         return None
-
-
-async def set_lock_mode(storage: RedisStorage, enabled: bool) -> bool:
-    try:
-        redis = storage.redis
-        if enabled:
-            await redis.set(LOCK_KEY, "1") # enabled
-            logger.debug("Lock status in Redis: 1")
-        else:
-            await redis.set(LOCK_KEY, "0") # disabled
-            logger.debug("Lock status in Redis: 0")
-        return True
-    except Exception as e:
-        logger.error(f"Excpetion while setting admin lock status in Redis: {e}")
-        return False
-
-
-async def is_lock_mode_enabled(storage: RedisStorage) -> bool:
-    try:
-        redis = storage.redis
-        result = await redis.get(LOCK_KEY)
-        logger.debug(f"Redis value for key {LOCK_KEY}: {result} (type: {type(result)})")
-        is_enabled = result == b"1" if result else False
-        logger.debug(f"Admin lock enabled: {is_enabled}")
-        return is_enabled
-    except Exception as e:
-        logger.error(f"Exception while checking admin lock status: {e}")
-        return False

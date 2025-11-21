@@ -66,14 +66,7 @@ guest_menu_dialog = Dialog(
         ),
         state=GuestMenuSG.MAIN,
         getter=[
-            guest_getters.get_current_stage_info,
-            guest_getters.get_application_status,
-            guest_getters.get_main_menu_media,
-            guest_getters.get_task_button_info,
-            guest_getters.get_interview_button_info,
-            guest_getters.get_feedback_button_info,
-            guest_getters.get_interview_datetime_info,
-            guest_getters.get_interview_feedback,
+            guest_getters.get_main_menu_media
         ],
     ),
     Window(

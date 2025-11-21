@@ -176,13 +176,16 @@ async def healthcheck() -> bool:
 def _register_events(engine: AsyncEngine) -> None:
     @event.listens_for(engine.sync_engine, "before_cursor_execute")
     def _before_cursor_execute(_, __, ___, ____, context, _____) -> None:  # type: ignore[override]
-        context.info["query_start_time"] = time.perf_counter()
+        setattr(context, "_query_start_time", time.perf_counter())
 
     @event.listens_for(engine.sync_engine, "after_cursor_execute")
-    def _after_cursor_execute(_, __, statement, ___, context, ____):  # type: ignore[override]
-        start = context.info.pop("query_start_time", None)
+    def _after_cursor_execute(
+        _, __, statement, ___, context, ____
+    ) -> None:  # type: ignore[override]
+        start = getattr(context, "_query_start_time", None)
         if start is None:
             return
+        delattr(context, "_query_start_time")
         duration_ms = (time.perf_counter() - start) * 1000
         logger.sqlalchemy_debug("SQL %.1f ms: %s", duration_ms, statement.splitlines()[0].strip())
 
