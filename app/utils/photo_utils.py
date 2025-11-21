@@ -9,7 +9,7 @@ from pathlib import Path
 from typing import Optional, Dict
 
 from aiogram import Bot
-from aiogram.types import InputMediaPhoto, Message
+from aiogram.types import InputMediaPhoto, Message, FSInputFile
 
 logger = logging.getLogger(__name__)
 
@@ -92,7 +92,6 @@ class PhotoSender:
         
         # Fallback: отправляем как файл
         try:
-            from aiogram.types import FSInputFile
             
             full_path = Path("app/bot/assets/images") / relative_path
             if full_path.exists():

@@ -230,7 +230,6 @@ async def save_user_info(
 
 async def on_certificate_requested(
     callback: CallbackQuery,
-    button: Button,
     dialog_manager: DialogManager,
     **kwargs,
 ):

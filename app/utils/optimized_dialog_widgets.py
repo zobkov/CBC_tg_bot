@@ -4,7 +4,6 @@
 """
 
 from typing import Optional
-from pathlib import Path
 
 from app.utils.photo_utils import get_photo_sender
 
