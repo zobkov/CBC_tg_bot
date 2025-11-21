@@ -1,7 +1,8 @@
+"""Aiogram Dialog definition for the DoD quiz flow."""
 
 from aiogram_dialog import Dialog, Window
 from aiogram_dialog.widgets.input import TextInput
-from aiogram_dialog.widgets.kbd import Button, Cancel, Group, Select, Row, Column
+from aiogram_dialog.widgets.kbd import Button, Cancel, Group, Select, Column
 from aiogram_dialog.widgets.text import Const, Format, Multi
 from magic_filter import F
 
@@ -90,7 +91,7 @@ quiz_dod_dialog = Dialog(
             id="Q_DOD_education",
             on_error=education_error_handler,
             on_success=on_education_entered,
-            type_factory=education_check,   
+            type_factory=education_check,
         ),
         state=QuizDodSG.education,
     ),
