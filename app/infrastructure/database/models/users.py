@@ -32,10 +32,22 @@ def _normalize_roles(raw: Any) -> list[str]:
     return ["guest"]
 
 
+def _as_datetime(raw: Any) -> datetime:
+    if isinstance(raw, str):
+        try:
+            return datetime.fromisoformat(raw)
+        except ValueError:
+            pass
+    if isinstance(raw, datetime):
+        return raw
+    return datetime.now(timezone.utc)
+
+
 @dataclass(slots=True)
 class UsersModel(BaseModel):
     user_id: int
     created: datetime
+    updated: datetime
     is_alive: bool = True
     is_blocked: bool = False
     roles: list[str] = field(default_factory=lambda: ["guest"])
@@ -45,6 +57,7 @@ class UsersModel(BaseModel):
         return cls(
             user_id=entity.user_id,
             created=entity.created,
+            updated=entity.updated,
             is_alive=entity.is_alive,
             is_blocked=entity.is_blocked,
             roles=_normalize_roles(entity.roles),
@@ -89,6 +102,7 @@ class UsersModel(BaseModel):
         return {
             "user_id": self.user_id,
             "created": self.created.isoformat(),
+            "updated": self.updated.isoformat(),
             "is_alive": self.is_alive,
             "is_blocked": self.is_blocked,
             "roles": self.roles,
@@ -96,16 +110,10 @@ class UsersModel(BaseModel):
 
     @classmethod
     def from_cache(cls, payload: dict[str, Any]) -> "UsersModel":
-        created_raw = payload.get("created")
-        if isinstance(created_raw, str):
-            created_dt = datetime.fromisoformat(created_raw)
-        elif isinstance(created_raw, datetime):
-            created_dt = created_raw
-        else:
-            created_dt = datetime.now(timezone.utc)
         return cls(
             user_id=payload["user_id"],
-            created=created_dt,
+            created=_as_datetime(payload.get("created")),
+            updated=_as_datetime(payload.get("updated")),
             is_alive=payload.get("is_alive", True),
             is_blocked=payload.get("is_blocked", False),
             roles=_normalize_roles(payload.get("roles")),
