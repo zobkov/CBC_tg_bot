@@ -13,6 +13,8 @@ from sqlalchemy.sql import func
 from app.infrastructure.database.models.base import BaseModel
 from app.infrastructure.database.orm.base import Base
 
+from app.infrastructure.database.models.types import intpk, updated, created
+
 
 def _normalize_roles(raw: Any) -> list[str]:
     if raw is None:
@@ -114,27 +116,23 @@ class Users(Base):
     __tablename__ = "users"
 
     user_id: Mapped[int] = mapped_column(BigInteger, primary_key=True)
-    created: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True),
-        nullable=False,
-        server_default=text("TIMEZONE('utc', NOW())"),
-    )
-    updated: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True),
-        nullable=False,
-        server_default=text("TIMEZONE('utc', NOW())"),
-        onupdate=lambda: datetime.now(timezone.utc),
-    )
+
+    created: Mapped[created]
+
+    updated: Mapped[updated]
+
     is_alive: Mapped[bool] = mapped_column(
         Boolean,
         nullable=False,
         server_default=text("true"),
     )
+
     is_blocked: Mapped[bool] = mapped_column(
         Boolean,
         nullable=False,
         server_default=text("false"),
     )
+    
     roles: Mapped[list[str]] = mapped_column(
         JSONB,
         nullable=False,
