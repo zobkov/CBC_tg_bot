@@ -117,7 +117,13 @@ class Users(Base):
     created: Mapped[datetime] = mapped_column(
         DateTime(timezone=True),
         nullable=False,
-        server_default=func.now(),
+        server_default=text("TIMEZONE('utc', NOW())"),
+    )
+    updated: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True),
+        nullable=False,
+        server_default=text("TIMEZONE('utc', NOW())"),
+        onupdate=lambda: datetime.now(timezone.utc),
     )
     is_alive: Mapped[bool] = mapped_column(
         Boolean,
