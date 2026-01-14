@@ -31,7 +31,7 @@ async def on_broadcast_selected(callback: CallbackQuery, widget: Any,
         if db and user:
             user_subscriptions : list[UserSubscriptionModel] = await db.user_subscriptions.get_user_subscriptions(user_id=user.id)
             broadcast = await db.broadcasts.get_by_key(key=item_id)
-
+            existing_subscription = None
             for sub in user_subscriptions:
                 if sub.broadcast_id == broadcast.id:
                     existing_subscription = sub
