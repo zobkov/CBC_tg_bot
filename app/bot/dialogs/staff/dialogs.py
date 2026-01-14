@@ -6,6 +6,7 @@ from aiogram_dialog.widgets.kbd import Row, Back, SwitchTo, Start
 from aiogram_dialog.widgets.text import Format, Const
 from aiogram_dialog.widgets.media import DynamicMedia, StaticMedia
 
+from app.bot.dialogs.broadcasts.states import BroadcastMenuSG
 from app.bot.dialogs.guest.quiz_dod.states import QuizDodSG
 
 from .states import StaffMenuSG
@@ -41,7 +42,13 @@ staff_menu_dialog = Dialog(
                 id="support",
                 state=StaffMenuSG.support,
             ),
+            Start(
+                Const("📬 Рассылки"),
+                id="broadcast_settings",
+                state=BroadcastMenuSG.MAIN,
+            ),
         ),
+
         state=StaffMenuSG.MAIN,
         getter=[get_user_info, get_main_menu_media,
                 get_support_contacts]

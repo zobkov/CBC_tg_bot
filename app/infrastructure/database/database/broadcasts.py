@@ -56,6 +56,14 @@ class _BroadcastsDB:
         if entity is None:
             return None
         return entity.to_model()
+    
+    async def get_by_id(self, *, id: int) -> BroadcastModel | None:
+        stmt = select(Broadcasts).where(Broadcasts.id == id)
+        result = await self.session.execute(stmt)
+        entity = result.scalar_one_or_none()
+        if entity is None:
+            return None
+        return entity.to_model()
 
     async def list_all(self) -> list[BroadcastModel]:
         result = await self.session.execute(select(Broadcasts))
