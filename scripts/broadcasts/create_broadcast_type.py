@@ -32,15 +32,11 @@ engine = create_async_engine(
 AsyncSessionLocal = sessionmaker(bind=engine, class_=AsyncSession, expire_on_commit=False)
 
 
-
-
-
 def key_validation(key: str) -> bool: 
     if key == "":
         print("Empty key. Try again")
         return False
     return True
-
 
 
 
@@ -67,13 +63,16 @@ async def main():
     try:
         async with AsyncSessionLocal() as session:
             database = DB(session)
+
             await database.broadcasts.add(
                 key=key,
                 title=title,
                 description=description,
             )
+            
             await session.commit()
         engine.dispose()
+
     except Exception as e:
         print(f"\n\n\n!!!!!!!!! ERROR: {e}")
         return -1
