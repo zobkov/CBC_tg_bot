@@ -19,6 +19,7 @@ from app.infrastructure.database.orm.base import Base
 # Ensure models are imported so that Alembic can discover them
 import app.infrastructure.database.models.users  # noqa: F401
 import app.infrastructure.database.models.feedback  # noqa: F401
+import app.infrastructure.database.models.user_info  # noqa: F401
 
 try:
     from config.config import load_config

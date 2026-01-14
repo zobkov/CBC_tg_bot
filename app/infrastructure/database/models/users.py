@@ -13,6 +13,8 @@ from sqlalchemy.sql import func
 from app.infrastructure.database.models.base import BaseModel
 from app.infrastructure.database.orm.base import Base
 
+from app.infrastructure.database.models.types import intpk, updated, created
+
 
 def _normalize_roles(raw: Any) -> list[str]:
     if raw is None:
@@ -30,10 +32,22 @@ def _normalize_roles(raw: Any) -> list[str]:
     return ["guest"]
 
 
+def _as_datetime(raw: Any) -> datetime:
+    if isinstance(raw, str):
+        try:
+            return datetime.fromisoformat(raw)
+        except ValueError:
+            pass
+    if isinstance(raw, datetime):
+        return raw
+    return datetime.now(timezone.utc)
+
+
 @dataclass(slots=True)
 class UsersModel(BaseModel):
     user_id: int
     created: datetime
+    updated: datetime
     is_alive: bool = True
     is_blocked: bool = False
     roles: list[str] = field(default_factory=lambda: ["guest"])
@@ -43,6 +57,7 @@ class UsersModel(BaseModel):
         return cls(
             user_id=entity.user_id,
             created=entity.created,
+            updated=entity.updated,
             is_alive=entity.is_alive,
             is_blocked=entity.is_blocked,
             roles=_normalize_roles(entity.roles),
@@ -87,6 +102,7 @@ class UsersModel(BaseModel):
         return {
             "user_id": self.user_id,
             "created": self.created.isoformat(),
+            "updated": self.updated.isoformat(),
             "is_alive": self.is_alive,
             "is_blocked": self.is_blocked,
             "roles": self.roles,
@@ -94,16 +110,10 @@ class UsersModel(BaseModel):
 
     @classmethod
     def from_cache(cls, payload: dict[str, Any]) -> "UsersModel":
-        created_raw = payload.get("created")
-        if isinstance(created_raw, str):
-            created_dt = datetime.fromisoformat(created_raw)
-        elif isinstance(created_raw, datetime):
-            created_dt = created_raw
-        else:
-            created_dt = datetime.now(timezone.utc)
         return cls(
             user_id=payload["user_id"],
-            created=created_dt,
+            created=_as_datetime(payload.get("created")),
+            updated=_as_datetime(payload.get("updated")),
             is_alive=payload.get("is_alive", True),
             is_blocked=payload.get("is_blocked", False),
             roles=_normalize_roles(payload.get("roles")),
@@ -114,21 +124,23 @@ class Users(Base):
     __tablename__ = "users"
 
     user_id: Mapped[int] = mapped_column(BigInteger, primary_key=True)
-    created: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True),
-        nullable=False,
-        server_default=func.now(),
-    )
+
+    created: Mapped[created]
+
+    updated: Mapped[updated]
+
     is_alive: Mapped[bool] = mapped_column(
         Boolean,
         nullable=False,
         server_default=text("true"),
     )
+
     is_blocked: Mapped[bool] = mapped_column(
         Boolean,
         nullable=False,
         server_default=text("false"),
     )
+    
     roles: Mapped[list[str]] = mapped_column(
         JSONB,
         nullable=False,
