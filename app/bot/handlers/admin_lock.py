@@ -155,6 +155,93 @@ def setup_admin_lock_router(admin_ids: list[int]) -> Router: # pylint: disable=t
             f"{status_text}\n\n"
             f"• Админы: {admin_list}\n\n"
         )
+    
+    @admin_lock_router.message(Command("ch_roles"), admin_check)
+    async def cmd_change_roles(
+        message: Message,
+        db,
+        user_ctx_middleware=None,
+        redis=None,
+        **kwargs,
+    ):
+        """/ch_roles - switches Staff <-> Guest"""
+        logger.info(f"ADMIN {message.from_user.id} executes /ch_roles")
+        
+        # Get middleware и Redis from dependencies/kwargs
+        user_ctx_middleware = user_ctx_middleware or kwargs.get("user_ctx_middleware")
+        redis_client = redis or kwargs.get("redis")
+        logger.debug(f"user_ctx_middleware получен: {user_ctx_middleware is not None}")
+        logger.debug(f"redis_client получен: {redis_client is not None}")
+        
+        try:
+            # Get current roles of a user
+            current_roles = await db.users.get_user_roles(user_id=message.from_user.id)
+            logger.info(f"Текущие роли админа {message.from_user.id}: {current_roles}")
+            
+            # Get new role (switch)
+            if "staff" in current_roles:
+                # Staff -> Guest
+                new_roles = ["guest"]
+                action = "Staff → Guest"
+                emoji = "👤"
+            elif "guest" in current_roles:
+                # Guest -> Staff  
+                new_roles = ["staff"]
+                action = "Guest → Staff"
+                emoji = "👥"
+            else:
+                # If none -> guest
+                new_roles = ["guest"]
+                action = "Установлена роль Guest"
+                emoji = "👤"
+            
+            # Check if roles changed ]
+            if set(new_roles) == set(current_roles):
+                await message.answer(
+                    f"ℹ️ Роли уже установлены правильно!\n"
+                    f"📋 Текущие роли: {', '.join(new_roles)}"
+                )
+                return
+            
+            # Update roles 
+            await db.users.set_user_roles(
+                user_id=message.from_user.id, 
+                roles=new_roles,
+                granted_by=message.from_user.id
+            )
+            
+            # User cache invalidated
+            if user_ctx_middleware:
+                await user_ctx_middleware.invalidate_user_cache(message.from_user.id)
+                logger.info(f"Cached user role id={message.from_user.id} invalidated through middleware")
+            elif redis_client:
+                # Fallback: call to Redis 
+                try:
+                    cache_key = f"rbac:{message.from_user.id}"
+                    await redis_client.delete(cache_key)
+                    logger.warning(f"Cached user role id={message.from_user.id} invalidated through Redis directly. Check if middleware works properly")
+                except Exception as e:
+                    logger.warning(f"Ошибка инвалидации кэша через Redis: {e}")
+            else:
+                logger.error("RBAC ERROR. Middleware are Redis unavailable, user chache is not invalidated")
+            
+            # Формируем ответ
+            roles_text = ", ".join(new_roles)
+            await message.answer(
+                f"{emoji} Roles changed\n\n"
+                f"🔄 Action: {action}\n"
+                f"📋 New roles: {roles_text}\n\n"
+                f"ℹ️ Reset by /menu"
+            )
+            
+            logger.info(f"ADMIN id={message.from_user.id} changed their roles: {current_roles} → {new_roles}")
+            
+        except Exception as e:
+            logger.error(f"ERROR while chaning admin roles ADMIN id={message.from_user.id}: {e}")
+            await message.answer(
+                "❌ ERORR while changing roles\n"
+                "/start"
+            )
 
     @admin_lock_router.message(non_admin_check)
     async def handle_non_admin_message(message: Message, state: FSMContext):
