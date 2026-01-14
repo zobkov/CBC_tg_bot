@@ -72,7 +72,7 @@ async def get_broadcast_subscriptions(
                 status = "❌ Подписка отключена"
                 emoji = "📪"
 
-            broadcast_subscription_status += f"\n{emoji} <b>{broadcast.title} рассылка</b>\n<i>{broadcast.description}</i>\nСтатус: {status}\n\n"
+            broadcast_subscription_status += f"\n{emoji} <b>{broadcast.title}</b>\n<i>{broadcast.description}</i>\nСтатус: {status}\n\n"
 
         return {
         "broadcast_subscription_status": broadcast_subscription_status
