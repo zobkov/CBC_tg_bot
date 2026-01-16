@@ -5,6 +5,7 @@ from aiogram_dialog.widgets.kbd import Back, Row, Start, SwitchTo
 from aiogram_dialog.widgets.media import DynamicMedia, StaticMedia
 from aiogram_dialog.widgets.text import Const, Format
 
+from app.bot.dialogs.broadcasts.states import BroadcastMenuSG
 from app.bot.dialogs.guest import getters as guest_getters
 from app.bot.dialogs.guest.quiz_dod.states import QuizDodSG
 from app.bot.dialogs.guest.states import GuestMenuSG
@@ -14,7 +15,7 @@ _MAIN_MENU_TEXT = (
     "🏠 <b>Личный кабинет участника КБК'26</b>\n\n"
     "Здесь ты можешь найти всю актуальную информацию о проекте! Совсем скоро мы "
     "начнём добавлять новые форматы, поэтому подписывайся на наши медиа, чтобы "
-    "ничего не пропустить:\n"
+    "ничего не пропустить:\n\n"
     "<a href=\"https://t.me/forumcbc\">Мы в ТГ</a>\n"
     "<a href=\"https://vk.com/forumcbc\">Мы в ВК</a>"
 )
@@ -62,6 +63,11 @@ guest_menu_dialog = Dialog(
                 Const("📞 Поддержка"),
                 id="support",
                 state=GuestMenuSG.support,
+            ),
+            Start(
+                Const("📬 Рассылки"),
+                id="broadcast_settings",
+                state=BroadcastMenuSG.MAIN,
             ),
         ),
         state=GuestMenuSG.MAIN,
