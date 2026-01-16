@@ -244,3 +244,7 @@ def setup_admin_lock_router(admin_ids: list[int]) -> Router: # pylint: disable=t
                 "❌ ERORR while changing roles\n"
                 "/start"
             )
+
+
+    # RETURN ROUTER !!!
+    return admin_lock_router
