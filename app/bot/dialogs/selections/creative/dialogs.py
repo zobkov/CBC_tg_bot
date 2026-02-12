@@ -111,8 +111,8 @@ creative_selection_dialog = Dialog(
         Const("В каком направлении ты хочешь участвовать?"),
         Column(
             Radio(
-                Format("🔘 {item[text]}"),
-                Format("⚪ {item[text]}"),
+                Format("{item[text]}"),
+                Format("{item[text]}"),
                 id="direction_radio",
                 item_id_getter=lambda item: item["id"],
                 items="directions",
@@ -158,8 +158,8 @@ creative_selection_dialog = Dialog(
         Const("Сколько раз в неделю ты готов посещать репетиции?"),
         Column(
             Radio(
-                Format("🔘 {item[text]}"),
-                Format("⚪ {item[text]}"),
+                Format("{item[text]}"),
+                Format("{item[text]}"),
                 id="frequency_radio",
                 item_id_getter=lambda item: item["id"],
                 items="frequency_options",
@@ -173,8 +173,8 @@ creative_selection_dialog = Dialog(
         Const("Сколько времени ты готов выделять на одну репетицию?"),
         Column(
             Radio(
-                Format("🔘 {item[text]}"),
-                Format("⚪ {item[text]}"),
+                Format("{item[text]}"),
+                Format("{item[text]}"),
                 id="duration_radio",
                 item_id_getter=lambda item: item["id"],
                 items="duration_options",
