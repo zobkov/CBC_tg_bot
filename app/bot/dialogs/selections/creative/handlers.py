@@ -6,6 +6,7 @@ from typing import Any
 from aiogram.types import CallbackQuery, Message
 from aiogram_dialog import DialogManager
 from aiogram_dialog.widgets.kbd import Button, Multiselect, Radio
+from aiogram_dialog import ShowMode
 
 from app.bot.assets.media_groups.media_groups import build_creative_casting_media_group
 from .states import CreativeSelectionSG
@@ -145,7 +146,7 @@ async def on_direction_selected(
             except Exception as e:
                 logger.error("[CREATIVE] Failed to send media group: %s", e)
 
-        await dialog_manager.switch_to(CreativeSelectionSG.fair_role_selection)
+        await dialog_manager.switch_to(CreativeSelectionSG.fair_role_selection, show_mode=ShowMode.DELETE_AND_SEND)
     else:
         logger.warning("[CREATIVE] Unknown direction: %s", item_id)
         await callback.message.answer("Произошла ошибка. Попробуйте еще раз.")
