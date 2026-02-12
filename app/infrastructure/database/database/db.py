@@ -7,6 +7,7 @@ from app.infrastructure.database.database.quiz_dod_users_info import _QuizDodUse
 from app.infrastructure.database.database.user_info import _UsersInfoDB
 from app.infrastructure.database.database.broadcasts import _BroadcastsDB
 from app.infrastructure.database.database.user_subscriptions import _UserSubscriptionsDB
+from app.infrastructure.database.database.creative_applications import _CreativeApplicationsDB
 
 
 class DB:
@@ -19,6 +20,7 @@ class DB:
         self.users_info = _UsersInfoDB(session=session)
         self.broadcasts = _BroadcastsDB(session=session)
         self.user_subscriptions = _UserSubscriptionsDB(session=session)
+        self.creative_applications = _CreativeApplicationsDB(session=session)
 
     @property
     def session(self) -> AsyncSession:

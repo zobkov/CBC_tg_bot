@@ -408,33 +408,120 @@ async def on_submit_application(
 
 async def save_to_database(manager: DialogManager, user_id: int) -> None:
     """
-    Placeholder: Save creative selection application to database.
+    Save creative selection application to database.
 
-    TODO: Create database table 'creative_applications' with columns:
-    - user_id (int, primary key)
-    - name (text)
-    - contact (text)
-    - email (text)
-    - university (text)
-    - direction (text: 'ceremony' or 'fair')
-    - ceremony_stage_experience (text, nullable)
-    - ceremony_motivation (text, nullable)
-    - ceremony_can_attend_md (boolean, nullable)
-    - ceremony_rehearsal_frequency (text, nullable)
-    - ceremony_rehearsal_duration (text, nullable)
-    - ceremony_timeslots (jsonb, nullable)
-    - ceremony_cloud_link (text, nullable)
-    - fair_roles (jsonb, nullable)
-    - fair_motivation (text, nullable)
-    - fair_experience (text, nullable)
-    - fair_cloud_link (text, nullable)
-    - submitted_at (timestamp)
+    Updates user_info table with:
+    - full_name from dialog_data["creative_name"]
+    - email from dialog_data["creative_email"]
+    - education from dialog_data["creative_university"]
+    (only if values are not blank)
 
-    TODO: Create database class similar to _QuizDodUsersInfoDB
-    TODO: Add to DB class in /app/infrastructure/database/database/db.py
+    Inserts into creative_applications table with all collected data.
     """
-    logger.info("[CREATIVE] Would save application for user=%s with data: %s",
-                user_id, manager.dialog_data)
+    from app.infrastructure.database.database.db import DB
+    from app.infrastructure.database.models.user_info import UsersInfoModel
+    from app.infrastructure.database.models.creative_application import (
+        CreativeApplicationModel,
+    )
+
+    db: DB | None = manager.middleware_data.get("db")
+    if not db:
+        logger.error("[CREATIVE] No database session available")
+        return
+
+    dialog_data = manager.dialog_data
+
+    try:
+        # Step 1: Update user_info conditionally
+        existing_info = await db.users_info.get_user_info(user_id=user_id)
+
+        # Extract new values from dialog
+        new_name = dialog_data.get("creative_name", "").strip() or None
+        new_email = dialog_data.get("creative_email", "").strip() or None
+        new_education = dialog_data.get("creative_university", "").strip() or None
+
+        # Build model preserving existing values when new ones are blank
+        user_info = UsersInfoModel(
+            user_id=user_id,
+            full_name=new_name or (existing_info.full_name if existing_info else None),
+            email=new_email or (existing_info.email if existing_info else None),
+            education=new_education
+            or (existing_info.education if existing_info else None),
+            # Preserve other fields from existing record
+            username=existing_info.username if existing_info else None,
+            university_course=existing_info.university_course if existing_info else None,
+            occupation=existing_info.occupation if existing_info else None,
+        )
+
+        await db.users_info.upsert(model=user_info)
+        logger.info("[CREATIVE] Updated user_info for user=%d", user_id)
+
+        # Step 2: Insert/update creative application
+        direction = dialog_data.get("creative_direction", "")
+
+        # Validate direction
+        if direction not in ("ceremony", "fair"):
+            logger.error("[CREATIVE] Invalid direction: %s", direction)
+            return
+
+        # Build application model based on direction
+        application = CreativeApplicationModel(
+            user_id=user_id,
+            contact=dialog_data.get("creative_contact", ""),
+            direction=direction,
+            # Ceremony fields
+            ceremony_stage_experience=dialog_data.get("ceremony_stage_experience")
+            if direction == "ceremony"
+            else None,
+            ceremony_motivation=dialog_data.get("ceremony_motivation")
+            if direction == "ceremony"
+            else None,
+            ceremony_can_attend_md=dialog_data.get("ceremony_can_attend_md")
+            if direction == "ceremony"
+            else None,
+            ceremony_rehearsal_frequency=dialog_data.get("ceremony_rehearsal_frequency")
+            if direction == "ceremony"
+            else None,
+            ceremony_rehearsal_duration=dialog_data.get("ceremony_rehearsal_duration")
+            if direction == "ceremony"
+            else None,
+            ceremony_timeslots=dialog_data.get("ceremony_timeslots")
+            if direction == "ceremony"
+            else None,
+            ceremony_cloud_link=dialog_data.get("ceremony_cloud_link")
+            if direction == "ceremony"
+            else None,
+            # Fair fields
+            fair_roles=dialog_data.get("fair_roles") if direction == "fair" else None,
+            fair_motivation=dialog_data.get("fair_motivation")
+            if direction == "fair"
+            else None,
+            fair_experience=dialog_data.get("fair_experience")
+            if direction == "fair"
+            else None,
+            fair_cloud_link=dialog_data.get("fair_cloud_link")
+            if direction == "fair"
+            else None,
+        )
+
+        await db.creative_applications.upsert_application(model=application)
+        logger.info(
+            "[CREATIVE] Saved application for user=%d, direction=%s", user_id, direction
+        )
+
+        # Commit transaction
+        await db.session.commit()
+
+    except Exception as e:
+        logger.error(
+            "[CREATIVE] Failed to save application for user=%d: %s",
+            user_id,
+            e,
+            exc_info=True,
+        )
+        # Rollback on error
+        await db.session.rollback()
+        raise
 
 
 async def sync_to_google_sheets(manager: DialogManager, user_id: int) -> None:
