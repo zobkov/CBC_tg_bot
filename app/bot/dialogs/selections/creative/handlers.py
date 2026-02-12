@@ -7,6 +7,7 @@ from aiogram.types import CallbackQuery, Message
 from aiogram_dialog import DialogManager
 from aiogram_dialog.widgets.kbd import Button, Multiselect, Radio
 
+from app.bot.assets.media_groups.media_groups import build_creative_casting_media_group
 from .states import CreativeSelectionSG
 
 logger = logging.getLogger(__name__)
@@ -130,6 +131,20 @@ async def on_direction_selected(
     if item_id == "ceremony":
         await dialog_manager.switch_to(CreativeSelectionSG.ceremony_stage_experience)
     elif item_id == "fair":
+        # Send photo gallery for fair roles
+        media_group = build_creative_casting_media_group()
+        if media_group:
+            try:
+                sent_messages = await callback.bot.send_media_group(
+                    chat_id=callback.message.chat.id,
+                    media=media_group
+                )
+                # Save message IDs for later deletion
+                media_group_message_ids = [msg.message_id for msg in sent_messages]
+                dialog_manager.dialog_data["media_group_message_ids"] = media_group_message_ids
+            except Exception as e:
+                logger.error("[CREATIVE] Failed to send media group: %s", e)
+
         await dialog_manager.switch_to(CreativeSelectionSG.fair_role_selection)
     else:
         logger.warning("[CREATIVE] Unknown direction: %s", item_id)
@@ -275,6 +290,22 @@ async def on_fair_roles_confirmed(
 ) -> None:
     """Store selected fair roles and proceed."""
     await callback.answer()
+
+    # Delete media group if it was sent
+    media_group_message_ids = dialog_manager.dialog_data.get("media_group_message_ids")
+    if media_group_message_ids:
+        try:
+            for message_id in media_group_message_ids:
+                await callback.bot.delete_message(
+                    chat_id=callback.message.chat.id,
+                    message_id=message_id
+                )
+        except Exception as e:
+            logger.error("[CREATIVE] Error deleting media group: %s", e)
+        finally:
+            # Clear media group IDs from dialog data
+            dialog_manager.dialog_data.pop("media_group_message_ids", None)
+
     # Get selected items from widget state
     widget_id = "fair_roles_multiselect"
     selected = dialog_manager.dialog_data.get(widget_id, [])

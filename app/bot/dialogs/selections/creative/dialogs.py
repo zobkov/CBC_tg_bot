@@ -259,6 +259,7 @@ creative_selection_dialog = Dialog(
 
     # Fair branch
     Window(
+        # pseudo photo gallery
         Multi(
             Const(_FAIR_TEXT),
             sep="",

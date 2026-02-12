@@ -118,8 +118,25 @@ def build_smm_media_media_group(caption: str | None = None):
         "choose_position/smmpr/СММ_шоу_1.png",
         "choose_position/smmpr/СММ_шоу_2.png"
     ]
-    
+
     media_group = compose_media_group_optimized(smm_media_paths, caption=caption)
+    return media_group.build()
+
+
+def build_creative_casting_media_group(caption: str | None = None):
+    """Build media group for creative casting fair roles"""
+    creative_casting_paths = [
+        "creative_casting/1.png",
+        "creative_casting/2.png",
+        "creative_casting/3.png",
+        "creative_casting/4.png",
+        "creative_casting/5.png",
+        "creative_casting/6.png",
+        "creative_casting/7.png",
+        "creative_casting/8.png",
+    ]
+
+    media_group = compose_media_group_optimized(creative_casting_paths, caption=caption)
     return media_group.build()
 
 
