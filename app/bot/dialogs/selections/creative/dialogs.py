@@ -11,6 +11,7 @@ from .getters import (
     get_duration_options,
     get_fair_role_options,
     get_frequency_options,
+    get_selected_fair_roles,
     get_timeslot_options,
 )
 from .handlers import (
@@ -284,12 +285,18 @@ creative_selection_dialog = Dialog(
         getter=get_fair_role_options,
     ),
     Window(
-        Const("Почему ты выбрал именно эту роль (эти роли)?"),
+        Multi(
+            Const("Почему ты выбрал именно эту роль (эти роли)?"),
+            Const("\n\n\n<b>Выбранные роли:</b>"),
+            Format("\n{selected_roles}"),
+            sep="",
+        ),
         TextInput(
             id="fair_role_motivation",
             on_success=on_fair_motivation_entered,
         ),
         state=CreativeSelectionSG.fair_role_motivation,
+        getter=get_selected_fair_roles,
     ),
     Window(
         Const(

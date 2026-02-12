@@ -238,10 +238,17 @@ async def on_timeslots_confirmed(
 ) -> None:
     """Store selected timeslots and proceed."""
     await callback.answer()
-    # Get selected items from widget state
-    widget_id = "timeslots_multiselect"
-    selected = dialog_manager.dialog_data.get(widget_id, [])
-    dialog_manager.dialog_data["ceremony_timeslots"] = selected
+
+    # Get selected items from Multiselect widget
+    multiselect = dialog_manager.find("timeslots_multiselect")
+    checked_items = []
+    if multiselect:
+        checked_items = list(multiselect.get_checked())
+        logger.info("[CREATIVE] Selected timeslots: %s", checked_items)
+    else:
+        logger.warning("[CREATIVE] Timeslots multiselect widget not found")
+
+    dialog_manager.dialog_data["ceremony_timeslots"] = checked_items
     await dialog_manager.next()
 
 
@@ -307,10 +314,16 @@ async def on_fair_roles_confirmed(
             # Clear media group IDs from dialog data
             dialog_manager.dialog_data.pop("media_group_message_ids", None)
 
-    # Get selected items from widget state
-    widget_id = "fair_roles_multiselect"
-    selected = dialog_manager.dialog_data.get(widget_id, [])
-    dialog_manager.dialog_data["fair_roles"] = selected
+    # Get selected items from Multiselect widget
+    multiselect = dialog_manager.find("fair_roles_multiselect")
+    checked_items = []
+    if multiselect:
+        checked_items = list(multiselect.get_checked())
+        logger.info("[CREATIVE] Selected fair roles: %s", checked_items)
+    else:
+        logger.warning("[CREATIVE] Fair roles multiselect widget not found")
+
+    dialog_manager.dialog_data["fair_roles"] = checked_items
     await dialog_manager.next()
 
 

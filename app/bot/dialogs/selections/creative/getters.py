@@ -74,6 +74,14 @@ async def get_fair_role_options(dialog_manager: DialogManager, **_kwargs: Any) -
     }
 
 
+async def get_selected_fair_roles(dialog_manager: DialogManager, **_kwargs: Any) -> dict[str, Any]:
+    """Provide selected fair roles for display in motivation window."""
+    roles = dialog_manager.dialog_data.get("fair_roles", [])
+    return {
+        "selected_roles": _format_fair_roles(roles),
+    }
+
+
 async def get_confirmation_data(dialog_manager: DialogManager, **_kwargs: Any) -> dict[str, Any]:
     """Prepare confirmation summary with all collected data."""
     data = dialog_manager.dialog_data
@@ -144,12 +152,12 @@ def _format_fair_roles(role_ids: list[str]) -> str:
 
     mapping = {
         "wheel": "Интерактив: Колесо удачи",
-        "dragon_race": "Интерактив: Гонки драконов",
+        "dragon_race": "Интерактив: Гонки драконов (мини-версия Dragon Boat)",
         "sachet": "Интерактив: сбор аромасаше",
-        "fortune": "Интерактив: Китайское гадание",
-        "embroidery": "МК: Вышивка",
-        "wind_music": "МК: Музыка ветра",
-        "amulets": "МК: Металлические амулеты",
-        "mask_painting": "МК: Роспись масок",
+        "fortune": "Интерактив: Китайское гадание (по книге перемен И Цзин и монетам)",
+        "embroidery": "МК: Вышивка небольших рисунков в китайской стилистике",
+        "wind_music": "МК: Создание подвески «Музыка ветра»",
+        "amulets": "МК: Создание металлических амулетов с отчеканенными символами",
+        "mask_painting": "МК: Роспись масок из Пекинской оперы",
     }
     return "\n".join([f"• {mapping.get(rid, rid)}" for rid in role_ids])
