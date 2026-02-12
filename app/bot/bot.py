@@ -67,6 +67,7 @@ from app.bot.dialogs.volunteer.dialogs import volunteer_menu_dialog
 from app.bot.dialogs.staff.dialogs import staff_menu_dialog
 
 from app.bot.dialogs.broadcasts.dialogs import broadcast_menu_dialog
+from app.bot.dialogs.selections.creative import creative_selection_dialog
 
 from app.services.photo_file_id_manager import startup_photo_check
 from app.services.task_file_id_manager import startup_task_files_check
@@ -222,6 +223,7 @@ def _configure_dispatcher(
         volunteer_menu_dialog,
         staff_menu_dialog,
         broadcast_menu_dialog,
+        creative_selection_dialog,
     )
 
     dp.include_routers(
