@@ -349,7 +349,7 @@ async def on_submit_application(
     # Send confirmation to user first
     await callback.message.answer(
         "✅ Спасибо! Твоя заявка принята.\n\n"
-        "Мы свяжемся с тобой в бл ижайшее время!"
+        "Мы свяжемся с тобой в ближайшее время!"
     )
 
     # Call placeholder functions
