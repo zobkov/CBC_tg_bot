@@ -11,6 +11,8 @@ from app.bot.dialogs.guest.quiz_dod.states import QuizDodSG
 from app.bot.dialogs.guest.states import GuestMenuSG
 from app.bot.states.feedback import FeedbackSG
 
+from app.bot.dialogs.selections.creative.states import CreativeSelectionSG
+
 _MAIN_MENU_TEXT = (
     "🏠 <b>Личный кабинет участника КБК'26</b>\n\n"
     "Здесь ты можешь найти всю актуальную информацию о проекте! Совсем скоро мы "
@@ -38,24 +40,16 @@ guest_menu_dialog = Dialog(
         Format(_MAIN_MENU_TEXT),
         Row(
             Start(
-                Const("📝 Обратная связь – Тестовое задание"),
-                id="feedback_button",
-                state=FeedbackSG.feedback_menu,
-            ),
-        ),
-        Row(
-            Start(
-                Const("🎦 Обратная связь – Собеседование"),
-                id="feedback_interview_button",
-                state=FeedbackSG.interview_feedback,
-                when="has_interview_feedback",
-            ),
-        ),
-        Row(
-            Start(
                 Const("🎯 Квиз КБК"),
                 id="quiz_dod_button",
                 state=QuizDodSG.MAIN,
+            ),
+        ),
+        Row(
+            Start(
+                Const("🎭 Кастинг"),
+                id="casting_creative_button",
+                state=CreativeSelectionSG.MAIN,
             ),
         ),
         Row(
