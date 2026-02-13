@@ -245,6 +245,35 @@ def setup_admin_lock_router(admin_ids: list[int]) -> Router: # pylint: disable=t
                 "/start"
             )
 
+    @admin_lock_router.message(Command("sync_google"))
+    async def sync_google_command(message: Message, db=None):
+        """Синхронизация креативных заявок с Google Sheets"""
+        if not db:
+            await message.answer("❌ Ошибка доступа к базе данных")
+            return
 
+        try:
+            from app.services.creative_google_sync import CreativeGoogleSheetsSync
+
+            await message.answer("⏳ Запускаю синхронизацию с Google Sheets...")
+
+            sync_service = CreativeGoogleSheetsSync(db)
+            count = await sync_service.sync_all_applications()
+
+            await message.answer(f"✅ Синхронизировано {count} креативных заявок")
+
+            logger.info(
+                f"[ADMIN] Google Sheets manual sync completed by user {message.from_user.id}, "
+                f"synced {count} applications"
+            )
+
+        except FileNotFoundError:
+            await message.answer(
+                "❌ Файл credentials не найден. Проверьте конфигурацию Google Sheets."
+            )
+            logger.error("Google credentials file not found during manual sync")
+        except Exception as e:
+            logger.error(f"Error during manual Google Sheets sync: {e}", exc_info=True)
+            await message.answer(f"❌ Ошибка синхронизации: {str(e)}")
     # RETURN ROUTER !!!
     return admin_lock_router
