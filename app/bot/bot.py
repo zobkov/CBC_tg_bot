@@ -67,6 +67,7 @@ from app.bot.dialogs.volunteer.dialogs import volunteer_menu_dialog
 from app.bot.dialogs.staff.dialogs import staff_menu_dialog
 
 from app.bot.dialogs.broadcasts.dialogs import broadcast_menu_dialog
+from app.bot.dialogs.selections.creative import creative_selection_dialog
 
 from app.services.photo_file_id_manager import startup_photo_check
 from app.services.task_file_id_manager import startup_task_files_check
@@ -222,6 +223,7 @@ def _configure_dispatcher(
         volunteer_menu_dialog,
         staff_menu_dialog,
         broadcast_menu_dialog,
+        creative_selection_dialog,
     )
 
     dp.include_routers(
@@ -302,8 +304,48 @@ async def main():
     except Exception as exc:  # pylint: disable=broad-except
         logger.error("Error during task file_id check: %s", exc)
 
+    # ––– SCHEDULER SETUP (Creative Google Sheets Sync)
+    logger.info("Setting up scheduled tasks...")
+    try:
+        from apscheduler.schedulers.asyncio import AsyncIOScheduler
+        from app.services.creative_google_sync import CreativeGoogleSheetsSync
+        from app.infrastructure.database.database.db import DB
 
-    # Launch polling and broadcast scheduler (TODO)
+        scheduler = AsyncIOScheduler()
+
+        async def scheduled_creative_google_sync():
+            """Runs hourly to sync creative applications to Google Sheets."""
+            try:
+                async with session_factory() as session:
+                    db = DB(session)
+                    sync_service = CreativeGoogleSheetsSync(db)
+                    count = await sync_service.sync_all_applications()
+                    logger.info(
+                        "[SCHEDULED] Synced %d creative applications to Google Sheets",
+                        count,
+                    )
+            except Exception as e:
+                logger.error(
+                    "[SCHEDULED] Failed to sync creative applications: %s",
+                    e,
+                    exc_info=True,
+                )
+
+        # Schedule hourly sync
+        scheduler.add_job(
+            scheduled_creative_google_sync,
+            "interval",
+            hours=1,
+            id="creative_google_sync",
+        )
+
+        scheduler.start()
+        logger.info("✅ Scheduled creative Google Sheets sync (hourly)")
+
+    except Exception as exc:  # pylint: disable=broad-except
+        logger.error("Failed to set up scheduler: %s", exc)
+
+    # Launch polling
     try:
         await bot.delete_webhook(drop_pending_updates=True)
 

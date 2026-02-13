@@ -21,28 +21,6 @@ router.message.filter(admin_filter)
 router.callback_query.filter(admin_filter)
 
 
-@router.message(Command("admin_panel"))
-async def admin_panel_command(message: Message):
-    """Административная панель"""
-    await message.answer(
-        "🔧 <b>Панель администратора КБК</b>\n\n"
-        "🔑 <b>Управление ролями:</b>\n"
-        "• /grant <role> - Выдать роль (ответ на сообщение)\n"
-        "• /revoke <role> - Отозвать роль\n"
-        "• /grant <role> <user_id> - Выдать роль по ID\n"
-        "• /revoke <role> <user_id> - Отозвать роль по ID\n\n"
-        "📊 <b>Системная информация:</b>\n"
-        "• /system_stats - Статистика системы\n"
-        "• /active_users - Активные пользователи\n"
-        "• /error_log - Последние ошибки\n\n"
-        "⚙️ <b>Настройки:</b>\n"
-        "• /maintenance - Режим обслуживания\n"
-        "• /cache_clear - Очистить кэш\n"
-        "• /backup - Создать резервную копию\n\n"
-        "Доступные роли: admin, staff, volunteer, guest, banned"
-    )
-
-
 @router.message(Command(re.compile(r"grant"), commands="grant"))
 async def grant_role_command(message: Message, command: Command, db=None, redis=None):
     """Команда выдачи ролей"""
@@ -212,29 +190,6 @@ async def revoke_role_command(message: Message, command: CommandObject, db=None,
         await message.answer(f"❌ Ошибка при отзыве роли: {e}")
 
 
-@router.message(Command("system_stats"))
-async def system_stats_command(message: Message, db=None):
-    """Системная статистика"""
-    if not db:
-        await message.answer("❌ Ошибка доступа к базе данных")
-        return
-    
-    try:
-        # TODO: Реализовать получение системной статистики
-        await message.answer(
-            "📊 <b>Системная статистика</b>\n\n"
-            "В разработке...\n\n"
-            "Будет показывать:\n"
-            "• Общее количество пользователей\n"
-            "• Распределение по ролям\n"
-            "• Активность за период\n"
-            "• Использование ресурсов\n"
-            "• Статистика ошибок"
-        )
-    except Exception as e:
-        logger.error(f"Error getting system stats: {e}")
-        await message.answer("❌ Ошибка при получении системной статистики")
-
 
 @router.message(Command("cache_clear"))
 async def cache_clear_command(message: Message, redis=None):
@@ -251,12 +206,44 @@ async def cache_clear_command(message: Message, redis=None):
             await message.answer(f"✅ Очищено {len(keys)} записей кэша ролей")
         else:
             await message.answer("ℹ️ Кэш ролей уже пуст")
-        
+
         logger.info(f"Cache cleared by admin {message.from_user.id}")
-        
+
     except Exception as e:
         logger.error(f"Error clearing cache: {e}")
         await message.answer(f"❌ Ошибка при очистке кэша: {e}")
+
+
+@router.message(Command("sync_google"))
+async def sync_google_command(message: Message, db=None):
+    """Синхронизация креативных заявок с Google Sheets"""
+    if not db:
+        await message.answer("❌ Ошибка доступа к базе данных")
+        return
+
+    try:
+        from app.services.creative_google_sync import CreativeGoogleSheetsSync
+
+        await message.answer("⏳ Запускаю синхронизацию с Google Sheets...")
+
+        sync_service = CreativeGoogleSheetsSync(db)
+        count = await sync_service.sync_all_applications()
+
+        await message.answer(f"✅ Синхронизировано {count} креативных заявок")
+
+        logger.info(
+            f"[ADMIN] Google Sheets manual sync completed by user {message.from_user.id}, "
+            f"synced {count} applications"
+        )
+
+    except FileNotFoundError:
+        await message.answer(
+            "❌ Файл credentials не найден. Проверьте конфигурацию Google Sheets."
+        )
+        logger.error("Google credentials file not found during manual sync")
+    except Exception as e:
+        logger.error(f"Error during manual Google Sheets sync: {e}", exc_info=True)
+        await message.answer(f"❌ Ошибка синхронизации: {str(e)}")
 
 
 @router.message()
