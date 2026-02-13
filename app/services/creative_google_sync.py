@@ -21,7 +21,7 @@ logger = logging.getLogger(__name__)
 class CreativeGoogleSheetsSync:
     """Сервис для синхронизации креативных заявок с Google Sheets"""
 
-    SHEET_NAME = "Креатив"
+    SHEET_NAME = "Applications"
 
     def __init__(self, db: DB):
         """
