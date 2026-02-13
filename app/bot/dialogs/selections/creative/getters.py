@@ -73,8 +73,8 @@ async def get_directions(dialog_manager: DialogManager, **_kwargs: Any) -> dict[
     """Provide direction options for selection."""
     return {
         "directions": [
-            {"id": "ceremony", "text": "Церемония открытия (в роли актёра)"},
-            {"id": "fair", "text": "Ярмарка культуры (проведение мастер-классов и интерактивов)"},
+            {"id": "ceremony", "text": "Церемония открытия"},
+            {"id": "fair", "text": "Ярмарка культуры"},
         ]
     }
 
@@ -122,14 +122,14 @@ async def get_fair_role_options(dialog_manager: DialogManager, **_kwargs: Any) -
     selected = dialog_manager.dialog_data.get("fair_roles_multiselect", [])
     return {
         "fair_role_options": [
-            {"id": "wheel", "text": "Интерактив: Колесо удачи"},
-            {"id": "dragon_race", "text": "Интерактив: Гонки драконов (мини-версия Dragon Boat)"},
-            {"id": "sachet", "text": "Интерактив: сбор аромасаше"},
-            {"id": "fortune", "text": "Интерактив: Китайское гадание (по книге перемен И Цзин и монетам)"},
-            {"id": "embroidery", "text": "МК: Вышивка небольших рисунков в китайской стилистике"},
-            {"id": "wind_music", "text": "МК: Создание подвески «Музыка ветра»"},
-            {"id": "amulets", "text": "МК: Создание металлических амулетов с отчеканенными символами"},
-            {"id": "mask_painting", "text": "МК: Роспись масок из Пекинской оперы"},
+            {"id": "wheel", "text": "1 - Интерактив: Колесо удачи"},
+            {"id": "dragon_race", "text": "2 - Интерактив: Гонки драконов (мини-версия Dragon Boat)"},
+            {"id": "sachet", "text": "3 - Интерактив: сбор аромасаше"},
+            {"id": "fortune", "text": "4 - Интерактив: Китайское гадание (по книге перемен И Цзин и монетам)"},
+            {"id": "embroidery", "text": "5 - МК: Вышивка небольших рисунков в китайской стилистике"},
+            {"id": "wind_music", "text": "6 - МК: Создание подвески «Музыка ветра»"},
+            {"id": "amulets", "text": "7 - МК: Создание металлических амулетов с отчеканенными символами"},
+            {"id": "mask_painting", "text": "8 - МК: Роспись масок из Пекинской оперы"},
         ],
         "has_fair_roles": len(selected) > 0,
     }

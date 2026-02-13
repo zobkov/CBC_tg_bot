@@ -102,7 +102,7 @@ creative_selection_dialog = Dialog(
     ),
     # Common questions
     Window(
-        Const("Как тебя зовут?\n\nНапиши свою фамилию, имя и отчество полностью."),
+        Const("<b>Как тебя зовут?</b>\n\nНапиши свою фамилию, имя и отчество полностью."),
         TextInput(
             id="creative_name",
             on_success=on_name_entered,
@@ -112,7 +112,7 @@ creative_selection_dialog = Dialog(
         state=CreativeSelectionSG.name,
     ),
     Window(
-        Const("Как с тобой можно связаться? (ВК/Телеграм)\n\nНапример: @username или vk.com/username"),
+        Const("<b>Как с тобой можно связаться?</b> (ВК/Телеграм)\n\nНапример: @username или vk.com/username"),
         TextInput(
             id="creative_contact",
             on_success=on_contact_entered,
@@ -120,7 +120,7 @@ creative_selection_dialog = Dialog(
         state=CreativeSelectionSG.contact,
     ),
     Window(
-        Const("Электронная почта\n\nУкажи действующий e-mail."),
+        Const("<b>Электронная почта</b>\n\nУкажи действующий e-mail."),
         TextInput(
             id="creative_email",
             on_success=on_email_entered,
@@ -129,8 +129,8 @@ creative_selection_dialog = Dialog(
     ),
     Window(
         Const(
-            "Университет, факультет, курс, год выпуска\n\n"
-            "Пример: <b>СПбГУ, ВШМ, 3, 2027</b> или <b>СПГЭУ, Юрфак, 1, 2029</b>"
+            "<b>Университет, факультет, курс, год выпуска</b>\n\n"
+            "Пример: СПбГУ, ВШМ, 3, 2027"
         ),
         TextInput(
             id="creative_university",
@@ -140,7 +140,11 @@ creative_selection_dialog = Dialog(
     ),
     # Direction selection (branch point)
     Window(
-        Const("В каком направлении ты хочешь участвовать?"),
+        Const(
+            "<b>В каком направлении ты хочешь участвовать?</b>\n\n" \
+            "• Церемония открытия (в роли актёра)\n" \
+            "• Ярмарка культуры (проведение мастер-классов и интерактивов)"
+        ),
         Column(
             Radio(
                 Format("{item[text]}"),
@@ -158,7 +162,7 @@ creative_selection_dialog = Dialog(
     Window(
         Const(
             "<b>Церемония открытия</b>\n\n"
-            "В случае наличия сценического опыта, расскажи о нем поподробнее."
+            "Если есть сценический опыт, расскажи о нем поподробнее."
         ),
         TextInput(
             id="ceremony_stage_exp",
@@ -167,7 +171,7 @@ creative_selection_dialog = Dialog(
         state=CreativeSelectionSG.ceremony_stage_experience,
     ),
     Window(
-        Const("Расскажи о своей мотивации для участия."),
+        Const("<b>Расскажи о своей мотивации для участия.</b>"),
         TextInput(
             id="ceremony_motivation",
             on_success=on_ceremony_motivation_entered,
@@ -176,7 +180,7 @@ creative_selection_dialog = Dialog(
     ),
     Window(
         Multi(
-            Const("Сможешь ли ты посещать очные репетиции, которые будут проводиться в Михайловской Даче?"),
+            Const("<b>Сможешь ли ты посещать очные репетиции, которые будут проводиться в Михайловской Даче?</b>"),
             Const("\n<i>МД: Санкт-Петербургское ш., 109, Петергоф</i>"),
             sep="\n",
         ),
@@ -187,7 +191,7 @@ creative_selection_dialog = Dialog(
         state=CreativeSelectionSG.ceremony_rehearsal_attendance,
     ),
     Window(
-        Const("Сколько раз в неделю ты готов посещать репетиции?"),
+        Const("<b>Сколько раз в неделю ты готов посещать репетиции?</b>"),
         Column(
             Radio(
                 Format("{item[text]}"),
@@ -202,7 +206,7 @@ creative_selection_dialog = Dialog(
         getter=get_frequency_options,
     ),
     Window(
-        Const("Сколько времени ты готов выделять на одну репетицию?"),
+        Const("<b>Сколько времени ты готов выделять на одну репетицию?</b>"),
         Column(
             Radio(
                 Format("{item[text]}"),
@@ -218,8 +222,8 @@ creative_selection_dialog = Dialog(
     ),
     Window(
         Const(
-            "В какое время ты готов посещать репетиции в МД?\n\n"
-            "Можно выбрать несколько вариантов:"
+            "<b>В какое время ты готов посещать репетиции в МД?</b>\n\n"
+            "Можно выбрать несколько вариантов, но не менее одного:"
         ),
         Column(
             Multiselect(
@@ -242,7 +246,7 @@ creative_selection_dialog = Dialog(
     ),
     Window(
         Multi(
-            Const("При желании можешь прикрепить ссылку на облако с фото/видео."),
+            Const("<b>При желании можешь прикрепить ссылку на облако с фото/видео.</b>"),
             Const("\n<i>Укажи ссылку на Google Drive, Яндекс.Диск или другое облачное хранилище.</i>"),
             Const("\n\nМожешь пропустить этот шаг."),
             sep="\n",
@@ -288,8 +292,8 @@ creative_selection_dialog = Dialog(
     ),
     Window(
         Multi(
-            Const("Почему ты выбрал именно эту роль (эти роли)?"),
-            Const("\n\n\n<b>Выбранные роли:</b>"),
+            Const("<b>Почему ты выбрал именно эту роль (эти роли)?</b>"),
+            Const("\n\n\n<i>Выбранные роли:</i>"),
             Format("\n{selected_roles}"),
             sep="",
         ),
@@ -302,8 +306,8 @@ creative_selection_dialog = Dialog(
     ),
     Window(
         Const(
-            "Если у тебя есть опыт в выбранной роли или любой другой опыт в проведении "
-            "мастер-классов/активностей, расскажи о них поподробнее."
+            "<b>Если у тебя есть опыт в выбранной роли или любой другой опыт в проведении "
+            "мастер-классов/активностей, расскажи о них поподробнее.</b>"
         ),
         TextInput(
             id="fair_role_experience",
@@ -313,7 +317,7 @@ creative_selection_dialog = Dialog(
     ),
     Window(
         Multi(
-            Const("Если хочешь поделиться своими работами или изделиями, можешь прикрепить ссылку на облако."),
+            Const("<b>Если хочешь поделиться своими работами или изделиями, можешь прикрепить ссылку на облако.</b>"),
             Const("\n<i>Укажи ссылку на Google Drive, Яндекс.Диск или другое облачное хранилище.</i>"),
             Const("\n\nМожешь пропустить этот шаг."),
             sep="\n",
