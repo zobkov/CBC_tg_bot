@@ -8,6 +8,67 @@ from aiogram_dialog import DialogManager
 logger = logging.getLogger(__name__)
 
 
+async def get_main_text(dialog_manager: DialogManager, **_kwargs: Any) -> dict[str, Any]:
+    """Provide main intro text based on whether user has existing application."""
+    from app.infrastructure.database.database.db import DB
+
+    # Get database instance
+    db: DB | None = dialog_manager.middleware_data.get("db")
+    event = dialog_manager.event
+    user_id = event.from_user.id if event and event.from_user else None
+
+    has_application = False
+    existing_direction = None
+
+    # Check if user has existing application
+    if db and user_id:
+        try:
+            existing_app = await db.creative_applications.get_application(user_id=user_id)
+            if existing_app:
+                has_application = True
+                existing_direction = existing_app.direction
+                logger.info(
+                    "[CREATIVE] User %d has existing application: direction=%s",
+                    user_id,
+                    existing_direction,
+                )
+        except Exception as e:
+            logger.error(
+                "[CREATIVE] Failed to check existing application for user %d: %s",
+                user_id,
+                e,
+            )
+
+    # Return appropriate text
+    if has_application:
+        direction_text = (
+            "церемонии открытия"
+            if existing_direction == "ceremony"
+            else "ярмарки культуры"
+        )
+        intro_text = (
+            "🎭 <b>Заявка на кастинг форума «Китай Бизнес Культура» 2026</b>\n\n"
+            f"✅ <b>У тебя уже есть поданная заявка на направление «{direction_text}».</b>\n\n"
+            "Ты можешь подать заявку заново — это перезапишет предыдущую заявку. "
+            "При этом ты можешь:\n"
+            "• Изменить все свои ответы\n"
+            "• Полностью сменить направление (церемония ↔ ярмарка)\n"
+            "• Обновить контактную информацию\n\n"
+            "Заполнение займет около 5-7 минут."
+        )
+    else:
+        intro_text = (
+            "🎭 <b>Заявка на кастинг форума «Китай Бизнес Культура» 2026</b>\n\n"
+            "Добро пожаловать на кастинг для форума КБК!\n\n"
+            "Тебе предстоит выбрать одно из направлений:\n"
+            "• Церемония открытия (в роли актёра)\n"
+            "• Ярмарка культуры (проведение мастер-классов и интерактивов)\n\n"
+            "Заполнение займет около 5-7 минут. Удачи!"
+        )
+
+    return {"intro_text": intro_text}
+
+
 async def get_directions(dialog_manager: DialogManager, **_kwargs: Any) -> dict[str, Any]:
     """Provide direction options for selection."""
     return {

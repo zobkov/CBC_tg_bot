@@ -11,6 +11,7 @@ from .getters import (
     get_duration_options,
     get_fair_role_options,
     get_frequency_options,
+    get_main_text,
     get_selected_fair_roles,
     get_timeslot_options,
 )
@@ -91,12 +92,13 @@ _FAIR_TEXT = """<b>Ярмарка культруы</b>
 creative_selection_dialog = Dialog(
     # Entry point / Main window
     Window(
-        Const(_INTRO_TEXT),
+        Format("{intro_text}"),
         Column(
             Button(Const("📝 Начать заявку"), id="start_application", on_click=on_start_clicked),
             Cancel(Const("🏠 Назад"), id="cancel_main"),
         ),
         state=CreativeSelectionSG.MAIN,
+        getter=get_main_text,
     ),
     # Common questions
     Window(
@@ -127,8 +129,8 @@ creative_selection_dialog = Dialog(
     ),
     Window(
         Const(
-            "Университет, факультет\n\n"
-            "Пример: <b>СПбГУ, ВШМ</b> или <b>СПбГУ, Философский факультет</b>"
+            "Университет, факультет, курс, год выпуска\n\n"
+            "Пример: <b>СПбГУ, ВШМ, 3, 2027</b> или <b>СПГЭУ, Юрфак, 1, 2029</b>"
         ),
         TextInput(
             id="creative_university",
