@@ -399,7 +399,6 @@ async def on_submit_application(
 
     # Call placeholder functions
     await save_to_database(dialog_manager, user.id)
-    await sync_to_google_sheets(dialog_manager, user.id)
 
     await dialog_manager.switch_to(CreativeSelectionSG.success)
 
@@ -523,17 +522,3 @@ async def save_to_database(manager: DialogManager, user_id: int) -> None:
         await db.session.rollback()
         raise
 
-
-async def sync_to_google_sheets(manager: DialogManager, user_id: int) -> None:
-    """
-    Placeholder: Sync creative application to Google Sheets.
-
-    TODO: Create Google Sheet with tabs:
-    - "Церемония открытия" (Ceremony applications)
-    - "Ярмарка культуры" (Fair applications)
-
-    TODO: Integrate with GoogleSyncService similar to interview sync
-    TODO: Map dialog_data fields to spreadsheet columns
-    """
-    logger.info("[CREATIVE] Would sync to Google Sheets for user=%s with data: %s",
-                user_id, manager.dialog_data)
