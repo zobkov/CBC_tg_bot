@@ -20,6 +20,7 @@ _MAIN_MENU_TEXT = (
     "ничего не пропустить:\n\n"
     "<a href=\"https://t.me/forumcbc\">Мы в ТГ</a>\n"
     "<a href=\"https://vk.com/forumcbc\">Мы в ВК</a>"
+    "<a href=\"https://forum-cbc.ru\">Наш сайт</a>"
 )
 
 _SUPPORT_TEXT = (
