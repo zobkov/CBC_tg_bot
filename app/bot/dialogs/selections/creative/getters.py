@@ -42,7 +42,7 @@ async def get_main_text(dialog_manager: DialogManager, **_kwargs: Any) -> dict[s
     # Return appropriate text
     if has_application:
         direction_text = (
-            "церемонии открытия"
+            "церемонии открытия и закрытия"
             if existing_direction == "ceremony"
             else "ярмарки культуры"
         )
@@ -61,7 +61,7 @@ async def get_main_text(dialog_manager: DialogManager, **_kwargs: Any) -> dict[s
             "🎭 <b>Заявка на кастинг форума «Китай Бизнес Культура» 2026</b>\n\n"
             "Добро пожаловать на кастинг для форума КБК!\n\n"
             "Тебе предстоит выбрать одно из направлений:\n"
-            "• Церемония открытия (в роли актёра)\n"
+            "• Церемония открытия и закрытия (в роли актёра)\n"
             "• Ярмарка культуры (проведение мастер-классов и интерактивов)\n\n"
             "Заполнение займет около 5-7 минут. Удачи!"
         )
@@ -73,7 +73,7 @@ async def get_directions(dialog_manager: DialogManager, **_kwargs: Any) -> dict[
     """Provide direction options for selection."""
     return {
         "directions": [
-            {"id": "ceremony", "text": "Церемония открытия"},
+            {"id": "ceremony", "text": "Церемония открытия и закрытия"},
             {"id": "fair", "text": "Ярмарка культуры"},
         ]
     }
@@ -176,7 +176,7 @@ async def get_confirmation_data(dialog_manager: DialogManager, **_kwargs: Any) -
         "contact": data.get("creative_contact", "N/A"),
         "email": data.get("creative_email", "N/A"),
         "university": data.get("creative_university", "N/A"),
-        "direction": "Церемония открытия" if direction == "ceremony" else "Ярмарка культуры",
+        "direction": "Церемония открытия и закрытия" if direction == "ceremony" else "Ярмарка культуры",
         "branch_details": branch_details,
     }
 
