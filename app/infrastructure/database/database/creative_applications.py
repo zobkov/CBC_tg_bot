@@ -77,10 +77,8 @@ class _CreativeApplicationsDB:
         return [entity.to_model() for entity in entities]
 
     async def list_all(self) -> list[CreativeApplicationModel]:
-        """Retrieve all creative applications ordered by submission date."""
-        stmt = select(CreativeApplications).order_by(
-            CreativeApplications.submitted_at.desc()
-        )
+        """Retrieve all creative applications ordered by ID (ascending)."""
+        stmt = select(CreativeApplications).order_by(CreativeApplications.id.asc())
         result = await self.session.execute(stmt)
         entities = result.scalars().all()
 
