@@ -10,6 +10,7 @@ from app.bot.dialogs.broadcasts.states import BroadcastMenuSG
 from app.bot.dialogs.guest.quiz_dod.states import QuizDodSG
 
 from .states import StaffMenuSG
+from app.bot.dialogs.selections.creative.states import CreativeSelectionSG
 
 from .getters import (get_user_info,
                       get_main_menu_media, get_support_contacts)
@@ -34,6 +35,13 @@ staff_menu_dialog = Dialog(
                 Const("🎯 Квиз КБК"),
                 id="quiz_dod_button",
                 state=QuizDodSG.MAIN,
+            ),
+        ),
+        Row(
+            Start(
+                Const("🎭 Кастинг"),
+                id="casting_creative_button",
+                state=CreativeSelectionSG.MAIN,
             ),
         ),
         Row(
