@@ -20,6 +20,7 @@ _MAIN_MENU_TEXT = (
     "ничего не пропустить:\n\n"
     "<a href=\"https://t.me/forumcbc\">Мы в ТГ</a>\n"
     "<a href=\"https://vk.com/forumcbc\">Мы в ВК</a>"
+    "<a href=\"https://forum-cbc.ru\">Наш сайт</a>"
 )
 
 _SUPPORT_TEXT = (
@@ -28,9 +29,6 @@ _SUPPORT_TEXT = (
     "из контактов ниже и задать все интересующие тебя вопросы.\n\n"
     "<b>По общим вопросам:</b> {general_support}\n"
     "<b>Техническая поддержка:</b> {technical_support}\n\n"
-    "Частые вопросы: "
-    "https://docs.google.com/document/d/1fV2IA_k5eY3TSM4Xue1sYR1OS8-AkHDGN_t4ub"
-    "KNMlA/edit?usp=sharing"
 )
 
 
