@@ -29,9 +29,6 @@ _SUPPORT_TEXT = (
     "из контактов ниже и задать все интересующие тебя вопросы.\n\n"
     "<b>По общим вопросам:</b> {general_support}\n"
     "<b>Техническая поддержка:</b> {technical_support}\n\n"
-    "Частые вопросы: "
-    "https://docs.google.com/document/d/1fV2IA_k5eY3TSM4Xue1sYR1OS8-AkHDGN_t4ub"
-    "KNMlA/edit?usp=sharing"
 )
 
 
