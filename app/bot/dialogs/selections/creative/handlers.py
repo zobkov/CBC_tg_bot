@@ -392,14 +392,16 @@ async def on_submit_application(
         return
 
     # Send confirmation to user first
-    await callback.message.answer(
-        "✅ Спасибо! Твоя заявка принята."
-    )
+    
 
     # Call placeholder functions
     await save_to_database(dialog_manager, user.id)
 
-    await dialog_manager.switch_to(CreativeSelectionSG.success)
+    await callback.message.answer(
+        "✅ Спасибо! Твоя заявка принята."
+    )
+
+    await dialog_manager.switch_to(CreativeSelectionSG.success, show_mode=ShowMode.DELETE_AND_SEND)
 
 
 # Placeholder functions for future implementation
