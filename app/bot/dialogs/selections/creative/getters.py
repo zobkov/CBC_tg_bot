@@ -4,8 +4,28 @@ import logging
 from typing import Any
 
 from aiogram_dialog import DialogManager
+from aiogram.enums import ContentType
+from aiogram_dialog.api.entities import MediaAttachment, MediaId
+
+from app.utils.optimized_dialog_widgets import get_file_id_for_path
 
 logger = logging.getLogger(__name__)
+
+
+async def get_creative_intro_media(**_kwargs: Any) -> dict[str, Any]:
+    """Load photo attachment definition for the creative selection intro."""
+    relative_path = "creative_casting/creative_selection.png"
+    file_id = get_file_id_for_path(relative_path)
+
+    if file_id:
+        media = MediaAttachment(type=ContentType.PHOTO, file_id=MediaId(file_id))
+    else:
+        media = MediaAttachment(
+            type=ContentType.PHOTO,
+            path=f"app/bot/assets/images/{relative_path}",
+        )
+
+    return {"media": media}
 
 
 async def get_main_text(dialog_manager: DialogManager, **_kwargs: Any) -> dict[str, Any]:
