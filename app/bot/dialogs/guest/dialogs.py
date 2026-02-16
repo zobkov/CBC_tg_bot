@@ -19,7 +19,7 @@ _MAIN_MENU_TEXT = (
     "начнём добавлять новые форматы, поэтому подписывайся на наши медиа, чтобы "
     "ничего не пропустить:\n\n"
     "<a href=\"https://t.me/forumcbc\">Мы в ТГ</a>\n"
-    "<a href=\"https://vk.com/forumcbc\">Мы в ВК</a>"
+    "<a href=\"https://vk.com/forumcbc\">Мы в ВК</a>\n"
     "<a href=\"https://forum-cbc.ru\">Наш сайт</a>"
 )
 
