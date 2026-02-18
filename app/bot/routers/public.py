@@ -8,6 +8,7 @@ from aiogram.types import Message
 from aiogram_dialog import DialogManager, StartMode
 
 from app.bot.dialogs.guest.states import GuestMenuSG
+from app.bot.dialogs.registration.states import RegistrationSG
 from app.bot.dialogs.volunteer.states import VolunteerMenuSG  
 from app.bot.dialogs.staff.states import StaffMenuSG
 from app.enums.roles import Role
@@ -51,8 +52,24 @@ async def start_command(message: Message, command: CommandStart, dialog_manager:
     elif Role.VOLUNTEER.value in roles:
         await dialog_manager.start(state=VolunteerMenuSG.MAIN, mode=StartMode.RESET_STACK)
     else:
-        # Гости и все остальные (включая новых пользователей)
-        await dialog_manager.start(state=GuestMenuSG.MAIN, mode=StartMode.RESET_STACK)
+        # Гости и все остальные - проверяем регистрацию
+        db: DB | None = dialog_manager.middleware_data.get("db")
+        is_registered = False
+        
+        if db:
+            try:
+                user_info = await db.users_info.get_user_info(user_id=message.from_user.id)
+                # Считаем пользователя зарегистрированным, если есть имя и email
+                if user_info and user_info.full_name and user_info.email:
+                    is_registered = True
+            except Exception as e:
+                logger.error("Error checking registration status: %s", e)
+        
+        if is_registered:
+            await dialog_manager.start(state=GuestMenuSG.MAIN, mode=StartMode.RESET_STACK)
+        else:
+            # Новый пользователь - показываем диалог регистрации
+            await dialog_manager.start(state=RegistrationSG.MAIN, mode=StartMode.RESET_STACK)
 
 
 @router.message(Command("menu"))
