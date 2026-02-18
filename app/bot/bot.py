@@ -69,6 +69,7 @@ from app.bot.dialogs.staff.dialogs import staff_menu_dialog
 from app.bot.dialogs.broadcasts.dialogs import broadcast_menu_dialog
 from app.bot.dialogs.selections.creative import creative_selection_dialog
 from app.bot.dialogs.registration.dialogs import registration_dialog
+from app.bot.dialogs.settings.dialogs import settings_dialog
 
 from app.services.photo_file_id_manager import startup_photo_check
 from app.services.task_file_id_manager import startup_task_files_check
@@ -220,6 +221,7 @@ def _configure_dispatcher(
         interview_dialog,
         feedback_dialog,
         registration_dialog,
+        settings_dialog,
         guest_menu_dialog,
         quiz_dod_dialog,
         volunteer_menu_dialog,
