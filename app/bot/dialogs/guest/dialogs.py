@@ -1,7 +1,7 @@
 """Guest dialog window definitions."""
 
 from aiogram_dialog import Dialog, Window
-from aiogram_dialog.widgets.kbd import Row, Start
+from aiogram_dialog.widgets.kbd import Row, Start, Url
 from aiogram_dialog.widgets.media import DynamicMedia
 from aiogram_dialog.widgets.text import Const, Format
 
@@ -13,12 +13,10 @@ from app.bot.dialogs.settings.states import SettingsSG
 
 _MAIN_MENU_TEXT = (
     "🏠 <b>Личный кабинет участника КБК'26</b>\n\n"
+    "ЗДЕСЬ БУДУТ АКТУАЛЬНЫЕ СОБЫТИЯ:\n\n"
     "Здесь ты можешь найти всю актуальную информацию о проекте! Совсем скоро мы "
     "начнём добавлять новые форматы, поэтому подписывайся на наши медиа, чтобы "
     "ничего не пропустить:\n\n"
-    "<a href=\"https://t.me/forumcbc\">Мы в ТГ</a>\n"
-    "<a href=\"https://vk.com/forumcbc\">Мы в ВК</a>\n"
-    "<a href=\"https://forum-cbc.ru\">Наш сайт</a>"
 )
 
 
@@ -42,10 +40,11 @@ guest_menu_dialog = Dialog(
         ),
         Row(
             Start(
-                Const("⚙️ Настройки"),
+                Const("⚙️ Помощь и настройки"),
                 id="settings",
                 state=SettingsSG.MAIN,
             ),
+            Url(Const("Медиа КБК"), Const("https://taplink.cc/forumcbc?from=tgbot"), id="url_to_taplink")
         ),
         state=GuestMenuSG.MAIN,
         getter=[
