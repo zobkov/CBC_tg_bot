@@ -15,7 +15,6 @@ from app.bot.dialogs.guest import getters as guest_getters
 
 _SETTINGS_MAIN_TEXT = (
     "⚙️ <b>Настройки</b>\n\n"
-    "Выбери нужный раздел:"
 )
 
 _PROFILE_TEXT = (
@@ -101,7 +100,7 @@ settings_dialog = Dialog(
                 state=SettingsSG.edit_email,
             ),
         ),
-        Back(Const("◀️ Назад")),
+        SwitchTo(Const("◀️ Назад"), id="back_to_menu", state=SettingsSG.MAIN),
         state=SettingsSG.PROFILE,
         getter=settings_getters.get_user_profile,
     ),
@@ -110,7 +109,7 @@ settings_dialog = Dialog(
     Window(
         DynamicMedia("media"),
         Format(_SUPPORT_TEXT),
-        Back(Const("◀️ Назад")),
+        SwitchTo(Const("◀️ Назад"), id="back_to_menu", state=SettingsSG.MAIN),
         state=SettingsSG.SUPPORT,
         getter=[settings_getters.get_support_contacts,settings_getters.get_support_media]
     ),
@@ -124,7 +123,7 @@ settings_dialog = Dialog(
             on_success=settings_handlers.on_name_entered,
             type_factory=settings_handlers.name_check,
         ),
-        Back(Const("❌ Отмена")),
+        SwitchTo(Const("❌ Отмена"), id="back_to_profile", state=SettingsSG.PROFILE),
         state=SettingsSG.edit_name,
     ),
     
@@ -137,7 +136,7 @@ settings_dialog = Dialog(
             on_success=settings_handlers.on_education_entered,
             type_factory=settings_handlers.education_check,
         ),
-        Back(Const("❌ Отмена")),
+        SwitchTo(Const("❌ Отмена"), id="back_to_profile", state=SettingsSG.PROFILE),
         state=SettingsSG.edit_education,
     ),
     
@@ -150,7 +149,7 @@ settings_dialog = Dialog(
             on_success=settings_handlers.on_email_entered,
             type_factory=settings_handlers.email_check,
         ),
-        Back(Const("❌ Отмена")),
+        SwitchTo(Const("❌ Отмена"), id="back_to_profile", state=SettingsSG.PROFILE),
         state=SettingsSG.edit_email,
     ),
 )
