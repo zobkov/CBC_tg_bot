@@ -187,10 +187,12 @@ async def _update_user_field(
         model = UsersInfoModel(**model_data)
         
         await db.users_info.upsert(model=model)
-        await db.session.commit()
+        # Use flush instead of commit to keep transaction open
+        # Middleware will commit automatically at the end
+        await db.session.flush()
         logger.info(f"[SETTINGS] Updated {field_name} for user={user.id}")
         
     except Exception:
         logger.exception(f"[SETTINGS] Failed to update {field_name}")
-        if db:
-            await db.session.rollback()
+        # Don't manually rollback - let middleware's context manager handle it
+        raise

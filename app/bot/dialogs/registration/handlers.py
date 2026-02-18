@@ -200,13 +200,14 @@ async def save_registration_data(dialog_manager: DialogManager) -> None:
         )
         
         await db.users_info.upsert(model=model)
-        await db.session.commit()
+        # Use flush instead of commit - middleware will commit automatically
+        await db.session.flush()
         logger.info("[REGISTRATION] Saved registration for user=%d", user.id)
         
     except Exception:
         logger.exception("[REGISTRATION] Failed to save registration data")
-        if db:
-            await db.session.rollback()
+        # Don't manually rollback - let middleware's context manager handle it
+        raise
 
 
 async def on_interview_button_clicked(

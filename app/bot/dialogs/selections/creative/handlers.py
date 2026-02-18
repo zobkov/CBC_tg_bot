@@ -509,8 +509,8 @@ async def save_to_database(manager: DialogManager, user_id: int) -> None:
             "[CREATIVE] Saved application for user=%d, direction=%s", user_id, direction
         )
 
-        # Commit transaction
-        await db.session.commit()
+        # Use flush instead of commit - middleware will handle commit
+        await db.session.flush()
 
     except Exception as e:
         logger.error(
@@ -519,7 +519,6 @@ async def save_to_database(manager: DialogManager, user_id: int) -> None:
             e,
             exc_info=True,
         )
-        # Rollback on error
-        await db.session.rollback()
+        # Don't manually rollback - let middleware's context manager handle it
         raise
 
