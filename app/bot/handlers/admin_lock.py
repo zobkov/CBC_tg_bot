@@ -6,7 +6,9 @@ from aiogram.types import Message, CallbackQuery
 from aiogram.filters import Command, Filter
 from aiogram.fsm.context import FSMContext
 from aiogram.fsm.storage.redis import RedisStorage
+from aiogram_dialog import DialogManager, StartMode
 
+from app.bot.dialogs.registration.states import RegistrationSG
 from app.utils.rbac import is_lock_mode_enabled
 
 logger = logging.getLogger(__name__)
@@ -275,5 +277,21 @@ def setup_admin_lock_router(admin_ids: list[int]) -> Router: # pylint: disable=t
         except Exception as e:
             logger.error(f"Error during manual Google Sheets sync: {e}", exc_info=True)
             await message.answer(f"❌ Ошибка синхронизации: {str(e)}")
+
+    @admin_lock_router.message(Command("force_start"), admin_check)
+    async def cmd_force_start(message: Message, dialog_manager: DialogManager):
+        """Принудительно запускает диалог регистрации"""
+        logger.info(f"ADMIN {message.from_user.id} executes /force_start")
+        
+        try:
+            await dialog_manager.start(
+                state=RegistrationSG.MAIN,
+                mode=StartMode.RESET_STACK
+            )
+            logger.info(f"Registration dialog forcefully started for user {message.from_user.id}")
+        except Exception as e:
+            logger.error(f"Error starting registration dialog: {e}", exc_info=True)
+            await message.answer(f"❌ Ошибка при запуске регистрации: {str(e)}")
+
     # RETURN ROUTER !!!
     return admin_lock_router
