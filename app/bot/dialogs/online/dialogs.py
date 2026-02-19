@@ -6,7 +6,7 @@ import operator
 
 from aiogram_dialog import Dialog, Window
 from aiogram_dialog.widgets.kbd import Back, Row, Start, SwitchTo, Cancel, Group, Select, Button
-from aiogram_dialog.widgets.text import Const, Format, Case
+from aiogram_dialog.widgets.text import Const, Format
 
 from .getters import (
     get_schedule_list,
@@ -36,11 +36,6 @@ _MAIN_MENU_TEXT = """
 
 Добро пожаловать в раздел онлайн-лекций КБК!
 
-Здесь ты можешь:
-• Просматривать расписание предстоящих лекций
-• Регистрироваться на интересующие мероприятия
-• Отслеживать свои зарегистрированные лекции
-• Получать ссылки на трансляции
 """
 
 _SCHEDULE_HEADER = "<b>📅 Расписание лекций</b>\n\n"
@@ -52,7 +47,7 @@ _SUPPORT_TEXT = """
 Если у тебя возникли вопросы по онлайн-лекциям, обратись к координаторам отдела Амбассадоров.
 
 📧 Контакты для связи:
-• Telegram: @support_kbk
+• Telegram: @cbc_assistant
 
 Часто задаваемые вопросы:
 
@@ -114,7 +109,7 @@ online_dialog = Dialog(
                 item_id_getter=operator.itemgetter(1),
                 on_click=on_event_selected,
             ),
-            width=2,
+            width=1,
         ),
         Back(Const("⬅️ Назад")),
         getter=get_schedule_list,
@@ -126,21 +121,18 @@ online_dialog = Dialog(
     # =============
     Window(
         Format("{event_details}"),
-        # Кнопка регистрации/отмены (условная)
-        Case(
-            {
-                True: Button(
-                    Const("❌ Отменить регистрацию"),
-                    id="btn_cancel_reg",
-                    on_click=on_cancel_registration_clicked,
-                ),
-                False: Button(
-                    Const("✅ Зарегистрироваться"),
-                    id="btn_register",
-                    on_click=on_register_clicked,
-                ),
-            },
-            selector="is_registered",
+        # Кнопка регистрации/отмены (взаимоисключающие условия)
+        Button(
+            Const("✅ Зарегистрироваться"),
+            id="btn_register",
+            on_click=on_register_clicked,
+            when=lambda data, widget, manager: not data.get("is_registered", False),
+        ),
+        Button(
+            Const("❌ Отменить регистрацию"),
+            id="btn_cancel_reg",
+            on_click=on_cancel_registration_clicked,
+            when="is_registered",
         ),
         Back(Const("⬅️ Назад")),
         getter=get_event_details,
@@ -161,9 +153,9 @@ online_dialog = Dialog(
                 item_id_getter=operator.itemgetter(1),
                 on_click=on_my_event_selected,
             ),
-            width=2,
+            width=1,
         ),
-        Back(Const("⬅️ Назад")),
+        SwitchTo(Const("⬅️ Назад"), id="my_to_main", state=OnlineSG.MAIN),
         getter=get_my_events,
         state=OnlineSG.MY_EVENTS,
     ),
@@ -191,7 +183,7 @@ online_dialog = Dialog(
         SwitchTo(
             Const("⬅️ Назад"),
             id="btn_back_to_main",
-            state=OnlineSG.MAIN,
+            state=OnlineSG.SCHEDULE,
         ),
         getter=get_successful_registration_text,
         state=OnlineSG.SUCCESSFUL_REGISTRATION,
@@ -202,7 +194,7 @@ online_dialog = Dialog(
     # =============
     Window(
         Const(_SUPPORT_TEXT),
-        Back(Const("⬅️ Назад")),
+        SwitchTo(Const("⬅️ Назад"), id="support_to_main", state=OnlineSG.MAIN),
         state=OnlineSG.SUPPORT,
     ),
 )
