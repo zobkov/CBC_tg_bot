@@ -248,3 +248,36 @@ async def get_successful_registration_text(
 Твои зарегистрированные лекции всегда можно найти в разделе «📚 Мои лекции»"""
     
     return {"success_text": text}
+
+
+async def get_ics_file(
+    dialog_manager: DialogManager,
+    event_from_user: User,
+    **_kwargs: Any,
+) -> dict[str, Any]:
+    """Получить ICS файл для добавления в календарь"""
+    from aiogram_dialog.api.entities import MediaAttachment, MediaId
+    from aiogram.enums import ContentType
+    from app.utils.ics_file_id import get_ics_file_id
+    
+    # Получаем slug выбранного события
+    event_slug = dialog_manager.dialog_data.get("selected_event_slug")
+    
+    if not event_slug:
+        logger.warning("No event_slug found for ICS file getter")
+        return {}
+    
+    # Получаем file_id для ICS файла
+    file_id = get_ics_file_id(event_slug)
+    
+    if not file_id:
+        logger.warning(f"No file_id found for ICS file with slug: {event_slug}")
+        return {}
+    
+    # Создаем MediaAttachment для DynamicMedia
+    ics_media = MediaAttachment(
+        ContentType.DOCUMENT,
+        file_id=MediaId(file_id)
+    )
+    
+    return {"ics_file": ics_media}

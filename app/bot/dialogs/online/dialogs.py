@@ -7,6 +7,7 @@ import operator
 from aiogram_dialog import Dialog, Window
 from aiogram_dialog.widgets.kbd import Back, Row, Start, SwitchTo, Cancel, Group, Select, Button
 from aiogram_dialog.widgets.text import Const, Format
+from aiogram_dialog.widgets.media import DynamicMedia
 
 from .getters import (
     get_schedule_list,
@@ -14,6 +15,7 @@ from .getters import (
     get_my_events,
     get_my_event_detail,
     get_successful_registration_text,
+    get_ics_file,
 )
 from .handlers import (
     on_event_selected,
@@ -134,6 +136,12 @@ online_dialog = Dialog(
             on_click=on_cancel_registration_clicked,
             when="is_registered",
         ),
+        SwitchTo(
+            Const("📅 Добавить в календарь"),
+            id="btn_add_to_calendar",
+            state=OnlineSG.CALENDAR_ADDITION,
+            when="is_registered",
+        ),
         Back(Const("⬅️ Назад")),
         getter=get_event_details,
         state=OnlineSG.SCHEDULE_EVENT,
@@ -170,6 +178,11 @@ online_dialog = Dialog(
             id="btn_get_link",
             on_click=on_get_link_clicked,
         ),
+        SwitchTo(
+            Const("📅 Добавить в календарь"),
+            id="btn_add_to_calendar_my",
+            state=OnlineSG.CALENDAR_ADDITION,
+        ),
         Button(
             Const("❌ Отменить регистрацию"),
             id="btn_cancel_my_reg",
@@ -186,6 +199,11 @@ online_dialog = Dialog(
     Window(
         Format("{success_text}"),
         SwitchTo(
+            Const("🗓️ Добавить в календарь"),
+            id="btn_add_to_calendar_success",
+            state=OnlineSG.CALENDAR_ADDITION,
+        ),
+        SwitchTo(
             Const("⬅️ Назад"),
             id="btn_back_to_main",
             state=OnlineSG.SCHEDULE,
@@ -201,5 +219,27 @@ online_dialog = Dialog(
         Const(_SUPPORT_TEXT),
         SwitchTo(Const("⬅️ Назад"), id="support_to_main", state=OnlineSG.MAIN),
         state=OnlineSG.SUPPORT,
+    ),
+
+    # =============
+    # CALENDAR_ADDITION - Добавление в календарь
+    # =============
+    Window(
+        Const(
+            """📅 <b>Добавить событие в календарь</b>
+
+Для удобства мы подготовили файл календаря (.ics) для этой лекции.
+
+<b>Как использовать:</b>
+1️⃣ Нажми на прикрепленный файл ниже
+2️⃣ Выбери приложение календаря на твоем устройстве
+3️⃣ Событие автоматически добавится в календарь
+
+📌 В файле уже настроено напоминание за 15 минут до начала лекции!"""
+        ),
+        DynamicMedia("ics_file"),
+        Back(Const("⬅️ Назад")),
+        getter=get_ics_file,
+        state=OnlineSG.CALENDAR_ADDITION,
     ),
 )

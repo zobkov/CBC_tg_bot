@@ -13,3 +13,4 @@ class OnlineSG(StatesGroup):
     MY_EVENT_DETAIL = State()
     SUPPORT = State()
     SUCCESSFUL_REGISTRATION = State()
+    CALENDAR_ADDITION = State()
