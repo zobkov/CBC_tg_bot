@@ -103,8 +103,8 @@ class IcsFileIdManager:
         """
         logger.info("🔍 Проверка наличия ICS файлов...")
         
-        # Получаем все активные события из БД
-        events = await db.online_events.get_all_active()
+        # Получаем все активные события из БД (включая прошедшие, чтобы сгенерировать все файлы)
+        events = await db.online_events.list_active_upcoming(hide_older_than_hours=24*365)
         
         if not events:
             logger.info("ℹ️ Активных событий не найдено в БД")
@@ -166,8 +166,8 @@ class IcsFileIdManager:
         
         logger.info(f"🆕 Найдено {len(new_slugs)} новых ICS файлов для загрузки")
         
-        # Получаем события из БД для названий
-        events = await db.online_events.get_all_active()
+        # Получаем события из БД для названий (включая все, чтобы получить названия)
+        events = await db.online_events.list_active_upcoming(hide_older_than_hours=24*365)
         event_map = {event.slug: event for event in events}
         
         # Отправляем новые файлы и получаем file_id
