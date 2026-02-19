@@ -106,8 +106,14 @@ async def on_cancel_registration_clicked(
         
         await callback.answer("Регистрация отменена", show_alert=False)
         
-        # Возвращаемся к расписанию
-        await dialog_manager.switch_to(OnlineSG.SCHEDULE)
+        # Определяем куда вернуться в зависимости от текущего состояния
+        current_state = dialog_manager.current_context().state
+        if current_state == OnlineSG.MY_EVENT_DETAIL:
+            # Если отменяем из "Моих лекций", возвращаемся туда
+            await dialog_manager.switch_to(OnlineSG.MY_EVENTS)
+        else:
+            # Если из расписания, возвращаемся к расписанию
+            await dialog_manager.switch_to(OnlineSG.SCHEDULE)
         
     except Exception as e:
         logger.error("Error cancelling registration: %s", e)

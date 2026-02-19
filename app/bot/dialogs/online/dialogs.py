@@ -170,6 +170,11 @@ online_dialog = Dialog(
             id="btn_get_link",
             on_click=on_get_link_clicked,
         ),
+        Button(
+            Const("❌ Отменить регистрацию"),
+            id="btn_cancel_my_reg",
+            on_click=on_cancel_registration_clicked,
+        ),
         Back(Const("⬅️ Назад")),
         getter=get_my_event_detail,
         state=OnlineSG.MY_EVENT_DETAIL,
