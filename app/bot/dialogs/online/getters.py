@@ -10,7 +10,7 @@ from aiogram_dialog import DialogManager
 
 from app.infrastructure.database.database.db import DB
 from app.infrastructure.database.models.online_events import OnlineEventModel
-from app.utils.datetime_formatters import format_moscow_datetime, format_date_only, format_time_only, is_link_available
+from app.utils.datetime_formatters import format_moscow_datetime, format_date_only, format_date_short, format_time_only, is_link_available
 
 logger = logging.getLogger(__name__)
 
@@ -22,6 +22,8 @@ async def get_schedule_list(
 ) -> dict[str, Any]:
     """Получить список предстоящих лекций для расписания"""
     db: DB | None = dialog_manager.middleware_data.get("db")
+    event = getattr(dialog_manager, "event", None)
+    user = getattr(event, "from_user", None) if event else None
     
     if not db:
         return {"schedule_text": "Ошибка загрузки расписания", "events": []}
@@ -36,18 +38,30 @@ async def get_schedule_list(
                 "events": []
             }
         
+        # Получаем регистрации пользователя, если он авторизован
+        user_registrations = set()
+        if user:
+            registrations = await db.online_registrations.get_user_registrations(
+                user_id=user.id,
+                active_only=True
+            )
+            user_registrations = {reg.event_id for reg in registrations}
+        
         # Формируем текст расписания
         schedule_text = ""
         for event in events:
             date_str = format_date_only(event.start_at)
             time_str = format_time_only(event.start_at)
+            # Добавляем ✅ если пользователь зарегистрирован
+            status_emoji = " ✅" if event.id in user_registrations else ""
+            
             schedule_text += f"📝 {event.title}\n"
             if event.speaker:
                 schedule_text += f"🎙️ {event.speaker}\n"
-            schedule_text += f"\n📅 {date_str}, {time_str} (МСК)\n\n\n"
+            schedule_text += f"\n📅 {date_str}, {time_str} (МСК){status_emoji}\n\n\n"
         
-        # Формируем список для кнопок (alias для отображения, slug для ID)
-        events_list = [(f"{format_date_only(e.start_at)} {e.alias}", e.slug) for e in events]
+        # Формируем список для кнопок в формате "DD.MM – alias"
+        events_list = [(f"{format_date_short(e.start_at)} – {e.alias}", e.slug) for e in events]
         
         return {
             "schedule_text": schedule_text.strip(),
@@ -156,8 +170,8 @@ async def get_my_events(
                 my_events_text += f"🎙️ {reg['speaker']}\n"
             my_events_text += f"\n📅 {date_str}, {time_str} (МСК)\n\n\n"
         
-        # Формируем список для кнопок
-        events_list = [(f"{format_date_only(r['start_at'])} {r['alias']}", r['slug']) for r in registrations]
+        # Формируем список для кнопок в формате "DD.MM – alias"
+        events_list = [(f"{format_date_short(r['start_at'])} – {r['alias']}", r['slug']) for r in registrations]
         
         return {
             "my_events_text": my_events_text.strip(),

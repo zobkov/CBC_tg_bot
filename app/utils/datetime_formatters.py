@@ -75,6 +75,24 @@ def format_date_only(dt: datetime) -> str:
     return f"{day} {month} {year}"
 
 
+def format_date_short(dt: datetime) -> str:
+    """
+    Форматирует дату в короткий формат "25.10"
+    
+    Args:
+        dt: Datetime объект
+    
+    Returns:
+        Отформатированная строка с датой в формате DD.MM
+    """
+    if dt.tzinfo is None:
+        moscow_dt = dt.replace(tzinfo=MOSCOW_TZ)
+    else:
+        moscow_dt = dt.astimezone(MOSCOW_TZ)
+    
+    return moscow_dt.strftime("%d.%m")
+
+
 def format_time_only(dt: datetime) -> str:
     """
     Форматирует только время в формат "17:00"
