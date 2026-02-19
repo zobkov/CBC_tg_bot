@@ -7,6 +7,7 @@ from aiogram_dialog.widgets.text import Const, Format
 
 from app.bot.dialogs.guest import getters as guest_getters
 from app.bot.dialogs.guest.quiz_dod.states import QuizDodSG
+from app.bot.dialogs.online.states import OnlineSG
 from app.bot.dialogs.guest.states import GuestMenuSG
 from app.bot.dialogs.selections.creative.states import CreativeSelectionSG
 from app.bot.dialogs.settings.states import SettingsSG
@@ -26,9 +27,9 @@ guest_menu_dialog = Dialog(
         Format(_MAIN_MENU_TEXT),
         Row(
             Start(
-                Const("🎯 Квиз КБК"),
+                Const("📗 Онлайн"),
                 id="quiz_dod_button",
-                state=QuizDodSG.MAIN,
+                state=OnlineSG.MAIN,
             ),
         ),
         Row(
