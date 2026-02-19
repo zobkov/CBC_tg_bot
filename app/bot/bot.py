@@ -327,6 +327,23 @@ async def main():
     except Exception as exc:  # pylint: disable=broad-except
         logger.error("Error during online lectures sync: %s", exc)
 
+    # ––– ICS FILE_ID CHECK (Online Lectures Calendar)
+    logger.info("Checking for new ICS files and updating file_ids...")
+    try:
+        from app.services.ics_file_id_manager import startup_ics_check
+        from app.infrastructure.database.database.db import DB
+
+        async with session_factory() as session:
+            db = DB(session)
+            async with session.begin():
+                ics_file_ids = await startup_ics_check(bot, db)
+                logger.info(
+                    "✅ ICS file_id check completed. Total ICS files: %d",
+                    len(ics_file_ids),
+                )
+    except Exception as exc:  # pylint: disable=broad-except
+        logger.error("Error during ICS file_id check: %s", exc)
+
     # ––– SCHEDULER SETUP (Creative Google Sheets Sync)
     logger.info("Setting up scheduled tasks...")
     try:
