@@ -70,6 +70,7 @@ from app.bot.dialogs.broadcasts.dialogs import broadcast_menu_dialog
 from app.bot.dialogs.selections.creative import creative_selection_dialog
 from app.bot.dialogs.registration.dialogs import registration_dialog
 from app.bot.dialogs.settings.dialogs import settings_dialog
+from app.bot.dialogs.online import online_dialog
 
 from app.services.photo_file_id_manager import startup_photo_check
 from app.services.task_file_id_manager import startup_task_files_check
@@ -228,6 +229,7 @@ def _configure_dispatcher(
         staff_menu_dialog,
         broadcast_menu_dialog,
         creative_selection_dialog,
+        online_dialog,
     )
 
     dp.include_routers(
@@ -307,6 +309,23 @@ async def main():
         )
     except Exception as exc:  # pylint: disable=broad-except
         logger.error("Error during task file_id check: %s", exc)
+
+    # ––– SYNC ONLINE LECTURES FROM CONFIG
+    logger.info("Syncing online lectures from config...")
+    try:
+        from app.services.online_lectures_sync import sync_lectures_from_config
+        from app.infrastructure.database.database.db import DB
+
+        async with session_factory() as session:
+            db = DB(session)
+            async with session.begin():
+                synced_count = await sync_lectures_from_config(db)
+                logger.info(
+                    "✅ Online lectures sync completed. Total lectures synced: %d",
+                    synced_count,
+                )
+    except Exception as exc:  # pylint: disable=broad-except
+        logger.error("Error during online lectures sync: %s", exc)
 
     # ––– SCHEDULER SETUP (Creative Google Sheets Sync)
     logger.info("Setting up scheduled tasks...")
