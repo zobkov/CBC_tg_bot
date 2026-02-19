@@ -8,6 +8,8 @@ from app.infrastructure.database.database.user_info import _UsersInfoDB
 from app.infrastructure.database.database.broadcasts import _BroadcastsDB
 from app.infrastructure.database.database.user_subscriptions import _UserSubscriptionsDB
 from app.infrastructure.database.database.creative_applications import _CreativeApplicationsDB
+from app.infrastructure.database.database.online_events import _OnlineEventsDB
+from app.infrastructure.database.database.online_registrations import _OnlineRegistrationsDB
 
 
 class DB:
@@ -21,6 +23,8 @@ class DB:
         self.broadcasts = _BroadcastsDB(session=session)
         self.user_subscriptions = _UserSubscriptionsDB(session=session)
         self.creative_applications = _CreativeApplicationsDB(session=session)
+        self.online_events = _OnlineEventsDB(session=session)
+        self.online_registrations = _OnlineRegistrationsDB(session=session)
 
     @property
     def session(self) -> AsyncSession:
