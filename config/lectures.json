@@ -1,0 +1,32 @@
+[
+  {
+    "slug": "lecture_example_1",
+    "alias": "Python Basics",
+    "title": "Введение в Python для начинающих",
+    "speaker": "Иван Петров",
+    "description": "На этой лекции мы разберем основы программирования на Python: переменные, циклы, функции и работу с данными. Идеально подходит для новичков!",
+    "url": "https://example.com/stream/python-basics",
+    "start_at": "2026-03-15 18:00:00+03",
+    "end_at": "2026-03-15 19:30:00+03"
+  },
+  {
+    "slug": "lecture_example_2",
+    "alias": "Web Dev",
+    "title": "Современная веб-разработка с React",
+    "speaker": "Мария Сидорова",
+    "description": "Изучаем React: компоненты, хуки, state management и взаимодействие с API. Для тех, кто хочет создавать современные веб-приложения.",
+    "url": "https://example.com/stream/react-modern",
+    "start_at": "2026-03-20 19:00:00+03",
+    "end_at": "2026-03-20 20:30:00+03"
+  },
+  {
+    "slug": "lecture_example_3",
+    "alias": "Data Science",
+    "title": "Машинное обучение: от теории к практике",
+    "speaker": "Алексей Кузнецов, Анна Смирнова",
+    "description": "Практический мастер-класс по машинному обучению. Разберем алгоритмы классификации и регрессии на реальных примерах с использованием scikit-learn.",
+    "url": "https://example.com/stream/ml-practice",
+    "start_at": "2026-03-25 17:00:00+03",
+    "end_at": "2026-03-25 19:00:00+03"
+  }
+]
