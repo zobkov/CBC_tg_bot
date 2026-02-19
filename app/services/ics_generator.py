@@ -72,9 +72,10 @@ def generate_ics_file(event: OnlineEventModel, output_path: Path) -> Path:
     ics_event.add('dtstamp', datetime.now(MOSCOW_TZ))
     
     # Add reminder (VALARM) - 15 minutes before
+    # Use short description to avoid line breaking issues on iOS
     alarm = Alarm()
     alarm.add('action', 'DISPLAY')
-    alarm.add('description', f'Напоминание: {event.title}')
+    alarm.add('description', 'Напоминание о лекции')
     alarm.add('trigger', timedelta(minutes=-15))
     
     # Add alarm to event
@@ -88,8 +89,24 @@ def generate_ics_file(event: OnlineEventModel, output_path: Path) -> Path:
     
     # Write to file
     try:
+        # Generate ICS content
+        ics_content = cal.to_ical()
+        
+        # Fix RFC 5545 line folding issues:
+        # The icalendar library sometimes adds double spaces after line breaks
+        # which causes iOS Calendar to reject the file
+        # RFC 5545 requires exactly ONE space after CRLF for continuation
+        
+        # Decode to string, fix double spaces, encode back
+        ics_str = ics_content.decode('utf-8')
+        
+        # Replace any occurrence of \r\n followed by 2+ spaces with \r\n and single space
+        import re
+        ics_str = re.sub(r'\r\n {2,}', r'\r\n ', ics_str)
+        
+        # Write corrected content
         with open(output_path, 'wb') as f:
-            f.write(cal.to_ical())
+            f.write(ics_str.encode('utf-8'))
         
         logger.info(f"Generated ICS file for event '{event.slug}' at {output_path}")
         return output_path
