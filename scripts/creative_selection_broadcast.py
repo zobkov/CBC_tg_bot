@@ -25,7 +25,7 @@ from aiogram.exceptions import TelegramForbiddenError, TelegramBadRequest, Teleg
 from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton
 from aiogram.types.input_file import FSInputFile
 from aiogram.utils.media_group import MediaGroupBuilder
-from sqlalchemy import select
+from sqlalchemy import select, update
 from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession
 from sqlalchemy.orm import sessionmaker
 
@@ -55,7 +55,7 @@ _BROADCAST_MESSAGE = """大家好! Давно мечтал проявить се
 
 ✅ А если боишься, что у тебя мало опыта – не переживай! Спешим развеять сомнения. Мастер-классы и интерактивы подобраны так, чтобы любой человек смог их провести.
 
-Регистрируйся в боте по ссылке 👉 @CBC_forum_bot
+Регистрируйся в боте по кнопке «🎭 Кастинг»
 
 <b>Дедлайн: 22 февраля 12:00</b>
 
@@ -290,6 +290,9 @@ async def send_broadcast(
         "dry_run": False
     }
     
+    # Collect blocked user IDs for batch update
+    blocked_user_ids = []
+    
     keyboard = create_keyboard()
     
     logger.info(f"Starting broadcast to {len(user_ids)} users...")
@@ -326,8 +329,8 @@ async def send_broadcast(
             
         except TelegramForbiddenError:
             # User blocked the bot
-            logger.warning(f"User {user_id} blocked the bot, updating is_alive=False")
-            await db.users.update_alive_status(user_id=user_id, is_alive=False)
+            logger.warning(f"User {user_id} blocked the bot, will update is_alive=False")
+            blocked_user_ids.append(user_id)
             stats["blocked"] += 1
             
         except TelegramBadRequest as e:
@@ -335,8 +338,8 @@ async def send_broadcast(
             error_msg = str(e).lower()
             logger.warning(f"Bad request for user {user_id}: {e}")
             if any(keyword in error_msg for keyword in ["chat not found", "user not found", "user is blocked", "user_is_blocked", "blocked"]):
-                logger.info(f"Updating is_alive=False for user {user_id}")
-                await db.users.update_alive_status(user_id=user_id, is_alive=False)
+                logger.info(f"Will update is_alive=False for user {user_id}")
+                blocked_user_ids.append(user_id)
                 stats["blocked"] += 1
             else:
                 stats["errors"] += 1
@@ -365,6 +368,18 @@ async def send_broadcast(
         except Exception as e:
             logger.error(f"Unexpected error sending to user {user_id}: {e}")
             stats["errors"] += 1
+    
+    # Batch update all blocked users at once
+    if blocked_user_ids:
+        logger.info(f"Updating is_alive=False for {len(blocked_user_ids)} blocked users in batch...")
+        from app.infrastructure.database.models.users import User
+        stmt = (
+            update(User)
+            .where(User.user_id.in_(blocked_user_ids))
+            .values(is_alive=False)
+        )
+        await db.session.execute(stmt)
+        logger.info(f"✅ Batch update completed for {len(blocked_user_ids)} users")
     
     return stats
 
