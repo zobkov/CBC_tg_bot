@@ -185,3 +185,4 @@ app/bot/assets/tasks_old/*
 config/*_file_ids.json
 config/*_file_ids_backup.json
 *.backup*
+*.ics

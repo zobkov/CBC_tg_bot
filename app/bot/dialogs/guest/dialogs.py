@@ -7,15 +7,17 @@ from aiogram_dialog.widgets.text import Const, Format
 
 from app.bot.dialogs.guest import getters as guest_getters
 from app.bot.dialogs.guest.quiz_dod.states import QuizDodSG
+from app.bot.dialogs.online.states import OnlineSG
 from app.bot.dialogs.guest.states import GuestMenuSG
 from app.bot.dialogs.selections.creative.states import CreativeSelectionSG
 from app.bot.dialogs.settings.states import SettingsSG
 
 _MAIN_MENU_TEXT = (
-    "🏠 <b>Личный кабинет участника КБК'26</b>\n\n"
-    "ЗДЕСЬ БУДУТ АКТУАЛЬНЫЕ СОБЫТИЯ:\n\n"
+    "🏠 <b>Личный кабинет участника КБК'26</b>\n\n\n"
+    "Актуальные события:\n\n"
+    "• <b>Творческие коллективы КБК'26 ищут тебя!</b>\nМы ищем тех, кто любит сцену, хочет выступать и готов создавать настроение форума. Актёрство и мастер-классы — если это твое, то скорее присоединяйся к нам!\n\n\n"
     "Здесь ты можешь найти всю актуальную информацию о проекте! Совсем скоро мы "
-    "начнём добавлять новые форматы, поэтому подписывайся на наши медиа, чтобы "
+    "начнём добавлять новые форматы, поэтому <b>подписывайся на наши медиа</b>, чтобы "
     "ничего не пропустить:\n\n"
 )
 
@@ -24,13 +26,13 @@ guest_menu_dialog = Dialog(
     Window(
         DynamicMedia("media"),
         Format(_MAIN_MENU_TEXT),
-        Row(
-            Start(
-                Const("🎯 Квиз КБК"),
-                id="quiz_dod_button",
-                state=QuizDodSG.MAIN,
-            ),
-        ),
+        # Row(
+        #     Start(
+        #         Const("📗 Онлайн"),
+        #         id="quiz_dod_button",
+        #         state=OnlineSG.MAIN,
+        #     ),
+        # ),
         Row(
             Start(
                 Const("🎭 Кастинг"),
