@@ -26,13 +26,13 @@ guest_menu_dialog = Dialog(
     Window(
         DynamicMedia("media"),
         Format(_MAIN_MENU_TEXT),
-        Row(
-            Start(
-                Const("📗 Онлайн"),
-                id="quiz_dod_button",
-                state=OnlineSG.MAIN,
-            ),
-        ),
+        # Row(
+        #     Start(
+        #         Const("📗 Онлайн"),
+        #         id="quiz_dod_button",
+        #         state=OnlineSG.MAIN,
+        #     ),
+        # ),
         Row(
             Start(
                 Const("🎭 Кастинг"),
