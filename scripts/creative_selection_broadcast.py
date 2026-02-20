@@ -327,14 +327,16 @@ async def send_broadcast(
         except TelegramForbiddenError:
             # User blocked the bot
             logger.warning(f"User {user_id} blocked the bot, updating is_alive=False")
-            await db.users.update_alive_status(user_id, False)
+            await db.users.update_alive_status(user_id=user_id, is_alive=False)
             stats["blocked"] += 1
             
         except TelegramBadRequest as e:
-            # User not found or other bad request
+            # User not found or blocked
+            error_msg = str(e).lower()
             logger.warning(f"Bad request for user {user_id}: {e}")
-            if "chat not found" in str(e).lower() or "user not found" in str(e).lower():
-                await db.users.update_alive_status(user_id, False)
+            if any(keyword in error_msg for keyword in ["chat not found", "user not found", "user is blocked", "user_is_blocked", "blocked"]):
+                logger.info(f"Updating is_alive=False for user {user_id}")
+                await db.users.update_alive_status(user_id=user_id, is_alive=False)
                 stats["blocked"] += 1
             else:
                 stats["errors"] += 1
