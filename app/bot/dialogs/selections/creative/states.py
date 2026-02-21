@@ -21,9 +21,10 @@ class CreativeSelectionSG(StatesGroup):  # pylint: disable=too-few-public-method
     direction_selection = State()
 
     # Branch A - Ceremony (Церемония открытия)
+    ceremony_rehearsal_attendance = State()
+    ceremony_md_required_notice = State()
     ceremony_stage_experience = State()
     ceremony_motivation = State()
-    ceremony_rehearsal_attendance = State()
     ceremony_rehearsal_frequency = State()
     ceremony_rehearsal_duration = State()
     ceremony_rehearsal_timeslots = State()
