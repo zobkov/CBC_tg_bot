@@ -115,8 +115,8 @@ async def get_event_details(
         if event.description:
             details += f"Описание:\n{event.description}\n\n"
         
-        # Показываем ссылку если она доступна
-        if event.url:
+        # Показываем ссылку только если есть регистрация
+        if event.url and is_registered:
             details += f"Ссылка на лекцию:\n🔗 {event.url}\n\n"
         
         details += registration_status

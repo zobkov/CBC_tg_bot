@@ -141,6 +141,12 @@ online_dialog = Dialog(
             on_click=on_cancel_registration_clicked,
             when="is_registered",
         ),
+        Button(
+            Const("🔗 Получить ссылку"),
+            id="btn_get_link_schedule",
+            on_click=on_get_link_clicked,
+            when="is_registered",
+        ),
         SwitchTo(
             Const("📅 Добавить в календарь"),
             id="btn_add_to_calendar",
