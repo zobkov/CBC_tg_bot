@@ -141,17 +141,7 @@ async def on_get_link_clicked(
             await callback.answer("Лекция не найдена", show_alert=True)
             return
         
-        # Проверяем доступность ссылки (должна быть доступна за 1 час до начала)
-        from app.utils.datetime_formatters import is_link_available, format_moscow_datetime
-        
-        if not is_link_available(event_obj.start_at, hours_before=1):
-            available_time = format_moscow_datetime(event_obj.start_at, include_tz=False)
-            await callback.answer(
-                f"Ссылка будет доступна {available_time} (МСК)",
-                show_alert=True
-            )
-            return
-        
+        # Проверяем наличие ссылки
         if not event_obj.url:
             await callback.answer("Ссылка пока не добавлена", show_alert=True)
             return

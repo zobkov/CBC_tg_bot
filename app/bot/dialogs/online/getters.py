@@ -10,7 +10,7 @@ from aiogram_dialog import DialogManager
 
 from app.infrastructure.database.database.db import DB
 from app.infrastructure.database.models.online_events import OnlineEventModel
-from app.utils.datetime_formatters import format_moscow_datetime, format_date_only, format_date_short, format_time_only, is_link_available
+from app.utils.datetime_formatters import format_moscow_datetime, format_date_only, format_date_short, format_time_only
 
 logger = logging.getLogger(__name__)
 
@@ -115,8 +115,8 @@ async def get_event_details(
         if event.description:
             details += f"Описание:\n{event.description}\n\n"
         
-        # Показываем ссылку только если до начала осталось меньше часа
-        if event.url and is_link_available(event.start_at, hours_before=1):
+        # Показываем ссылку если она доступна
+        if event.url:
             details += f"Ссылка на лекцию:\n🔗 {event.url}\n\n"
         
         details += registration_status
@@ -129,7 +129,7 @@ async def get_event_details(
             "event_title": event.title,
             "event_id": event.id,
             "is_registered": is_registered,
-            "link_available": is_link_available(event.start_at, hours_before=1),
+            "link_available": event.url is not None,
             "event_url": event.url or "",
         }
     except Exception as e:
@@ -209,14 +209,9 @@ async def get_my_event_detail(
         if event.description:
             details += f"Описание:\n{event.description}\n\n"
         
-        # Статус ссылки
-        link_avail = is_link_available(event.start_at, hours_before=1)
-        if link_avail and event.url:
-            details += f"🎥 Ссылка активна: {event.url}\n\n"
-        else:
-            # Показываем когда будет доступна
-            available_time = format_moscow_datetime(event.start_at, include_tz=False)
-            details += f"🔗 Ссылка будет доступна {available_time} (МСК)\n\n"
+        # Показываем ссылку если она доступна
+        if event.url:
+            details += f"🎥 Ссылка: {event.url}\n\n"
         
         # Сохраняем event_id для обработчиков
         dialog_manager.dialog_data["selected_event_id"] = event.id
@@ -225,7 +220,7 @@ async def get_my_event_detail(
             "my_event_details": details,
             "event_title": event.title,
             "event_id": event.id,
-            "link_available": link_avail,
+            "link_available": event.url is not None,
             "event_url": event.url or "",
         }
     except Exception as e:
