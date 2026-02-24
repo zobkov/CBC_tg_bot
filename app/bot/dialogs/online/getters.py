@@ -165,10 +165,10 @@ async def get_my_events(
         for reg in registrations:
             date_str = format_date_only(reg["start_at"])
             time_str = format_time_only(reg["start_at"])
-            my_events_text += f"📝 {reg['title']}\n"
+            my_events_text += f"📝 <b>{reg['title']}</b>\n"
             if reg["speaker"]:
                 my_events_text += f"🎙️ {reg['speaker']}\n"
-            my_events_text += f"\n📅 {date_str}, {time_str} (МСК)\n\n\n"
+            my_events_text += f"\n📅 <b>{date_str}</b>, {time_str} (МСК)\n\n─────────────────\n"
         
         # Формируем список для кнопок в формате "DD.MM – alias"
         events_list = [(f"{format_date_short(r['start_at'])} – {r['alias']}", r['slug']) for r in registrations]
