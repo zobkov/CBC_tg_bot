@@ -372,10 +372,10 @@ async def send_broadcast(
     # Batch update all blocked users at once
     if blocked_user_ids:
         logger.info(f"Updating is_alive=False for {len(blocked_user_ids)} blocked users in batch...")
-        from app.infrastructure.database.models.users import User
+        from app.infrastructure.database.models.users import Users
         stmt = (
-            update(User)
-            .where(User.user_id.in_(blocked_user_ids))
+            update(Users)
+            .where(Users.user_id.in_(blocked_user_ids))
             .values(is_alive=False)
         )
         await db.session.execute(stmt)

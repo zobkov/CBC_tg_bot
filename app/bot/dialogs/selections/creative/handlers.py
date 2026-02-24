@@ -130,7 +130,7 @@ async def on_direction_selected(
 
     # Route to appropriate branch
     if item_id == "ceremony":
-        await dialog_manager.switch_to(CreativeSelectionSG.ceremony_stage_experience)
+        await dialog_manager.switch_to(CreativeSelectionSG.ceremony_rehearsal_attendance)
     elif item_id == "fair":
         # Send photo gallery for fair roles
         media_group = build_creative_casting_media_group()
@@ -184,12 +184,29 @@ async def on_rehearsal_attendance_selected(
     dialog_manager: DialogManager,
     **_kwargs: Any,
 ) -> None:
-    """Store rehearsal attendance choice and proceed."""
+    """Store rehearsal attendance choice and route conditionally."""
     await callback.answer()
     # Check button ID to determine if user can attend
     can_attend = "can_attend" in callback.data
     dialog_manager.dialog_data["ceremony_can_attend_md"] = can_attend
-    await dialog_manager.next()
+    
+    if can_attend:
+        # User can attend - proceed with ceremony application
+        await dialog_manager.switch_to(CreativeSelectionSG.ceremony_stage_experience)
+    else:
+        # User cannot attend - show explanation and offer to choose another direction
+        await dialog_manager.switch_to(CreativeSelectionSG.ceremony_md_required_notice)
+
+
+async def on_back_to_direction_selection(
+    callback: CallbackQuery,
+    _button: Button,
+    dialog_manager: DialogManager,
+    **_kwargs: Any,
+) -> None:
+    """Return user to direction selection."""
+    await callback.answer()
+    await dialog_manager.switch_to(CreativeSelectionSG.direction_selection)
 
 
 async def on_frequency_selected(

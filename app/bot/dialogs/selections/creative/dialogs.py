@@ -19,6 +19,7 @@ from .getters import (
 )
 from .handlers import (
     name_check,
+    on_back_to_direction_selection,
     on_ceremony_cloud_link_entered,
     on_ceremony_motivation_entered,
     on_ceremony_stage_exp_entered,
@@ -152,6 +153,36 @@ creative_selection_dialog = Dialog(
         getter=get_directions,
     ),
     # Ceremony branch
+    # First question after selecting ceremony: check MD attendance ability
+    Window(
+        Multi(
+            Const("<b>Сможешь ли ты посещать очные репетиции, которые будут проводиться в Михайловской Даче?</b>"),
+            Const("\n<i>МД: Санкт-Петербургское ш., 109, Петергоф</i>"),
+            sep="\n",
+        ),
+        Column(
+            Button(Const("Смогу"), id="can_attend", on_click=on_rehearsal_attendance_selected),
+            Button(Const("Не смогу"), id="cannot_attend", on_click=on_rehearsal_attendance_selected),
+        ),
+        state=CreativeSelectionSG.ceremony_rehearsal_attendance,
+    ),
+    # MD attendance required notice (shown if user cannot attend)
+    Window(
+        Const(
+            "К сожалению, для участия в церемонии открытия посещение репетиций в Михайловской даче является обязательным.\n\n"
+            "Если у тебя нет возможности посещать очные репетиции, мы можем предложить тебе попробовать себя в другом направлении в качестве ведущего мастер-классов!"
+        ),
+        Column(
+            Button(
+                Const("← Вернуться к выбору направления"),
+                id="back_to_direction",
+                on_click=on_back_to_direction_selection,
+            ),
+            Cancel(Const("❌ Отменить заявку"), id="cancel_md_notice"),
+        ),
+        state=CreativeSelectionSG.ceremony_md_required_notice,
+    ),
+    # Continue ceremony application (if user can attend)
     Window(
         Const(
             "<b>Церемония открытия и закрытия</b>\n\n"
@@ -170,18 +201,6 @@ creative_selection_dialog = Dialog(
             on_success=on_ceremony_motivation_entered,
         ),
         state=CreativeSelectionSG.ceremony_motivation,
-    ),
-    Window(
-        Multi(
-            Const("<b>Сможешь ли ты посещать очные репетиции, которые будут проводиться в Михайловской Даче?</b>"),
-            Const("\n<i>МД: Санкт-Петербургское ш., 109, Петергоф</i>"),
-            sep="\n",
-        ),
-        Column(
-            Button(Const("Смогу"), id="can_attend", on_click=on_rehearsal_attendance_selected),
-            Button(Const("Не смогу"), id="cannot_attend", on_click=on_rehearsal_attendance_selected),
-        ),
-        state=CreativeSelectionSG.ceremony_rehearsal_attendance,
     ),
     Window(
         Const("<b>Сколько раз в неделю ты готов посещать репетиции?</b>"),
