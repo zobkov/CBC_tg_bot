@@ -12,7 +12,7 @@ from app.bot.dialogs.guest.states import GuestMenuSG
 from app.bot.dialogs.selections.creative.states import CreativeSelectionSG
 from app.bot.dialogs.settings.states import SettingsSG
 
-_MAIN_MENU_TEXT = (
+_MAIN_MENU_TEXT = ( 
     "🏠 <b>Личный кабинет участника КБК'26</b>\n\n\n"
     "Актуальные события:\n\n"
     "• <b>Творческие коллективы КБК'26 ищут тебя!</b>\nМы ищем тех, кто любит сцену, хочет выступать и готов создавать настроение форума. Актёрство и мастер-классы — если это твое, то скорее присоединяйся к нам!\n<b>Конец отбора: 27 февраля 23:59</b>\n\n\n"
@@ -26,6 +26,11 @@ guest_menu_dialog = Dialog(
     Window(
         DynamicMedia("media"),
         Format(_MAIN_MENU_TEXT),
+        Start(
+            Const("🔍 Квиз"),
+            id="btn_quiz",
+            state=QuizDodSG.MAIN,
+        ),
         # Row(
         #     Start(
         #         Const("📗 Онлайн"),

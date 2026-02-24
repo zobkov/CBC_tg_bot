@@ -91,12 +91,6 @@ online_dialog = Dialog(
             id="btn_my_events",
             state=OnlineSG.MY_EVENTS,
         ),
-        # Кнопка квиза (если доступен)
-        Start(
-            Const("🔍 Квиз"),
-            id="btn_quiz",
-            state=QuizDodSG.MAIN if QuizDodSG else None,
-        ) if QuizDodSG else None,
         Row(
             SwitchTo(
                 Const("❓ Помощь"),
