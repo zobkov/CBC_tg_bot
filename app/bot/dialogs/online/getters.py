@@ -55,10 +55,10 @@ async def get_schedule_list(
             # Добавляем ✅ если пользователь зарегистрирован
             status_emoji = " ✅" if event.id in user_registrations else ""
             
-            schedule_text += f"📝 {event.title}\n"
+            schedule_text += f"📝 <b>{event.title}</b>\n"
             if event.speaker:
                 schedule_text += f"🎙️ {event.speaker}\n"
-            schedule_text += f"\n📅 {date_str}, {time_str} (МСК){status_emoji}\n\n\n"
+            schedule_text += f"\n📅 {date_str}, {time_str} (МСК){status_emoji}\n\n─────────────────\n"
         
         # Формируем список для кнопок в формате "DD.MM – alias"
         events_list = [(f"{format_date_short(e.start_at)} – {e.alias}", e.slug) for e in events]

@@ -40,7 +40,7 @@ _MAIN_MENU_TEXT = """
 
 """
 
-_SCHEDULE_HEADER = "<b>📅 Расписание лекций</b>\n\n"
+_SCHEDULE_HEADER = "<b>🗓️ Расписание лекций</b>\n\n─────────────────"
 _MY_EVENTS_HEADER = "<b>📚 Мои лекции</b>\n\n"
 
 _SUPPORT_TEXT = """
