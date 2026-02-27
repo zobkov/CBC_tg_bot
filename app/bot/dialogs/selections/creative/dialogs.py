@@ -1,8 +1,8 @@
 """Aiogram Dialog definition for the creative selection (casting) flow."""
 
-from aiogram_dialog import Dialog, Window
+from aiogram_dialog import Dialog, Window, StartMode
 from aiogram_dialog.widgets.input import TextInput
-from aiogram_dialog.widgets.kbd import Button, Cancel, Column, Multiselect, Radio, Row
+from aiogram_dialog.widgets.kbd import Button, Cancel, Column, Multiselect, Radio, Row, Start
 from aiogram_dialog.widgets.media import DynamicMedia
 from aiogram_dialog.widgets.text import Const, Format, Multi
 
@@ -89,7 +89,7 @@ creative_selection_dialog = Dialog(
         Format("{intro_text}"),
         Column(
             Button(Const("📝 Подать заявку"), id="start_application", on_click=on_start_clicked),
-            Cancel(Const("🏠 Назад"), id="cancel_main"),
+            Start(Const("🏠 Назад"), id="cancel_main", mode=StartMode.RESET_STACK),
         ),
         state=CreativeSelectionSG.MAIN,
         getter=[get_main_text, get_creative_intro_media],
