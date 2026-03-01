@@ -76,6 +76,30 @@ async def get_support_contacts(
     }
 
 
+async def get_is_admin(
+    dialog_manager: DialogManager,
+    event_from_user: User,
+    **_kwargs: Any,
+) -> dict[str, Any]:
+    """Return whether the current user is in the admin_ids list from config."""
+    config = dialog_manager.middleware_data.get("config") or _get_config(dialog_manager)
+    if config is None:
+        return {"is_admin": False}
+    return {"is_admin": event_from_user.id in config.admin_ids}
+
+
+async def get_is_admin(
+    dialog_manager: DialogManager,
+    event_from_user: User,
+    **_kwargs: Any,
+) -> dict[str, Any]:
+    """Return whether the current user is in the admin_ids list from config."""
+    config = dialog_manager.middleware_data.get("config") or _get_config(dialog_manager)
+    if config is None:
+        return {"is_admin": False}
+    return {"is_admin": event_from_user.id in config.admin_ids}
+
+
 async def get_main_menu_media(
     **_kwargs: Any,
 ) -> dict[str, Any]:

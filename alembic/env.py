@@ -25,6 +25,7 @@ import app.infrastructure.database.models.broadcasts  # noqa: F401
 import app.infrastructure.database.models.user_subscriptions  # noqa: F401
 import app.infrastructure.database.models.online_events  # noqa: F401
 import app.infrastructure.database.models.online_registrations  # noqa: F401
+import app.infrastructure.database.models.user_mentors  # noqa: F401
 
 try:
     from config.config import load_config
