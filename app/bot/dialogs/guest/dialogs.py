@@ -27,13 +27,6 @@ guest_menu_dialog = Dialog(
     Window(
         DynamicMedia("media"),
         Format(_MAIN_MENU_TEXT),
-        # Row(
-        #     Start(
-        #         Const("📗 Онлайн"),
-        #         id="quiz_dod_button",
-        #         state=OnlineSG.MAIN,
-        #     ),
-        # ),
         Row(
             Start(
                 Const("🎭 Кастинг"),
@@ -42,11 +35,20 @@ guest_menu_dialog = Dialog(
             ),
         ),
         Row(
+            Start(
+                Const("📗 Онлайн"),
+                id="online_button",
+                state=OnlineSG.MAIN,
+            ),
+            when="is_admin",
+        ),
+        Row(
             Button(
                 Const("🏆 Гранты"),
                 id="grants_btn",
                 on_click=on_grants_clicked,
             ),
+            when="is_admin",
         ),
         Row(
             Start(
@@ -58,7 +60,8 @@ guest_menu_dialog = Dialog(
         ),
         state=GuestMenuSG.MAIN,
         getter=[
-            guest_getters.get_main_menu_media
+            guest_getters.get_main_menu_media,
+            guest_getters.get_is_admin,
         ],
     ),
 )
