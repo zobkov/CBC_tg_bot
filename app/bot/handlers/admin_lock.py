@@ -293,5 +293,129 @@ def setup_admin_lock_router(admin_ids: list[int]) -> Router: # pylint: disable=t
             logger.error(f"Error starting registration dialog: {e}", exc_info=True)
             await message.answer(f"❌ Ошибка при запуске регистрации: {str(e)}")
 
+    @admin_lock_router.message(Command("grant_gsom"), admin_check)
+    async def cmd_grant_gsom(message: Message, db=None) -> None:
+        """/grant_gsom <user_id> [mentor_contacts] — add user to GSOM branch."""
+        logger.info("ADMIN %d executes /grant_gsom", message.from_user.id)
+
+        if not db:
+            await message.answer("❌ DB недоступна")
+            return
+
+        parts = (message.text or "").split(maxsplit=2)
+        if len(parts) < 2:
+            await message.answer(
+                "Использование: /grant_gsom &lt;user_id&gt; [mentor_contacts]\n"
+                "Пример: /grant_gsom 123456789 @ivanov_mentor"
+            )
+            return
+
+        raw_user_id = parts[1]
+        mentor_contacts = parts[2] if len(parts) == 3 else None
+
+        try:
+            target_user_id = int(raw_user_id)
+        except ValueError:
+            await message.answer(f"❌ Неверный user_id: {raw_user_id!r}")
+            return
+
+        try:
+            await db.user_mentors.upsert(
+                user_id=target_user_id,
+                mentor_contacts=mentor_contacts,
+            )
+            contacts_info = f"\nМентор: {mentor_contacts}" if mentor_contacts else ""
+            await message.answer(
+                f"✅ Пользователь {target_user_id} добавлен в GSOM-ветку.{contacts_info}\n"
+                "Теперь при входе в раздел «Гранты» ему откроется личный кабинет ВШМ."
+            )
+            logger.info(
+                "ADMIN %d granted GSOM access to user %d (mentor: %s)",
+                message.from_user.id,
+                target_user_id,
+                mentor_contacts,
+            )
+        except Exception as exc:
+            logger.error("grant_gsom failed: %s", exc, exc_info=True)
+            await message.answer(f"❌ Ошибка: {exc}")
+
+    @admin_lock_router.message(Command("config_reset"), admin_check)
+    async def cmd_config_reset(message: Message) -> None:
+        """/config_reset — force-reload grant_lessons.json from disk."""
+        logger.info("ADMIN %d executes /config_reset", message.from_user.id)
+        try:
+            from app.services.grant_lessons_config import load_grant_lessons
+            lessons = load_grant_lessons(force=True)
+            await message.answer(
+                f"✅ Grant lessons config reloaded: {len(lessons)} lessons."
+            )
+        except Exception as exc:
+            logger.error("config_reset failed: %s", exc, exc_info=True)
+            await message.answer(f"❌ Ошибка при перезагрузке конфига: {exc}")
+
+    @admin_lock_router.message(Command("grant_lesson"), admin_check)
+    async def cmd_grant_lesson(message: Message, db=None) -> None:
+        """/grant_lesson <user_id> <lesson_tag> — unlock a lesson for a user."""
+        logger.info("ADMIN %d executes /grant_lesson", message.from_user.id)
+
+        if not db:
+            await message.answer("❌ DB недоступна")
+            return
+
+        parts = (message.text or "").split()
+        if len(parts) != 3:
+            await message.answer(
+                "Использование: /grant_lesson &lt;user_id&gt; &lt;lesson_tag&gt;\n"
+                "Пример: /grant_lesson 123456789 lesson_1"
+            )
+            return
+
+        _, raw_user_id, tag = parts
+        try:
+            target_user_id = int(raw_user_id)
+        except ValueError:
+            await message.answer(f"❌ Неверный user_id: {raw_user_id!r}")
+            return
+
+        try:
+            from app.services.grant_lessons_config import get_lesson_by_tag
+            lesson = get_lesson_by_tag(tag)
+            if lesson is None:
+                await message.answer(
+                    f"❌ Тег '{tag}' не найден в grant_lessons.json.\n"
+                    "Проверьте тег или выполните /config_reset."
+                )
+                return
+
+            record = await db.user_mentors.get_by_user_id(user_id=target_user_id)
+            if record is None:
+                await message.answer(
+                    f"❌ Пользователь {target_user_id} не найден в таблице user_mentors.\n"
+                    "Сначала добавьте его через /grant_gsom."
+                )
+                return
+
+            added = await db.user_mentors.approve_lesson(
+                user_id=target_user_id, tag=tag
+            )
+            lesson_name = lesson.get("name", tag)
+            if added:
+                await message.answer(
+                    f"✅ Урок «{lesson_name}» открыт для пользователя {target_user_id}."
+                )
+                logger.info(
+                    "ADMIN %d unlocked lesson '%s' for user %d",
+                    message.from_user.id,
+                    tag,
+                    target_user_id,
+                )
+            else:
+                await message.answer(
+                    f"ℹ️ Урок «{lesson_name}» уже был открыт для пользователя {target_user_id}."
+                )
+        except Exception as exc:
+            logger.error("grant_lesson failed: %s", exc, exc_info=True)
+            await message.answer(f"❌ Ошибка: {exc}")
+
     # RETURN ROUTER !!!
     return admin_lock_router
