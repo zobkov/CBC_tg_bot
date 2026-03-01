@@ -186,3 +186,4 @@ config/*_file_ids.json
 config/*_file_ids_backup.json
 *.backup*
 *.ics
+.vscode/*
