@@ -71,6 +71,7 @@ from app.bot.dialogs.selections.creative import creative_selection_dialog
 from app.bot.dialogs.registration.dialogs import registration_dialog
 from app.bot.dialogs.settings.dialogs import settings_dialog
 from app.bot.dialogs.online import online_dialog
+from app.bot.dialogs.grants import grants_dialog
 
 from app.services.photo_file_id_manager import startup_photo_check
 from app.services.task_file_id_manager import startup_task_files_check
@@ -230,6 +231,7 @@ def _configure_dispatcher(
         broadcast_menu_dialog,
         creative_selection_dialog,
         online_dialog,
+        grants_dialog,
     )
 
     dp.include_routers(
@@ -326,6 +328,15 @@ async def main():
                 )
     except Exception as exc:  # pylint: disable=broad-except
         logger.error("Error during online lectures sync: %s", exc)
+
+    # ––– LOAD GRANT LESSONS CONFIG
+    logger.info("Loading grant lessons config...")
+    try:
+        from app.services.grant_lessons_config import load_grant_lessons
+        lessons = load_grant_lessons()
+        logger.info("✅ Grant lessons config loaded: %d lessons", len(lessons))
+    except Exception as exc:  # pylint: disable=broad-except
+        logger.error("Error loading grant lessons config: %s", exc)
 
     # ––– ICS FILE_ID CHECK (Online Lectures Calendar)
     logger.info("Checking for new ICS files and updating file_ids...")
