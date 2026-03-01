@@ -10,6 +10,7 @@ from app.infrastructure.database.database.user_subscriptions import _UserSubscri
 from app.infrastructure.database.database.creative_applications import _CreativeApplicationsDB
 from app.infrastructure.database.database.online_events import _OnlineEventsDB
 from app.infrastructure.database.database.online_registrations import _OnlineRegistrationsDB
+from app.infrastructure.database.database.user_mentors import _UserMentorsDB
 
 
 class DB:
@@ -25,6 +26,7 @@ class DB:
         self.creative_applications = _CreativeApplicationsDB(session=session)
         self.online_events = _OnlineEventsDB(session=session)
         self.online_registrations = _OnlineRegistrationsDB(session=session)
+        self.user_mentors = _UserMentorsDB(session=session)
 
     @property
     def session(self) -> AsyncSession:
