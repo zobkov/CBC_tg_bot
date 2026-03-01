@@ -1,11 +1,12 @@
 """Guest dialog window definitions."""
 
 from aiogram_dialog import Dialog, Window
-from aiogram_dialog.widgets.kbd import Row, Start, Url
+from aiogram_dialog.widgets.kbd import Button, Row, Start, Url
 from aiogram_dialog.widgets.media import DynamicMedia
 from aiogram_dialog.widgets.text import Const, Format
 
 from app.bot.dialogs.guest import getters as guest_getters
+from app.bot.dialogs.guest.handlers import on_grants_clicked
 from app.bot.dialogs.guest.quiz_dod.states import QuizDodSG
 from app.bot.dialogs.online.states import OnlineSG
 from app.bot.dialogs.guest.states import GuestMenuSG
@@ -38,6 +39,13 @@ guest_menu_dialog = Dialog(
                 Const("🎭 Кастинг"),
                 id="casting_creative_button",
                 state=CreativeSelectionSG.MAIN,
+            ),
+        ),
+        Row(
+            Button(
+                Const("🏆 Гранты"),
+                id="grants_btn",
+                on_click=on_grants_clicked,
             ),
         ),
         Row(

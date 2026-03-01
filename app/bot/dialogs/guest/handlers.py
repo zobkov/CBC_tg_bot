@@ -16,6 +16,7 @@ from app.utils.deadline_checker import (
     get_task_submission_status_message,
     is_task_submission_closed,
 )
+from app.bot.dialogs.grants.states import GrantsSG
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -107,3 +108,26 @@ async def on_interview_button_clicked(
 ) -> None:
     """Show a short alert explaining that interview booking is closed."""
     await callback.answer("Запись на интервью закрыта", show_alert=True)
+
+
+async def on_grants_clicked(
+    callback: CallbackQuery,
+    _button: Button,
+    dialog_manager: DialogManager,
+) -> None:
+    """Route to the appropriate grants branch based on user_mentors record."""
+    db: DB | None = dialog_manager.middleware_data.get("db")
+    user_id = callback.from_user.id
+
+    target_state = GrantsSG.MAIN_GENERAL
+    if db:
+        try:
+            record = await db.user_mentors.get_by_user_id(user_id=user_id)
+            if record is not None:
+                target_state = GrantsSG.MAIN_GSOM
+        except Exception as exc:  # noqa: BLE001
+            _LOGGER.error(
+                "on_grants_clicked: DB error for user %d: %s", user_id, exc
+            )
+
+    await dialog_manager.start(target_state)
