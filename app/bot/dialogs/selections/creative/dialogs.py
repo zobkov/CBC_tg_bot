@@ -89,7 +89,7 @@ creative_selection_dialog = Dialog(
         DynamicMedia("media"),
         Format("{intro_text}"),
         Column(
-            Button(Const("📝 Подать заявку"), id="start_application", on_click=on_start_clicked),
+            # Button(Const("📝 Подать заявку"), id="start_application", on_click=on_start_clicked),
             Start(Const("🏠 Назад"), id="cancel_main", mode=StartMode.RESET_STACK, state=GuestMenuSG.MAIN),
         ),
         state=CreativeSelectionSG.MAIN,
