@@ -460,5 +460,72 @@ def setup_admin_lock_router(admin_ids: list[int]) -> Router: # pylint: disable=t
             logger.error("grant_lesson failed: %s", exc, exc_info=True)
             await message.answer(f"❌ Ошибка: {exc}")
 
+    @admin_lock_router.message(Command("grant_status"), admin_check)
+    async def cmd_grant_status(message: Message, db=None) -> None:
+        """/grant_status <user_id> — show GSOM grant status for a user."""
+        logger.info("ADMIN %d executes /grant_status", message.from_user.id)
+
+        if not db:
+            await message.answer("❌ DB недоступна")
+            return
+
+        parts = (message.text or "").split()
+        if len(parts) != 2:
+            await message.answer(
+                "Использование: /grant_status &lt;user_id&gt;\n"
+                "Пример: /grant_status 123456789"
+            )
+            return
+
+        try:
+            target_user_id = int(parts[1])
+        except ValueError:
+            await message.answer(f"❌ Неверный user_id: {parts[1]!r}")
+            return
+
+        try:
+            record = await db.user_mentors.get_by_user_id(user_id=target_user_id)
+            if record is None:
+                await message.answer(
+                    f"ℹ️ Пользователь <code>{target_user_id}</code> не в GSOM-ветке."
+                )
+                return
+
+            from app.services.grant_lessons_config import load_grant_lessons
+            lessons = load_grant_lessons()
+            approved_set = set(record.lessons_approved or [])
+
+            mentor_line = record.mentor_contacts or "не назначен"
+
+            if approved_set:
+                lesson_lines = []
+                for lesson in lessons:
+                    tag = lesson.get("tag", "")
+                    name = lesson.get("name", tag)
+                    status = "✅" if tag in approved_set else "🔒"
+                    lesson_lines.append(f"  {status} <code>{tag}</code> — {name}")
+                # approved tags not present in config
+                config_tags = {l.get("tag") for l in lessons}
+                for tag in sorted(approved_set - config_tags):
+                    lesson_lines.append(f"  ✅ <code>{tag}</code> — (не в конфиге)")
+                lessons_text = "\n".join(lesson_lines)
+            else:
+                lesson_lines = []
+                for lesson in lessons:
+                    tag = lesson.get("tag", "")
+                    name = lesson.get("name", tag)
+                    lesson_lines.append(f"  🔒 <code>{tag}</code> — {name}")
+                lessons_text = "\n".join(lesson_lines)
+
+            await message.answer(
+                f"<b>Grant status — <code>{target_user_id}</code></b>\n\n"
+                f"👨‍🏫 Ментор: {mentor_line}\n"
+                f"📚 Открытые уроки ({len(approved_set)}/11):\n"
+                f"{lessons_text}"
+            )
+        except Exception as exc:
+            logger.error("grant_status failed: %s", exc, exc_info=True)
+            await message.answer(f"❌ Ошибка: {exc}")
+
     # RETURN ROUTER !!!
     return admin_lock_router
