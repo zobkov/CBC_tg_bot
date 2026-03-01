@@ -92,3 +92,58 @@ class _UserMentorsDB:
             user_id,
         )
         return True
+
+    async def revoke_lesson(self, *, user_id: int, tag: str) -> bool:
+        """Remove *tag* from *lessons_approved* for *user_id*.
+
+        Returns *True* if the tag was removed, *False* if it was not present
+        or if the user record does not exist.
+        """
+        stmt = select(UserMentors).where(UserMentors.user_id == user_id)
+        result = await self.session.execute(stmt)
+        entity = result.scalar_one_or_none()
+
+        if entity is None:
+            logger.warning(
+                "revoke_lesson: no record for user_id=%d — tag '%s' not removed",
+                user_id,
+                tag,
+            )
+            return False
+
+        approved: list[str] = list(entity.lessons_approved or [])
+        if tag not in approved:
+            logger.info(
+                "revoke_lesson: tag '%s' not in approved list for user_id=%d",
+                tag,
+                user_id,
+            )
+            return False
+
+        approved.remove(tag)
+        await self.session.execute(
+            update(UserMentors)
+            .where(UserMentors.user_id == user_id)
+            .values(lessons_approved=approved)
+        )
+        logger.info(
+            "revoke_lesson: tag '%s' removed for user_id=%d",
+            tag,
+            user_id,
+        )
+        return True
+
+    async def delete_by_user_id(self, *, user_id: int) -> bool:
+        """Delete the user_mentors record for *user_id*.
+
+        Returns *True* if a record was deleted, *False* if none existed.
+        """
+        from sqlalchemy import delete as sa_delete
+        stmt = sa_delete(UserMentors).where(UserMentors.user_id == user_id)
+        result = await self.session.execute(stmt)
+        deleted = result.rowcount > 0
+        if deleted:
+            logger.info("delete_by_user_id: removed user_mentors record for user_id=%d", user_id)
+        else:
+            logger.info("delete_by_user_id: no record found for user_id=%d", user_id)
+        return deleted

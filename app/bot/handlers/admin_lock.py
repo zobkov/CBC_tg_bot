@@ -295,23 +295,27 @@ def setup_admin_lock_router(admin_ids: list[int]) -> Router: # pylint: disable=t
 
     @admin_lock_router.message(Command("grant_gsom"), admin_check)
     async def cmd_grant_gsom(message: Message, db=None) -> None:
-        """/grant_gsom <user_id> [mentor_contacts] — add user to GSOM branch."""
+        """/grant_gsom <user_id> <1|0> [mentor_contacts] — add/remove user from GSOM branch."""
         logger.info("ADMIN %d executes /grant_gsom", message.from_user.id)
 
         if not db:
             await message.answer("❌ DB недоступна")
             return
 
-        parts = (message.text or "").split(maxsplit=2)
-        if len(parts) < 2:
+        parts = (message.text or "").split(maxsplit=3)
+        if len(parts) < 3:
             await message.answer(
-                "Использование: /grant_gsom &lt;user_id&gt; [mentor_contacts]\n"
-                "Пример: /grant_gsom 123456789 @ivanov_mentor"
+                "Использование: /grant_gsom &lt;user_id&gt; &lt;1|0&gt; [mentor_contacts]\n"
+                "1 — добавить в GSOM-ветку, 0 — удалить\n"
+                "Примеры:\n"
+                "/grant_gsom 123456789 1 @ivanov_mentor\n"
+                "/grant_gsom 123456789 0"
             )
             return
 
         raw_user_id = parts[1]
-        mentor_contacts = parts[2] if len(parts) == 3 else None
+        raw_flag = parts[2]
+        mentor_contacts = parts[3] if len(parts) == 4 else None
 
         try:
             target_user_id = int(raw_user_id)
@@ -319,22 +323,39 @@ def setup_admin_lock_router(admin_ids: list[int]) -> Router: # pylint: disable=t
             await message.answer(f"❌ Неверный user_id: {raw_user_id!r}")
             return
 
+        if raw_flag not in ("0", "1"):
+            await message.answer("❌ Флаг должен быть 1 (добавить) или 0 (удалить)")
+            return
+
         try:
-            await db.user_mentors.upsert(
-                user_id=target_user_id,
-                mentor_contacts=mentor_contacts,
-            )
-            contacts_info = f"\nМентор: {mentor_contacts}" if mentor_contacts else ""
-            await message.answer(
-                f"✅ Пользователь {target_user_id} добавлен в GSOM-ветку.{contacts_info}\n"
-                "Теперь при входе в раздел «Гранты» ему откроется личный кабинет ВШМ."
-            )
-            logger.info(
-                "ADMIN %d granted GSOM access to user %d (mentor: %s)",
-                message.from_user.id,
-                target_user_id,
-                mentor_contacts,
-            )
+            if raw_flag == "0":
+                deleted = await db.user_mentors.delete_by_user_id(user_id=target_user_id)
+                if deleted:
+                    await message.answer(
+                        f"✅ Пользователь {target_user_id} удалён из GSOM-ветки."
+                    )
+                else:
+                    await message.answer(
+                        f"ℹ️ Пользователь {target_user_id} не был в GSOM-ветке."
+                    )
+                logger.info(
+                    "ADMIN %d revoked GSOM access for user %d (deleted=%s)",
+                    message.from_user.id, target_user_id, deleted,
+                )
+            else:
+                await db.user_mentors.upsert(
+                    user_id=target_user_id,
+                    mentor_contacts=mentor_contacts,
+                )
+                contacts_info = f"\nМентор: {mentor_contacts}" if mentor_contacts else ""
+                await message.answer(
+                    f"✅ Пользователь {target_user_id} добавлен в GSOM-ветку.{contacts_info}\n"
+                    "Теперь при входе в раздел «Гранты» ему откроется личный кабинет ВШМ."
+                )
+                logger.info(
+                    "ADMIN %d granted GSOM access to user %d (mentor: %s)",
+                    message.from_user.id, target_user_id, mentor_contacts,
+                )
         except Exception as exc:
             logger.error("grant_gsom failed: %s", exc, exc_info=True)
             await message.answer(f"❌ Ошибка: {exc}")
@@ -355,7 +376,7 @@ def setup_admin_lock_router(admin_ids: list[int]) -> Router: # pylint: disable=t
 
     @admin_lock_router.message(Command("grant_lesson"), admin_check)
     async def cmd_grant_lesson(message: Message, db=None) -> None:
-        """/grant_lesson <user_id> <lesson_tag> — unlock a lesson for a user."""
+        """/grant_lesson <user_id> <lesson_tag> <1|0> — lock/unlock a lesson for a user."""
         logger.info("ADMIN %d executes /grant_lesson", message.from_user.id)
 
         if not db:
@@ -363,18 +384,25 @@ def setup_admin_lock_router(admin_ids: list[int]) -> Router: # pylint: disable=t
             return
 
         parts = (message.text or "").split()
-        if len(parts) != 3:
+        if len(parts) != 4:
             await message.answer(
-                "Использование: /grant_lesson &lt;user_id&gt; &lt;lesson_tag&gt;\n"
-                "Пример: /grant_lesson 123456789 lesson_1"
+                "Использование: /grant_lesson &lt;user_id&gt; &lt;lesson_tag&gt; &lt;1|0&gt;\n"
+                "1 — открыть урок, 0 — закрыть\n"
+                "Примеры:\n"
+                "/grant_lesson 123456789 lesson_1 1\n"
+                "/grant_lesson 123456789 lesson_1 0"
             )
             return
 
-        _, raw_user_id, tag = parts
+        _, raw_user_id, tag, raw_flag = parts
         try:
             target_user_id = int(raw_user_id)
         except ValueError:
             await message.answer(f"❌ Неверный user_id: {raw_user_id!r}")
+            return
+
+        if raw_flag not in ("0", "1"):
+            await message.answer("❌ Флаг должен быть 1 (открыть) или 0 (закрыть)")
             return
 
         try:
@@ -395,24 +423,39 @@ def setup_admin_lock_router(admin_ids: list[int]) -> Router: # pylint: disable=t
                 )
                 return
 
-            added = await db.user_mentors.approve_lesson(
-                user_id=target_user_id, tag=tag
-            )
             lesson_name = lesson.get("name", tag)
-            if added:
-                await message.answer(
-                    f"✅ Урок «{lesson_name}» открыт для пользователя {target_user_id}."
+            if raw_flag == "1":
+                added = await db.user_mentors.approve_lesson(
+                    user_id=target_user_id, tag=tag
                 )
-                logger.info(
-                    "ADMIN %d unlocked lesson '%s' for user %d",
-                    message.from_user.id,
-                    tag,
-                    target_user_id,
-                )
+                if added:
+                    await message.answer(
+                        f"✅ Урок «{lesson_name}» открыт для пользователя {target_user_id}."
+                    )
+                    logger.info(
+                        "ADMIN %d unlocked lesson '%s' for user %d",
+                        message.from_user.id, tag, target_user_id,
+                    )
+                else:
+                    await message.answer(
+                        f"ℹ️ Урок «{lesson_name}» уже был открыт для пользователя {target_user_id}."
+                    )
             else:
-                await message.answer(
-                    f"ℹ️ Урок «{lesson_name}» уже был открыт для пользователя {target_user_id}."
+                removed = await db.user_mentors.revoke_lesson(
+                    user_id=target_user_id, tag=tag
                 )
+                if removed:
+                    await message.answer(
+                        f"✅ Урок «{lesson_name}» закрыт для пользователя {target_user_id}."
+                    )
+                    logger.info(
+                        "ADMIN %d locked lesson '%s' for user %d",
+                        message.from_user.id, tag, target_user_id,
+                    )
+                else:
+                    await message.answer(
+                        f"ℹ️ Урок «{lesson_name}» и так был закрыт для пользователя {target_user_id}."
+                    )
         except Exception as exc:
             logger.error("grant_lesson failed: %s", exc, exc_info=True)
             await message.answer(f"❌ Ошибка: {exc}")
