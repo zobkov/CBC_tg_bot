@@ -95,7 +95,10 @@ class _CreativeApplicationsDB:
         case_q2: str | None,
         case_q3: str | None,
     ) -> None:
-        """Update part 2 answer fields without touching part 1 data."""
+        """Update part 2 answer fields without touching part 1 data.
+
+        Raises ValueError if no creative application row exists for user_id.
+        """
         stmt = (
             update(CreativeApplications)
             .where(CreativeApplications.user_id == user_id)
@@ -108,8 +111,14 @@ class _CreativeApplicationsDB:
                 part2_case_q3=case_q3,
             )
         )
-        await self.session.execute(stmt)
+        result = await self.session.execute(stmt)
+        if result.rowcount == 0:
+            raise ValueError(
+                f"No creative_applications row found for user_id={user_id}. "
+                "Cannot save part 2 answers."
+            )
         logger.info(
-            "Part2 fields updated for user_id=%d",
+            "Part2 fields updated for user_id=%d (%d row(s) affected)",
             user_id,
+            result.rowcount,
         )

@@ -280,11 +280,12 @@ class CreativeGoogleSheetsSyncPart2(CreativeGoogleSheetsSync):
             return 0
 
         try:
-            applications = await self.db.creative_applications.list_by_direction(direction="fair")
+            # Query ALL creative applications — part 2 is not direction-specific.
+            all_applications = await self.db.creative_applications.list_all()
 
-            # Keep only rows where at least one part2 field is filled
+            # Keep only rows where at least one part2 field is filled.
             part2_apps = [
-                a for a in applications
+                a for a in all_applications
                 if any([
                     a.part2_open_q1, a.part2_open_q2, a.part2_open_q3,
                     a.part2_case_q1, a.part2_case_q2, a.part2_case_q3,
