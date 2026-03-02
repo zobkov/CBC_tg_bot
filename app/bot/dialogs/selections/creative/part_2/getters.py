@@ -2,7 +2,38 @@
 
 from typing import Any
 
+from aiogram.types import User
 from aiogram_dialog import DialogManager
+
+
+def _is_part2_done(app) -> bool:
+    """Return True if the application has at least one part2 field filled."""
+    if app is None:
+        return False
+    return any([
+        app.part2_open_q1, app.part2_open_q2, app.part2_open_q3,
+        app.part2_case_q1, app.part2_case_q2, app.part2_case_q3,
+    ])
+
+
+async def get_part2_main_data(
+    dialog_manager: DialogManager,
+    event_from_user: User,
+    **_kwargs: Any,
+) -> dict[str, Any]:
+    """Check DB to determine whether the user has already completed part 2."""
+    from app.infrastructure.database.database.db import DB
+
+    db: DB | None = dialog_manager.middleware_data.get("db")
+    already_completed = False
+    if db:
+        app = await db.creative_applications.get_application(user_id=event_from_user.id)
+        already_completed = _is_part2_done(app)
+
+    return {
+        "already_completed": already_completed,
+        "can_start": not already_completed,
+    }
 
 
 async def get_part2_confirmation_data(

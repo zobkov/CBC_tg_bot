@@ -5,7 +5,7 @@ from aiogram_dialog.widgets.input import TextInput
 from aiogram_dialog.widgets.kbd import Button, Cancel, Row, SwitchTo, Start
 from aiogram_dialog.widgets.text import Const, Format, Multi
 
-from .getters import get_part2_confirmation_data
+from .getters import get_part2_confirmation_data, get_part2_main_data
 from .handlers import (
     on_q1_entered,
     on_q2_entered,
@@ -38,14 +38,22 @@ _SUCCESS_TEXT = (
     "Следи за обновлениями в нашем канале и боте!"
 )
 
+_ALREADY_DONE_TEXT = (
+    "<b>Второй этап отбора на ведущего мастер-классов</b>\n\n"
+    "\u2705 Ты уже прошёл второй этап! Спасибо за ответы — мы свяжемся с тобой в ближайшее время.\n\n"
+    "Повторное прохождение этапа недоступно."
+)
+
 creative_selection_part2_dialog = Dialog(
     # ── MAIN / intro ─────────────────────────────────────────────────────────
     Window(
-        Const(_INTRO_TEXT),
+        Const(_INTRO_TEXT, when="can_start"),
+        Const(_ALREADY_DONE_TEXT, when="already_completed"),
         SwitchTo(
-            Const("🎭 Начать второй этап"),
+            Const("🇭 Начать второй этап"),
             id="start_part2",
             state=CreativeSelectionPart2SG.question_1,
+            when="can_start",
         ),
         Start(
             Const("⬅️ Назад"),
@@ -54,6 +62,7 @@ creative_selection_part2_dialog = Dialog(
             mode=StartMode.RESET_STACK,
         ),
         state=CreativeSelectionPart2SG.MAIN,
+        getter=get_part2_main_data,
     ),
     # ── Open questions (block 1) ──────────────────────────────────────────────
     Window(
