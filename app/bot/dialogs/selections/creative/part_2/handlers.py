@@ -54,30 +54,63 @@ async def on_q6_entered(
 ) -> None:
     dialog_manager.dialog_data["part2_q6"] = value.strip()
 
-# ── Submission ────────────────────────────────────────────────────────────────
-    user = _message.from_user
+# # ── Submission ────────────────────────────────────────────────────────────────
+#     user = _message.from_user
 
+#     if not user:
+#         await _message.answer("Ошибка: не удалось определить пользователя")
+#         return
+
+#     try:
+#         await _save_part2_to_database(dialog_manager, user.id)
+#     except ValueError:
+#         await _message.answer(
+#             "❌ Не удалось сохранить ответы: заявка первого этапа не найдена. "
+#             "Обратитесь к организаторам."
+#         )
+#         return
+#     except Exception:
+#         await _message.answer(
+#             "❌ Произошла ошибка при сохранении ответов. Попробуйте ещё раз."
+#         )
+#         return
+
+    await dialog_manager.switch_to(CreativeSelectionPart2SG.confirmation)
+
+
+# ── Submission ────────────────────────────────────────────────────────────────
+
+async def on_submit_part2(
+    callback: CallbackQuery,
+    _button: Button,
+    dialog_manager: DialogManager,
+    **_kwargs: Any,
+) -> None:
+    """Save part 2 answers to DB and proceed to success screen."""
+    await callback.answer()
+
+    user = callback.from_user
     if not user:
-        await _message.answer("Ошибка: не удалось определить пользователя")
+        await callback.message.answer("Ошибка: не удалось определить пользователя")
         return
 
     try:
         await _save_part2_to_database(dialog_manager, user.id)
     except ValueError:
-        await _message.answer(
+        await callback.message.answer(
             "❌ Не удалось сохранить ответы: заявка первого этапа не найдена. "
             "Обратитесь к организаторам."
         )
         return
     except Exception:
-        await _message.answer(
+        await callback.message.answer(
             "❌ Произошла ошибка при сохранении ответов. Попробуйте ещё раз."
         )
         return
 
-    await dialog_manager.switch_to(CreativeSelectionPart2SG.success)
-
-
+    await dialog_manager.switch_to(
+        CreativeSelectionPart2SG.success, show_mode=ShowMode.DELETE_AND_SEND
+    )
 
 
 
