@@ -2,7 +2,7 @@
 
 import logging
 
-from sqlalchemy import select
+from sqlalchemy import select, update
 from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -83,3 +83,33 @@ class _CreativeApplicationsDB:
         entities = result.scalars().all()
 
         return [entity.to_model() for entity in entities]
+
+    async def update_part2_fields(
+        self,
+        *,
+        user_id: int,
+        open_q1: str | None,
+        open_q2: str | None,
+        open_q3: str | None,
+        case_q1: str | None,
+        case_q2: str | None,
+        case_q3: str | None,
+    ) -> None:
+        """Update part 2 answer fields without touching part 1 data."""
+        stmt = (
+            update(CreativeApplications)
+            .where(CreativeApplications.user_id == user_id)
+            .values(
+                part2_open_q1=open_q1,
+                part2_open_q2=open_q2,
+                part2_open_q3=open_q3,
+                part2_case_q1=case_q1,
+                part2_case_q2=case_q2,
+                part2_case_q3=case_q3,
+            )
+        )
+        await self.session.execute(stmt)
+        logger.info(
+            "Part2 fields updated for user_id=%d",
+            user_id,
+        )
