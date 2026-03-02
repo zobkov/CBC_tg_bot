@@ -72,7 +72,19 @@ async def on_submit_part2(
         await callback.message.answer("Ошибка: не удалось определить пользователя")
         return
 
-    await _save_part2_to_database(dialog_manager, user.id)
+    try:
+        await _save_part2_to_database(dialog_manager, user.id)
+    except ValueError:
+        await callback.message.answer(
+            "❌ Не удалось сохранить ответы: заявка первого этапа не найдена. "
+            "Обратитесь к организаторам."
+        )
+        return
+    except Exception:
+        await callback.message.answer(
+            "❌ Произошла ошибка при сохранении ответов. Попробуйте ещё раз."
+        )
+        return
 
     await dialog_manager.switch_to(
         CreativeSelectionPart2SG.success, show_mode=ShowMode.DELETE_AND_SEND
@@ -98,8 +110,12 @@ async def _save_part2_to_database(manager: DialogManager, user_id: int) -> None:
             case_q2=dd.get("part2_q5"),
             case_q3=dd.get("part2_q6"),
         )
-        await db.session.flush()
+        # No flush needed — the middleware's session.begin() commits on exit.
         logger.info("[PART2] Saved part2 answers for user=%d", user_id)
+    except ValueError as exc:
+        # No matching row in creative_applications — surface to the user.
+        logger.error("[PART2] Application not found for user=%d: %s", user_id, exc)
+        raise
     except Exception as exc:
         logger.error("[PART2] Failed to save for user=%d: %s", user_id, exc, exc_info=True)
         raise

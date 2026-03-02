@@ -23,16 +23,28 @@ async def get_part2_main_data(
 ) -> dict[str, Any]:
     """Check DB to determine whether the user has already completed part 2."""
     from app.infrastructure.database.database.db import DB
+    import logging
+    _logger = logging.getLogger(__name__)
 
     db: DB | None = dialog_manager.middleware_data.get("db")
     already_completed = False
+    has_application = False
     if db:
         app = await db.creative_applications.get_application(user_id=event_from_user.id)
+        has_application = app is not None
         already_completed = _is_part2_done(app)
+        if not has_application:
+            _logger.warning(
+                "[PART2] No creative application found for user_id=%d",
+                event_from_user.id,
+            )
+    else:
+        _logger.error("[PART2] db not available in middleware_data for user_id=%d", event_from_user.id)
 
     return {
         "already_completed": already_completed,
-        "can_start": not already_completed,
+        "can_start": has_application and not already_completed,
+        "no_application": not has_application,
     }
 
 

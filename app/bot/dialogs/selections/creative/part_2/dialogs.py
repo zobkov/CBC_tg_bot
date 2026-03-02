@@ -49,8 +49,13 @@ creative_selection_part2_dialog = Dialog(
     Window(
         Const(_INTRO_TEXT, when="can_start"),
         Const(_ALREADY_DONE_TEXT, when="already_completed"),
+        Const(
+            "<b>Второй этап отбора на ведущего мастер-классов</b>\n\n"
+            "⚠️ Заявка первого этапа не найдена. Обратитесь к организаторам.",
+            when="no_application",
+        ),
         SwitchTo(
-            Const("🇭 Начать второй этап"),
+            Const("🎭 Начать второй этап"),
             id="start_part2",
             state=CreativeSelectionPart2SG.question_1,
             when="can_start",
