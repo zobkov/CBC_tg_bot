@@ -2,8 +2,10 @@
 
 from __future__ import annotations
 
+import csv
 import logging
 from datetime import date, datetime, time
+from pathlib import Path
 from typing import Any
 
 from aiogram.enums import ContentType
@@ -20,6 +22,19 @@ from app.utils.optimized_dialog_widgets import get_file_id_for_path
 from config.config import Config, load_config
 
 LOGGER = logging.getLogger(__name__)
+
+# Load fair CSV user IDs once at import time (no header row, one user_id per line)
+_FAIR_CSV_PATH = Path("export_fair.csv")
+try:
+    with _FAIR_CSV_PATH.open(newline="") as _f:
+        _FAIR_USER_IDS: frozenset[int] = frozenset(
+            int(row[0]) for row in csv.reader(_f) if row and row[0].strip().isdigit()
+        )
+    LOGGER.info("Loaded %d fair user IDs from %s", len(_FAIR_USER_IDS), _FAIR_CSV_PATH)
+except FileNotFoundError:
+    _FAIR_USER_IDS = frozenset()
+    LOGGER.warning("export_fair.csv not found — casting button hidden for all non-admins")
+
 
 def _get_config(dialog_manager: DialogManager) -> Config | None:
     config: Config | None = dialog_manager.middleware_data.get("config")
@@ -84,20 +99,27 @@ async def get_is_admin(
     """Return whether the current user is in the admin_ids list from config."""
     config = dialog_manager.middleware_data.get("config") or _get_config(dialog_manager)
     if config is None:
-        return {"is_admin": False}
-    return {"is_admin": event_from_user.id in config.admin_ids}
+        return {"is_admin": False, "show_casting": False}
+    is_admin = event_from_user.id in config.admin_ids
+    is_fair_user = event_from_user.id in _FAIR_USER_IDS
 
+    # Hide casting button if user already completed part 2
+    already_done = False
+    if is_fair_user or is_admin:
+        from app.infrastructure.database.database.db import DB
+        db: DB | None = dialog_manager.middleware_data.get("db")
+        if db:
+            app = await db.creative_applications.get_application(user_id=event_from_user.id)
+            if app is not None:
+                already_done = any([
+                    app.part2_open_q1, app.part2_open_q2, app.part2_open_q3,
+                    app.part2_case_q1, app.part2_case_q2, app.part2_case_q3,
+                ])
 
-async def get_is_admin(
-    dialog_manager: DialogManager,
-    event_from_user: User,
-    **_kwargs: Any,
-) -> dict[str, Any]:
-    """Return whether the current user is in the admin_ids list from config."""
-    config = dialog_manager.middleware_data.get("config") or _get_config(dialog_manager)
-    if config is None:
-        return {"is_admin": False}
-    return {"is_admin": event_from_user.id in config.admin_ids}
+    return {
+        "is_admin": is_admin,
+        "show_casting": (is_admin or is_fair_user) and not already_done,
+    }
 
 
 async def get_main_menu_media(

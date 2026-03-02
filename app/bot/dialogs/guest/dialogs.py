@@ -10,7 +10,7 @@ from app.bot.dialogs.guest.handlers import on_grants_clicked
 from app.bot.dialogs.guest.quiz_dod.states import QuizDodSG
 from app.bot.dialogs.online.states import OnlineSG
 from app.bot.dialogs.guest.states import GuestMenuSG
-from app.bot.dialogs.selections.creative.states import CreativeSelectionSG
+from app.bot.dialogs.selections.creative.part_2.states import CreativeSelectionPart2SG
 from app.bot.dialogs.settings.states import SettingsSG
 
 _MAIN_MENU_TEXT = (
@@ -31,7 +31,8 @@ guest_menu_dialog = Dialog(
             Start(
                 Const("🎭 Кастинг"),
                 id="casting_creative_button",
-                state=CreativeSelectionSG.MAIN,
+                state=CreativeSelectionPart2SG.MAIN,
+                when="show_casting",
             ),
         ),
         Row(
