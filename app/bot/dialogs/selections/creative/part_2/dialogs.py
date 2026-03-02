@@ -13,7 +13,6 @@ from .handlers import (
     on_q4_entered,
     on_q5_entered,
     on_q6_entered,
-    on_submit_part2,
 )
 from .states import CreativeSelectionPart2SG
 from app.bot.dialogs.guest.states import GuestMenuSG
