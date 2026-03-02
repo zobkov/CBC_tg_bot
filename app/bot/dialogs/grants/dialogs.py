@@ -20,6 +20,8 @@ from aiogram_dialog.widgets.link_preview import LinkPreview
 
 from app.bot.dialogs.grants.getters import get_lesson_data, get_mentor_data
 from app.bot.dialogs.grants.handlers import (
+    on_back_from_course,
+    on_back_from_course_gsom,
     on_course_general_clicked,
     on_course_gsom_clicked,
     on_lesson_selected,
@@ -189,7 +191,7 @@ grants_dialog = Dialog(
     Window(
         Const(_COURSE_TEXT),
         LinkPreview(is_disabled=True),
-        SwitchTo(Const("⬅️ Назад"), id="back_course", state=GrantsSG.MAIN_GENERAL),
+        Button(Const("⬅️ Назад"), id="back_course", on_click=on_back_from_course),
         state=GrantsSG.COURSE,
     ),
 
@@ -207,7 +209,7 @@ grants_dialog = Dialog(
     # -------------------------------------------------------------------
     Window(
         Const(_COURSE_TEXT),
-        SwitchTo(Const("⬅️ Назад"), id="back_course_gsom", state=GrantsSG.MAIN_GSOM),
+        Button(Const("⬅️ Назад"), id="back_course_gsom", on_click=on_back_from_course_gsom),
         state=GrantsSG.COURSE_GSOM,
     ),
 
