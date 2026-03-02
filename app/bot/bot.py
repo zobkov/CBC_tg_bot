@@ -212,6 +212,7 @@ def _configure_dispatcher(
     dp.include_routers(
         admin_lock_router,
         public_router,
+        feedback_callbacks_router,
     )
 
     dp.include_routers(
@@ -241,7 +242,6 @@ def _configure_dispatcher(
         staff_router,
         volunteer_router,
         guest_router,
-        feedback_callbacks_router,
     )
 
     logger.info("Including middlewares")

@@ -130,31 +130,31 @@ creative_selection_part2_dialog = Dialog(
         state=CreativeSelectionPart2SG.question_6,
     ),
     # ── Confirmation ──────────────────────────────────────────────────────────
-    Window(
-        Multi(
-            Const("✅ <b>Проверь свои ответы перед отправкой</b>\n"),
-            Const("<b>Открытые вопросы</b>"),
-            Format("1. {q1}"),
-            Format("2. {q2}"),
-            Format("3. {q3}"),
-            Const("\n<b>Кейсы</b>"),
-            Format("4. {q4}"),
-            Format("5. {q5}"),
-            Format("6. {q6}"),
-            Const("\nВсё верно?"),
-            sep="\n",
-        ),
-        Row(
-            Button(Const("✅ Отправить"), id="submit_part2", on_click=on_submit_part2),
-            Cancel(Const("❌ Отменить"), id="cancel_part2_confirm"),
-        ),
-        state=CreativeSelectionPart2SG.confirmation,
-        getter=get_part2_confirmation_data,
-    ),
+    # Window(
+    #     Multi(
+    #         Const("✅ <b>Проверь свои ответы перед отправкой</b>\n"),
+    #         Const("<b>Открытые вопросы</b>"),
+    #         Format("1. {q1}"),
+    #         Format("2. {q2}"),
+    #         Format("3. {q3}"),
+    #         Const("\n<b>Кейсы</b>"),
+    #         Format("4. {q4}"),
+    #         Format("5. {q5}"),
+    #         Format("6. {q6}"),
+    #         Const("\nВсё верно?"),
+    #         sep="\n",
+    #     ),
+    #     Row(
+    #         Button(Const("✅ Отправить"), id="submit_part2", on_click=on_submit_part2),
+    #         Cancel(Const("❌ Отменить"), id="cancel_part2_confirm"),
+    #     ),
+    #     state=CreativeSelectionPart2SG.confirmation,
+    #     getter=get_part2_confirmation_data,
+    # ),
     # ── Success ───────────────────────────────────────────────────────────────
     Window(
         Const(_SUCCESS_TEXT),
-        Cancel(Const("🏠 В главное меню"), id="go_home_part2"),
+        Start(Const("🏠 В главное меню"),state=GuestMenuSG.MAIN, id="go_home_part2", show_mode=StartMode.RESET_STACK),
         state=CreativeSelectionPart2SG.success,
     ),
 )

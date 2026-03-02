@@ -93,6 +93,6 @@ async def start_creative_selection_part2(callback: CallbackQuery, dialog_manager
     """Handle creative selection part 2 start from broadcast inline button"""
     await callback.answer()
     await dialog_manager.start(
-        CreativeSelectionPart2SG.question_1,
+        state=CreativeSelectionPart2SG.question_1,
         mode=StartMode.RESET_STACK
     )

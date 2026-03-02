@@ -53,42 +53,32 @@ async def on_q6_entered(
     _message: Message, _widget: Any, dialog_manager: DialogManager, value: str, **_kwargs: Any
 ) -> None:
     dialog_manager.dialog_data["part2_q6"] = value.strip()
-    await dialog_manager.switch_to(CreativeSelectionPart2SG.confirmation)
-
 
 # ── Submission ────────────────────────────────────────────────────────────────
+    user = _message.from_user
 
-async def on_submit_part2(
-    callback: CallbackQuery,
-    _button: Button,
-    dialog_manager: DialogManager,
-    **_kwargs: Any,
-) -> None:
-    """Save part 2 answers to DB and proceed to success screen."""
-    await callback.answer()
-
-    user = callback.from_user
     if not user:
-        await callback.message.answer("Ошибка: не удалось определить пользователя")
+        await _message.answer("Ошибка: не удалось определить пользователя")
         return
 
     try:
         await _save_part2_to_database(dialog_manager, user.id)
     except ValueError:
-        await callback.message.answer(
+        await _message.answer(
             "❌ Не удалось сохранить ответы: заявка первого этапа не найдена. "
             "Обратитесь к организаторам."
         )
         return
     except Exception:
-        await callback.message.answer(
+        await _message.answer(
             "❌ Произошла ошибка при сохранении ответов. Попробуйте ещё раз."
         )
         return
 
-    await dialog_manager.switch_to(
-        CreativeSelectionPart2SG.success, show_mode=ShowMode.DELETE_AND_SEND
-    )
+    await dialog_manager.switch_to(CreativeSelectionPart2SG.success)
+
+
+
 
 
 async def _save_part2_to_database(manager: DialogManager, user_id: int) -> None:
