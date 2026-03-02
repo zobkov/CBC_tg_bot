@@ -11,6 +11,7 @@ from app.bot.states.interview import InterviewSG
 from app.bot.dialogs.guest.states import GuestMenuSG
 from app.bot.dialogs.staff.states import StaffMenuSG
 from app.bot.dialogs.selections.creative.states import CreativeSelectionSG
+from app.bot.dialogs.selections.creative.part_2.states import CreativeSelectionPart2SG
 
 feedback_callbacks_router = Router()
 
@@ -83,5 +84,15 @@ async def start_creative_selection(callback: CallbackQuery, dialog_manager: Dial
     # Start creative selection dialog
     await dialog_manager.start(
         CreativeSelectionSG.MAIN,
+        mode=StartMode.RESET_STACK
+    )
+
+
+@feedback_callbacks_router.callback_query(F.data == "start_creative_selection_part2")
+async def start_creative_selection_part2(callback: CallbackQuery, dialog_manager: DialogManager):
+    """Handle creative selection part 2 start from broadcast inline button"""
+    await callback.answer()
+    await dialog_manager.start(
+        state=CreativeSelectionPart2SG.question_1,
         mode=StartMode.RESET_STACK
     )

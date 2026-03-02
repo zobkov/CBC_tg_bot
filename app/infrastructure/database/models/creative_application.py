@@ -46,6 +46,15 @@ class CreativeApplicationModel(BaseModel):
     fair_experience: str | None = None
     fair_cloud_link: str | None = None
 
+    # Part 2 fields — open questions (block 1)
+    part2_open_q1: str | None = None
+    part2_open_q2: str | None = None
+    part2_open_q3: str | None = None
+    # Part 2 fields — case questions (block 2)
+    part2_case_q1: str | None = None
+    part2_case_q2: str | None = None
+    part2_case_q3: str | None = None
+
     # Auto-managed fields
     id: int | None = None
     submitted_at: datetime | None = None
@@ -68,6 +77,12 @@ class CreativeApplicationModel(BaseModel):
             fair_motivation=_normalize_optional(self.fair_motivation),
             fair_experience=_normalize_optional(self.fair_experience),
             fair_cloud_link=_normalize_optional(self.fair_cloud_link),
+            part2_open_q1=_normalize_optional(self.part2_open_q1),
+            part2_open_q2=_normalize_optional(self.part2_open_q2),
+            part2_open_q3=_normalize_optional(self.part2_open_q3),
+            part2_case_q1=_normalize_optional(self.part2_case_q1),
+            part2_case_q2=_normalize_optional(self.part2_case_q2),
+            part2_case_q3=_normalize_optional(self.part2_case_q3),
         )
 
     def as_db_payload(self) -> dict[str, Any]:
@@ -88,6 +103,12 @@ class CreativeApplicationModel(BaseModel):
             "fair_motivation": normalized.fair_motivation,
             "fair_experience": normalized.fair_experience,
             "fair_cloud_link": normalized.fair_cloud_link,
+            "part2_open_q1": normalized.part2_open_q1,
+            "part2_open_q2": normalized.part2_open_q2,
+            "part2_open_q3": normalized.part2_open_q3,
+            "part2_case_q1": normalized.part2_case_q1,
+            "part2_case_q2": normalized.part2_case_q2,
+            "part2_case_q3": normalized.part2_case_q3,
         }
         # Include optional fields if present
         if normalized.id is not None:
@@ -117,6 +138,12 @@ class CreativeApplicationModel(BaseModel):
             fair_motivation=entity.fair_motivation,
             fair_experience=entity.fair_experience,
             fair_cloud_link=entity.fair_cloud_link,
+            part2_open_q1=entity.part2_open_q1,
+            part2_open_q2=entity.part2_open_q2,
+            part2_open_q3=entity.part2_open_q3,
+            part2_case_q1=entity.part2_case_q1,
+            part2_case_q2=entity.part2_case_q2,
+            part2_case_q3=entity.part2_case_q3,
             submitted_at=entity.submitted_at,
             updated=entity.updated,
         )
@@ -151,6 +178,14 @@ class CreativeApplications(Base):
     fair_motivation: Mapped[str | None] = mapped_column(Text, nullable=True)
     fair_experience: Mapped[str | None] = mapped_column(Text, nullable=True)
     fair_cloud_link: Mapped[str | None] = mapped_column(Text, nullable=True)
+
+    # Part 2 fields
+    part2_open_q1: Mapped[str | None] = mapped_column(Text, nullable=True)
+    part2_open_q2: Mapped[str | None] = mapped_column(Text, nullable=True)
+    part2_open_q3: Mapped[str | None] = mapped_column(Text, nullable=True)
+    part2_case_q1: Mapped[str | None] = mapped_column(Text, nullable=True)
+    part2_case_q2: Mapped[str | None] = mapped_column(Text, nullable=True)
+    part2_case_q3: Mapped[str | None] = mapped_column(Text, nullable=True)
 
     # Timestamps
     submitted_at: Mapped[created]

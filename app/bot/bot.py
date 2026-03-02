@@ -68,6 +68,7 @@ from app.bot.dialogs.staff.dialogs import staff_menu_dialog
 
 from app.bot.dialogs.broadcasts.dialogs import broadcast_menu_dialog
 from app.bot.dialogs.selections.creative import creative_selection_dialog
+from app.bot.dialogs.selections.creative.part_2 import creative_selection_part2_dialog
 from app.bot.dialogs.registration.dialogs import registration_dialog
 from app.bot.dialogs.settings.dialogs import settings_dialog
 from app.bot.dialogs.online import online_dialog
@@ -211,6 +212,7 @@ def _configure_dispatcher(
     dp.include_routers(
         admin_lock_router,
         public_router,
+        feedback_callbacks_router,
     )
 
     dp.include_routers(
@@ -230,6 +232,7 @@ def _configure_dispatcher(
         staff_menu_dialog,
         broadcast_menu_dialog,
         creative_selection_dialog,
+        creative_selection_part2_dialog,
         online_dialog,
         grants_dialog,
     )
@@ -239,7 +242,6 @@ def _configure_dispatcher(
         staff_router,
         volunteer_router,
         guest_router,
-        feedback_callbacks_router,
     )
 
     logger.info("Including middlewares")
