@@ -232,3 +232,88 @@ class CreativeGoogleSheetsSync:
                 exc_info=True,
             )
             raise
+
+
+class CreativeGoogleSheetsSyncPart2(CreativeGoogleSheetsSync):
+    """Sync part 2 fair questionnaire answers to a separate sheet."""
+
+    SHEET_NAME = "Applications_part2"
+
+    def _get_headers(self) -> list[str]:
+        return [
+            "ID",
+            "User ID",
+            "ФИО",
+            "Контакт",
+            "Открытый вопрос 1",
+            "Открытый вопрос 2",
+            "Открытый вопрос 3",
+            "Кейс 1",
+            "Кейс 2",
+            "Кейс 3",
+            "Дата подачи",
+            "Обновлено",
+        ]
+
+    def _format_application_row(self, app, user_info) -> list[Any]:
+        submitted_at_str = app.submitted_at.strftime("%Y-%m-%d %H:%M:%S") if app.submitted_at else ""
+        updated_str = app.updated.strftime("%Y-%m-%d %H:%M:%S") if app.updated else ""
+        return [
+            app.id or "",
+            app.user_id,
+            user_info.full_name if user_info else "",
+            app.contact or "",
+            app.part2_open_q1 or "",
+            app.part2_open_q2 or "",
+            app.part2_open_q3 or "",
+            app.part2_case_q1 or "",
+            app.part2_case_q2 or "",
+            app.part2_case_q3 or "",
+            submitted_at_str,
+            updated_str,
+        ]
+
+    async def sync_all_applications(self) -> int:
+        """Sync only fair applications that have completed part 2."""
+        if self.gc is None:
+            logger.warning("[PART2_SYNC] Google Sheets client недоступен. Пропускаем синхронизацию.")
+            return 0
+
+        try:
+            applications = await self.db.creative_applications.list_by_direction(direction="fair")
+
+            # Keep only rows where at least one part2 field is filled
+            part2_apps = [
+                a for a in applications
+                if any([
+                    a.part2_open_q1, a.part2_open_q2, a.part2_open_q3,
+                    a.part2_case_q1, a.part2_case_q2, a.part2_case_q3,
+                ])
+            ]
+
+            if not part2_apps:
+                logger.info("[PART2_SYNC] Нет заявок с заполненным вторым этапом")
+                return 0
+
+            rows = []
+            for app in part2_apps:
+                user_info = await self.db.users_info.get_user_info(user_id=app.user_id)
+                rows.append(self._format_application_row(app, user_info))
+
+            spreadsheet = self.gc.open_by_key(self.spreadsheet_id)
+            try:
+                worksheet = spreadsheet.worksheet(self.SHEET_NAME)
+            except gspread.exceptions.WorksheetNotFound:
+                worksheet = spreadsheet.add_worksheet(title=self.SHEET_NAME, rows=1000, cols=12)
+
+            worksheet.clear()
+            worksheet.append_row(self._get_headers())
+            if rows:
+                worksheet.append_rows(rows)
+
+            logger.info("✅ [PART2_SYNC] Синхронизировано %d заявок второго этапа", len(rows))
+            return len(rows)
+
+        except Exception as e:
+            logger.error("[PART2_SYNC] Ошибка при синхронизации: %s", e, exc_info=True)
+            raise
