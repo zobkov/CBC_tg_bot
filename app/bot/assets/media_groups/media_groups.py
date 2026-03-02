@@ -140,4 +140,14 @@ def build_creative_casting_media_group(caption: str | None = None):
     return media_group.build()
 
 
+def build_grants_course_media_group(caption: str | None = None):
+    """Build media group for grants course images"""
+    course_paths = [
+        "grants/course-1.jpeg",
+        "grants/course-2.jpeg",
+    ]
+    media_group = compose_media_group_optimized(course_paths, caption=caption)
+    return media_group.build()
+
+
 
