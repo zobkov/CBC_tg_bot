@@ -209,6 +209,7 @@ grants_dialog = Dialog(
     # -------------------------------------------------------------------
     Window(
         Const(_COURSE_TEXT),
+        LinkPreview(is_disabled=True),
         Button(Const("⬅️ Назад"), id="back_course_gsom", on_click=on_back_from_course_gsom),
         state=GrantsSG.COURSE_GSOM,
     ),
