@@ -48,17 +48,23 @@ async def get_schedule_list(
             user_registrations = {reg.event_id for reg in registrations}
         
         # Формируем текст расписания
+        separator = "─────────────────"
         schedule_text = ""
-        for event in events:
+        for i, event in enumerate(events):
             date_str = format_date_only(event.start_at)
             time_str = format_time_only(event.start_at)
             # Добавляем ✅ если пользователь зарегистрирован
             status_emoji = " ✅" if event.id in user_registrations else ""
-            
-            schedule_text += f"📝 {event.title}\n"
+
+            schedule_text += f"<b>{event.title}</b>{status_emoji}\n"
             if event.speaker:
-                schedule_text += f"🎙️ {event.speaker}\n"
-            schedule_text += f"\n📅 {date_str}, {time_str} (МСК){status_emoji}\n\n\n"
+                schedule_text += f"<b>Спикер:</b> {event.speaker}\n"
+            schedule_text += f"{date_str}, {time_str} по МСК."
+
+            if i < len(events) - 1:
+                schedule_text += f"\n\n{separator}\n\n"
+            else:
+                schedule_text += "⁢⁣\n\n ⁤"
         
         # Формируем список для кнопок в формате "DD.MM – alias"
         events_list = [(f"{format_date_short(e.start_at)} – {e.alias}", e.slug) for e in events]
@@ -107,13 +113,13 @@ async def get_event_details(
                 is_registered = True
         
         # Формируем детальную информацию
-        details = f"Лекция: <b>{event.title}</b>\n"
+        details = f"<b>Лекция:</b> {event.title}\n"
         if event.speaker:
-            details += f"Спикер: <b>{event.speaker}</b>\n"
-        details += f"\nДата и время: {format_moscow_datetime(event.start_at)}\n\n"
+            details += f"<b>Спикер:</b> {event.speaker}\n\n"
+        details += f"<b>Дата и время:</b> {format_moscow_datetime(event.start_at)}\n\n"
         
         if event.description:
-            details += f"Описание:\n{event.description}\n\n"
+            details += f"<b>Описание:</b>\n{event.description}\n\n"
         
         # Показываем ссылку только если до начала осталось меньше часа
         if event.url and is_link_available(event.start_at, hours_before=1):
@@ -161,14 +167,19 @@ async def get_my_events(
             }
         
         # Формируем текст списка
+        separator = "─────────────────"
         my_events_text = ""
-        for reg in registrations:
+        for i, reg in enumerate(registrations):
             date_str = format_date_only(reg["start_at"])
             time_str = format_time_only(reg["start_at"])
-            my_events_text += f"📝 {reg['title']}\n"
+            my_events_text += f"<b>{reg['title']}</b> ✅\n"
             if reg["speaker"]:
-                my_events_text += f"🎙️ {reg['speaker']}\n"
-            my_events_text += f"\n📅 {date_str}, {time_str} (МСК)\n\n\n"
+                my_events_text += f"<b>Спикер:</b> {reg['speaker']}\n"
+            my_events_text += f"{date_str}, {time_str} по МСК."
+            if i < len(registrations) - 1:
+                my_events_text += f"\n\n{separator}\n\n"
+            else:
+                my_events_text += "⁢⁣\n\n ⁤"
         
         # Формируем список для кнопок в формате "DD.MM – alias"
         events_list = [(f"{format_date_short(r['start_at'])} – {r['alias']}", r['slug']) for r in registrations]
@@ -201,13 +212,13 @@ async def get_my_event_detail(
             return {"my_event_details": "Лекция не найдена"}
         
         # Формируем детальную информацию
-        details = f"Лекция: <b>{event.title}</b>\n"
+        details = f"<b>Лекция:</b> {event.title}\n"
         if event.speaker:
-            details += f"Спикер: <b>{event.speaker}</b>\n"
-        details += f"\nДата и время: {format_moscow_datetime(event.start_at)}\n\n"
+            details += f"<b>Спикер:</b> {event.speaker}\n\n"
+        details += f"<b>Дата и время:</b> {format_moscow_datetime(event.start_at)}\n\n"
         
         if event.description:
-            details += f"Описание:\n{event.description}\n\n"
+            details += f"<b>Описание:</b>\n{event.description}\n\n"
         
         # Статус ссылки
         link_avail = is_link_available(event.start_at, hours_before=1)

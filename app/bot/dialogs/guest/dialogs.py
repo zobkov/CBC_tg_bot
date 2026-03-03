@@ -13,14 +13,17 @@ from app.bot.dialogs.guest.states import GuestMenuSG
 from app.bot.dialogs.selections.creative.part_2.states import CreativeSelectionPart2SG
 from app.bot.dialogs.settings.states import SettingsSG
 
-_MAIN_MENU_TEXT = (
-    "🏠 <b>Личный кабинет участника КБК'26</b>\n\n\n"
-    "Актуальные события:\n\n"
-    "На данный момент нет событий 😥\n\n\n"
-    "Здесь ты можешь найти всю актуальную информацию о проекте! Совсем скоро мы "
-    "начнём добавлять новые форматы, поэтому <b>подписывайся на наши медиа</b>, чтобы "
-    "ничего не пропустить:\n\n"
-)
+_MAIN_MENU_TEXT = """🏠 <b>Личный кабинет участника КБК'26</b>
+
+
+Здесь ты можешь найти всю актуальную информацию о проекте! Совсем скоро мы начнём добавлять новые форматы, поэтому <b>подписывайся на наши медиа</b>, чтобы ничего не пропустить!
+
+
+<b>Актуальные события:</b>
+• Идёт регистрация на <b>конкурс Росмолодёжь.Гранты</b> — заявки принимаются до 03.04.26, 10:00 МСК
+
+ 
+"""
 
 
 guest_menu_dialog = Dialog(
@@ -37,7 +40,7 @@ guest_menu_dialog = Dialog(
         ),
         Row(
             Start(
-                Const("📗 Онлайн"),
+                Const("📗 Онлайн-мероприятия"),
                 id="online_button",
                 state=OnlineSG.MAIN,
             ),
@@ -45,7 +48,7 @@ guest_menu_dialog = Dialog(
         ),
         Row(
             Button(
-                Const("🏆 Гранты"),
+                Const("🏆 Росмолодёжь.Гранты"),
                 id="grants_btn",
                 on_click=on_grants_clicked,
             ),
@@ -57,7 +60,7 @@ guest_menu_dialog = Dialog(
                 id="settings",
                 state=SettingsSG.MAIN,
             ),
-            Url(Const("Медиа КБК"), Const("https://taplink.cc/forumcbc?from=tgbot"), id="url_to_taplink")
+            Url(Const("Наши медиа"), Const("https://taplink.cc/forumcbc?from=tgbot"), id="url_to_taplink")
         ),
         state=GuestMenuSG.MAIN,
         getter=[
