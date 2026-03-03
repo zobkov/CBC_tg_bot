@@ -49,20 +49,22 @@ async def get_schedule_list(
         
         # Формируем текст расписания
         separator = "─────────────────"
-        schedule_text = "📅 Ближайшие онлайн-мероприятия:\n\n\n"
+        schedule_text = ""
         for i, event in enumerate(events):
             date_str = format_date_only(event.start_at)
             time_str = format_time_only(event.start_at)
             # Добавляем ✅ если пользователь зарегистрирован
             status_emoji = " ✅" if event.id in user_registrations else ""
 
-            schedule_text += f"{event.title}{status_emoji}\n"
+            schedule_text += f"<b>{event.title}</b>{status_emoji}\n"
             if event.speaker:
-                schedule_text += f"Спикер: {event.speaker}\n"
+                schedule_text += f"<b>Спикер:</b> {event.speaker}\n"
             schedule_text += f"{date_str}, {time_str} по МСК."
 
             if i < len(events) - 1:
                 schedule_text += f"\n\n{separator}\n\n"
+            else:
+                schedule_text += "⁢⁣\n\n ⁤"
         
         # Формируем список для кнопок в формате "DD.MM – alias"
         events_list = [(f"{format_date_short(e.start_at)} – {e.alias}", e.slug) for e in events]
@@ -165,14 +167,19 @@ async def get_my_events(
             }
         
         # Формируем текст списка
+        separator = "─────────────────"
         my_events_text = ""
-        for reg in registrations:
+        for i, reg in enumerate(registrations):
             date_str = format_date_only(reg["start_at"])
             time_str = format_time_only(reg["start_at"])
-            my_events_text += f"📝 {reg['title']}\n"
+            my_events_text += f"<b>{reg['title']}</b> ✅\n"
             if reg["speaker"]:
-                my_events_text += f"🎙️ {reg['speaker']}\n"
-            my_events_text += f"\n📅 {date_str}, {time_str} (МСК)\n\n\n"
+                my_events_text += f"<b>Спикер:</b> {reg['speaker']}\n"
+            my_events_text += f"{date_str}, {time_str} по МСК."
+            if i < len(registrations) - 1:
+                my_events_text += f"\n\n{separator}\n\n"
+            else:
+                my_events_text += "⁢⁣\n\n ⁤"
         
         # Формируем список для кнопок в формате "DD.MM – alias"
         events_list = [(f"{format_date_short(r['start_at'])} – {r['alias']}", r['slug']) for r in registrations]
