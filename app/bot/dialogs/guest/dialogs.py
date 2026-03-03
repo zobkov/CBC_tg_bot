@@ -51,7 +51,7 @@ guest_menu_dialog = Dialog(
                 id="grants_btn",
                 on_click=on_grants_clicked,
             ),
-            when="is_admin",
+            #when="is_admin",
         ),
         Row(
             Start(
