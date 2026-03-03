@@ -13,12 +13,16 @@ from app.bot.dialogs.guest.states import GuestMenuSG
 from app.bot.dialogs.selections.creative.part_2.states import CreativeSelectionPart2SG
 from app.bot.dialogs.settings.states import SettingsSG
 
-_MAIN_MENU_TEXT = """🏠 Личный кабинет участника КБК'26
+_MAIN_MENU_TEXT = """🏠 <b>Личный кабинет участника КБК'26</b>
+
 
 Здесь ты можешь найти всю актуальную информацию о проекте! Совсем скоро мы начнём добавлять новые форматы, поэтому <b>подписывайся на наши медиа</b>, чтобы ничего не пропустить!
 
-Актуальные события:
+
+<b>Актуальные события:</b>
 • Идёт регистрация на <b>конкурс Росмолодёжь.Гранты</b> — заявки принимаются до 03.04.26, 10:00 МСК
+
+ 
 """
 
 
