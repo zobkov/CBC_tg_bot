@@ -2,6 +2,7 @@ from typing import Callable, Dict, Any, Awaitable
 
 import logging
 from aiogram import BaseMiddleware
+from aiogram.exceptions import TelegramBadRequest
 from aiogram.types import TelegramObject, User
 
 from sqlalchemy.ext.asyncio import async_sessionmaker, AsyncSession
@@ -91,6 +92,33 @@ class DatabaseMiddleware(BaseMiddleware):
                     result = await handler(event, data)
 
                 return result
+        except TelegramBadRequest as e:  # pragma: no cover
+            if "message is too long" in str(e).lower():
+                logger.warning("⚠️ Message too long in DatabaseMiddleware for id=%s: %s", user.id, e)
+                _bot = bot or data.get("bot")
+                _event_message = getattr(event, "message", None)
+                _chat_id = (
+                    _event_message.chat.id
+                    if _event_message
+                    else None
+                )
+                if _bot and _chat_id:
+                    try:
+                        await _bot.send_message(
+                            chat_id=_chat_id,
+                            text=(
+                                "Упс! Это слишком длинное сообщение. "
+                                "По правилам телеграма мы не можем его обработать. "
+                                "Укороти его, пожалуйста, и отправь еще раз."
+                            ),
+                        )
+                    except Exception as send_error:
+                        logger.error("Failed to send 'message too long' notice to %s: %s", _chat_id, send_error)
+                return None
+            logger.error("❌ Error in DatabaseMIddleware for id=%s: %s", user.id, e)
+            logger.error("📋 Update type: %s", type(event).__name__)
+            logger.error("📋 Update data: %s", data)
+            return await handler(event, data)
         except Exception as e:  # pragma: no cover
             logger.error("❌ Error in DatabaseMIddleware for id=%s: %s", user.id, e)
             logger.error("📋 Update type: %s", type(event).__name__)
