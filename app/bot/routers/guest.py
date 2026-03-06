@@ -19,7 +19,7 @@ router.message.filter(guest_filter)
 router.callback_query.filter(guest_filter)
 
 
-@router.message()
+#@router.message()
 async def guest_forbidden_handler(message: Message):
     """Обработчик для недоступных гостям команд"""
     await message.answer(
