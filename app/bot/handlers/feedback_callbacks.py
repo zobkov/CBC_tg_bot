@@ -9,7 +9,6 @@ from app.bot.states.feedback import FeedbackSG
 from app.bot.states.main_menu import MainMenuSG
 from app.bot.states.interview import InterviewSG
 from app.bot.dialogs.guest.states import GuestMenuSG
-from app.bot.dialogs.staff.states import StaffMenuSG
 from app.bot.dialogs.selections.creative.states import CreativeSelectionSG
 from app.bot.dialogs.selections.creative.part_2.states import CreativeSelectionPart2SG
 
@@ -57,9 +56,9 @@ async def start_staff_menu(callback: CallbackQuery, dialog_manager: DialogManage
     """Handle staff menu start from inline button (for approved users)"""
     await callback.answer()
     
-    # Start main menu dialog for staff
+    # Redirect to guest menu (staff system removed)
     await dialog_manager.start(
-        StaffMenuSG.MAIN,
+        GuestMenuSG.MAIN,
         mode=StartMode.RESET_STACK
     )
 
