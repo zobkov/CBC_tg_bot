@@ -43,9 +43,9 @@ from app.bot.dialogs.legacy.job_selection.dialogs import job_selection_dialog
 from app.bot.dialogs.legacy.tasks.dialogs import task_dialog
 from app.bot.dialogs.legacy.interview.dialogs import interview_dialog
 
-from app.bot.dialogs.guest.dialogs import guest_menu_dialog
-from app.bot.dialogs.guest.feedback import feedback_dialog
-from app.bot.dialogs.guest.quiz_dod.dialogs import quiz_dod_dialog
+from app.bot.dialogs.main.dialogs import main_dialog
+from app.bot.dialogs.main.feedback import feedback_dialog
+from app.bot.dialogs.main.quiz_dod.dialogs import quiz_dod_dialog
 
 from app.bot.dialogs.broadcasts.dialogs import broadcast_menu_dialog
 from app.bot.dialogs.selections.creative import creative_selection_dialog
@@ -209,7 +209,7 @@ def _configure_dispatcher(
         feedback_dialog,
         registration_dialog,
         settings_dialog,
-        guest_menu_dialog,
+        main_dialog,
         quiz_dod_dialog,
         broadcast_menu_dialog,
         creative_selection_dialog,

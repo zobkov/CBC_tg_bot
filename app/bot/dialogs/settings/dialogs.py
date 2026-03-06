@@ -10,7 +10,7 @@ from app.bot.dialogs.broadcasts.states import BroadcastMenuSG
 from app.bot.dialogs.settings.states import SettingsSG
 from app.bot.dialogs.settings import getters as settings_getters
 from app.bot.dialogs.settings import handlers as settings_handlers
-from app.bot.dialogs.guest import getters as guest_getters
+from app.bot.dialogs.main import getters as main_getters
 
 
 _SETTINGS_MAIN_TEXT = (

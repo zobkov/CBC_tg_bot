@@ -7,7 +7,7 @@ from aiogram.filters import Command, CommandStart
 from aiogram.types import Message
 from aiogram_dialog import DialogManager, StartMode
 
-from app.bot.dialogs.guest.states import GuestMenuSG
+from app.bot.dialogs.main.states import MainMenuSG
 from app.bot.dialogs.registration.states import RegistrationSG
 from app.infrastructure.database.database.db import DB
 
@@ -52,7 +52,7 @@ async def start_command(message: Message, command: CommandStart, dialog_manager:
             logger.error("Error checking registration status: %s", e)
 
     if is_registered:
-        await dialog_manager.start(state=GuestMenuSG.MAIN, mode=StartMode.RESET_STACK)
+        await dialog_manager.start(state=MainMenuSG.MAIN, mode=StartMode.RESET_STACK)
     else:
         await dialog_manager.start(state=RegistrationSG.MAIN, mode=StartMode.RESET_STACK)
 
@@ -60,7 +60,7 @@ async def start_command(message: Message, command: CommandStart, dialog_manager:
 @router.message(Command("menu"))
 async def menu_command(message: Message, dialog_manager: DialogManager):
     """Команда /menu - переход в главное меню"""
-    await dialog_manager.start(state=GuestMenuSG.MAIN, mode=StartMode.RESET_STACK)
+    await dialog_manager.start(state=MainMenuSG.MAIN, mode=StartMode.RESET_STACK)
 
 
 

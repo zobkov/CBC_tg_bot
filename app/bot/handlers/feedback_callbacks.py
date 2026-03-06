@@ -8,7 +8,7 @@ from aiogram_dialog import DialogManager, StartMode
 from app.bot.states.feedback import FeedbackSG
 from app.bot.states.main_menu import MainMenuSG
 from app.bot.states.interview import InterviewSG
-from app.bot.dialogs.guest.states import GuestMenuSG
+from app.bot.dialogs.main.states import MainMenuSG
 from app.bot.dialogs.selections.creative.states import CreativeSelectionSG
 from app.bot.dialogs.selections.creative.part_2.states import CreativeSelectionPart2SG
 
@@ -56,9 +56,9 @@ async def start_staff_menu(callback: CallbackQuery, dialog_manager: DialogManage
     """Handle staff menu start from inline button (for approved users)"""
     await callback.answer()
     
-    # Redirect to guest menu (staff system removed)
+    # Redirect to main menu (staff system removed)
     await dialog_manager.start(
-        GuestMenuSG.MAIN,
+        MainMenuSG.MAIN,
         mode=StartMode.RESET_STACK
     )
 
@@ -70,7 +70,7 @@ async def start_guest_menu(callback: CallbackQuery, dialog_manager: DialogManage
     
     # Start guest menu dialog
     await dialog_manager.start(
-        GuestMenuSG.MAIN,
+        MainMenuSG.MAIN,
         mode=StartMode.RESET_STACK
     )
 

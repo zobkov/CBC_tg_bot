@@ -1,15 +1,15 @@
-"""Guest dialog window definitions."""
+"""Main dialog window definitions."""
 
 from aiogram_dialog import Dialog, Window
 from aiogram_dialog.widgets.kbd import Button, Row, Start, Url
 from aiogram_dialog.widgets.media import DynamicMedia
 from aiogram_dialog.widgets.text import Const, Format
 
-from app.bot.dialogs.guest import getters as guest_getters
-from app.bot.dialogs.guest.handlers import on_grants_clicked
-from app.bot.dialogs.guest.quiz_dod.states import QuizDodSG
+from app.bot.dialogs.main import getters as main_getters
+from app.bot.dialogs.main.handlers import on_grants_clicked
+from app.bot.dialogs.main.quiz_dod.states import QuizDodSG
 from app.bot.dialogs.online.states import OnlineSG
-from app.bot.dialogs.guest.states import GuestMenuSG
+from app.bot.dialogs.main.states import MainMenuSG
 from app.bot.dialogs.selections.creative.part_2.states import CreativeSelectionPart2SG
 from app.bot.dialogs.settings.states import SettingsSG
 
@@ -25,7 +25,7 @@ _MAIN_MENU_TEXT = """🏠 <b>Личный кабинет участника КБ
 """
 
 
-guest_menu_dialog = Dialog(
+main_dialog = Dialog(
     Window(
         DynamicMedia("media"),
         Format(_MAIN_MENU_TEXT),
@@ -61,10 +61,10 @@ guest_menu_dialog = Dialog(
             ),
             Url(Const("Наши медиа"), Const("https://taplink.cc/forumcbc?from=tgbot"), id="url_to_taplink")
         ),
-        state=GuestMenuSG.MAIN,
+        state=MainMenuSG.MAIN,
         getter=[
-            guest_getters.get_main_menu_media,
-            guest_getters.get_is_admin,
+            main_getters.get_main_menu_media,
+            main_getters.get_is_admin,
         ],
     ),
 )

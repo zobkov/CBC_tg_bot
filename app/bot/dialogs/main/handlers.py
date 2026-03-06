@@ -1,4 +1,4 @@
-"""Callback handlers for guest dialog buttons."""
+"""Callback handlers for main dialog buttons."""
 
 from __future__ import annotations
 
