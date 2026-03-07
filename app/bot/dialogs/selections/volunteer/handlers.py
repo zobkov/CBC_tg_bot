@@ -446,6 +446,7 @@ async def _save_application(dialog_manager: DialogManager) -> None:
             full_name=data.get("vol_full_name"),
             email=data.get("vol_email"),
             education=data.get("vol_education"),
+            phone=data.get("vol_phone"),
         )
     )
 
