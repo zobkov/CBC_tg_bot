@@ -35,21 +35,15 @@ from app.bot.middlewares.admin_lock import AdminLockMiddleware
 from app.bot.routers import public_router
 
 
-from app.bot.dialogs.legacy.test.dialogs import test_dialog
-from app.bot.dialogs.legacy.start.dialogs import start_dialog
-from app.bot.dialogs.legacy.main_menu.dialogs import main_menu_dialog
-from app.bot.dialogs.legacy.first_stage.dialogs import first_stage_dialog
-from app.bot.dialogs.legacy.job_selection.dialogs import job_selection_dialog
-from app.bot.dialogs.legacy.tasks.dialogs import task_dialog
-from app.bot.dialogs.legacy.interview.dialogs import interview_dialog
 
 from app.bot.dialogs.main.dialogs import main_dialog
-from app.bot.dialogs.main.feedback import feedback_dialog
+#from app.bot.dialogs.main.feedback import feedback_dialog
 from app.bot.dialogs.main.quiz_dod.dialogs import quiz_dod_dialog
 
 from app.bot.dialogs.broadcasts.dialogs import broadcast_menu_dialog
 from app.bot.dialogs.selections.creative import creative_selection_dialog
 from app.bot.dialogs.selections.creative.part_2 import creative_selection_part2_dialog
+from app.bot.dialogs.selections.volunteer import volunteer_dialog
 from app.bot.dialogs.registration.dialogs import registration_dialog
 from app.bot.dialogs.settings.dialogs import settings_dialog
 from app.bot.dialogs.online import online_dialog
@@ -199,14 +193,6 @@ def _configure_dispatcher(
     )
 
     dp.include_routers(
-        test_dialog,
-        start_dialog,
-        main_menu_dialog,
-        first_stage_dialog,
-        job_selection_dialog,
-        task_dialog,
-        interview_dialog,
-        feedback_dialog,
         registration_dialog,
         settings_dialog,
         main_dialog,
@@ -214,6 +200,7 @@ def _configure_dispatcher(
         broadcast_menu_dialog,
         creative_selection_dialog,
         creative_selection_part2_dialog,
+        volunteer_dialog,
         online_dialog,
         grants_dialog,
     )
@@ -347,16 +334,42 @@ async def main():
                     exc_info=True,
                 )
 
-        # Schedule hourly sync
+        from app.services.volunteer_google_sync import VolunteerGoogleSheetsSync
+
+        async def scheduled_volunteer_google_sync():
+            """Runs hourly to sync volunteer applications to Google Sheets."""
+            try:
+                async with session_factory() as session:
+                    db = DB(session)
+                    sync_service = VolunteerGoogleSheetsSync(db)
+                    count = await sync_service.sync_all_applications()
+                    logger.info(
+                        "[SCHEDULED] Synced %d volunteer applications to Google Sheets",
+                        count,
+                    )
+            except Exception as e:
+                logger.error(
+                    "[SCHEDULED] Failed to sync volunteer applications: %s",
+                    e,
+                    exc_info=True,
+                )
+
+        # Schedule hourly syncs
         scheduler.add_job(
             scheduled_creative_google_sync,
             "interval",
             hours=1,
             id="creative_google_sync",
         )
+        scheduler.add_job(
+            scheduled_volunteer_google_sync,
+            "interval",
+            hours=1,
+            id="volunteer_google_sync",
+        )
 
         scheduler.start()
-        logger.info("✅ Scheduled creative Google Sheets sync (hourly)")
+        logger.info("✅ Scheduled creative + volunteer Google Sheets sync (hourly)")
 
     except Exception as exc:  # pylint: disable=broad-except
         logger.error("Failed to set up scheduler: %s", exc)

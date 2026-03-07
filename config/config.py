@@ -35,12 +35,6 @@ class GoogleConfig:
     drive_folder_name: str = "Резюме_КБК26"  # Название папки по умолчанию
     enable_drive: bool = False  # Включить/выключить Google Drive
 
-@dataclass
-class SelectionConfig:
-    stages: Dict[str, Any]
-    departments: Dict[str, Any]
-    how_found_options: list[str]
-    support_contacts: Dict[str, str]
 
 @dataclass
 class SQLAlchemyEngineConfig:
@@ -56,7 +50,6 @@ class Config:
     tg_bot: TgBot
     db: DatabaseConfig
     redis: RedisConfig
-    selection: SelectionConfig
     sqlalchemy_eng: SQLAlchemyEngineConfig
     google: Optional[GoogleConfig] = None
     admin_ids: list[int] = field(default_factory=list)
@@ -66,15 +59,16 @@ _CONFIG_CACHE: Optional[Config] = None
 
 
 def _build_config(path: str | None = None) -> Config:
-    # Загружаем JSON конфигурацию
-    config_path = os.path.join(os.path.dirname(__file__), "selection_config.json")
-    with open(config_path, "r", encoding="utf-8") as file:
-        json_config = json.load(file)
+    # # Загружаем JSON конфигурацию
+    # config_path = os.path.join(os.path.dirname(__file__), "selection_config.json")
+    # with open(config_path, "r", encoding="utf-8") as file:
+    #     json_config = json.load(file)
 
-    # Загружаем departments.json с под-отделами
-    departments_path = os.path.join(os.path.dirname(__file__), "departments.json")
-    with open(departments_path, "r", encoding="utf-8") as file:
-        departments_config = json.load(file)
+    # # Загружаем departments.json с под-отделами
+    # departments_path = os.path.join(os.path.dirname(__file__), "departments.json")
+    # with open(departments_path, "r", encoding="utf-8") as file:
+    #     departments_config = json.load(file)
+    
 
     # Загружаем переменные окружения для секретных данных
     env = Env()
@@ -128,12 +122,12 @@ def _build_config(path: str | None = None) -> Config:
     else:
         logger.warning("Некоторые переменные Google не заданы, Google сервисы отключены")
 
-    selection_config = SelectionConfig(
-        stages=json_config["selection_stages"],
-        departments=departments_config["departments"],
-        how_found_options=json_config["how_found_options"],
-        support_contacts=json_config["support_contacts"],
-    )
+    # selection_config = SelectionConfig(
+    #     stages=json_config["selection_stages"],
+    #     departments=departments_config["departments"],
+    #     how_found_options=json_config["how_found_options"],
+    #     support_contacts=json_config["support_contacts"],
+    # )
 
     admin_ids_str = env.str("ADMIN_IDS", "")
     admin_ids: list[int] = []
@@ -156,7 +150,7 @@ def _build_config(path: str | None = None) -> Config:
         tg_bot=tg_bot,
         db=db_config,
         redis=redis,
-        selection=selection_config,
+        # selection=selection_config,
         google=google_config,
         admin_ids=admin_ids,
         sqlalchemy_eng=sqlalchemy_eng

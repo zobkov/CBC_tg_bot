@@ -7,7 +7,7 @@ from aiogram_dialog.widgets.kbd import Button, Cancel, Group, Select
 from aiogram_dialog.widgets.text import Const, Format, Multi
 from magic_filter import F
 
-from app.bot.states.feedback import FeedbackSG
+from app.bot.dialogs.legacy.states.feedback import FeedbackSG
 from .getters import (
     get_tasks_feedback_menu,
     get_task_feedback_details,
