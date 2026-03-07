@@ -48,6 +48,17 @@ async def get_part2_main_data(
     }
 
 
+_CONFIRM_PER_ANSWER_LIMIT = 600
+_TRUNCATION_SUFFIX = "… [сокращено для отображения здесь]"
+
+
+def _trunc(text: str) -> str:
+    """Truncate answer text for the confirmation preview if it is too long."""
+    if len(text) <= _CONFIRM_PER_ANSWER_LIMIT:
+        return text
+    return text[: _CONFIRM_PER_ANSWER_LIMIT - len(_TRUNCATION_SUFFIX)] + _TRUNCATION_SUFFIX
+
+
 async def get_part2_confirmation_data(
     dialog_manager: DialogManager,
     **_kwargs: Any,
@@ -55,10 +66,10 @@ async def get_part2_confirmation_data(
     """Return answers from dialog_data for the confirmation summary window."""
     dd = dialog_manager.dialog_data
     return {
-        "q1": dd.get("part2_q1", "—"),
-        "q2": dd.get("part2_q2", "—"),
-        "q3": dd.get("part2_q3", "—"),
-        "q4": dd.get("part2_q4", "—"),
-        "q5": dd.get("part2_q5", "—"),
-        "q6": dd.get("part2_q6", "—"),
+        "q1": _trunc(dd.get("part2_q1", "—")),
+        "q2": _trunc(dd.get("part2_q2", "—")),
+        "q3": _trunc(dd.get("part2_q3", "—")),
+        "q4": _trunc(dd.get("part2_q4", "—")),
+        "q5": _trunc(dd.get("part2_q5", "—")),
+        "q6": _trunc(dd.get("part2_q6", "—")),
     }

@@ -14,44 +14,54 @@ logger = logging.getLogger(__name__)
 
 # ── Generic text-input helpers ────────────────────────────────────────────────
 
-async def _store_and_next(dialog_manager: DialogManager, key: str, value: str) -> None:
+_MAX_ANSWER_LENGTH = 4000
+_TOO_LONG_TEXT = f"⚠️ Ответ слишком длинный. Максимальная длина — {_MAX_ANSWER_LENGTH} символов. Попробуй сократить текст и отправь снова."
+
+
+async def _store_and_next(message: Message, dialog_manager: DialogManager, key: str, value: str) -> None:
+    if len(value) > _MAX_ANSWER_LENGTH:
+        await message.answer(_TOO_LONG_TEXT)
+        return
     dialog_manager.dialog_data[key] = value.strip()
     await dialog_manager.next()
 
 
 async def on_q1_entered(
-    _message: Message, _widget: Any, dialog_manager: DialogManager, value: str, **_kwargs: Any
+    message: Message, _widget: Any, dialog_manager: DialogManager, value: str, **_kwargs: Any
 ) -> None:
-    await _store_and_next(dialog_manager, "part2_q1", value)
+    await _store_and_next(message, dialog_manager, "part2_q1", value)
 
 
 async def on_q2_entered(
-    _message: Message, _widget: Any, dialog_manager: DialogManager, value: str, **_kwargs: Any
+    message: Message, _widget: Any, dialog_manager: DialogManager, value: str, **_kwargs: Any
 ) -> None:
-    await _store_and_next(dialog_manager, "part2_q2", value)
+    await _store_and_next(message, dialog_manager, "part2_q2", value)
 
 
 async def on_q3_entered(
-    _message: Message, _widget: Any, dialog_manager: DialogManager, value: str, **_kwargs: Any
+    message: Message, _widget: Any, dialog_manager: DialogManager, value: str, **_kwargs: Any
 ) -> None:
-    await _store_and_next(dialog_manager, "part2_q3", value)
+    await _store_and_next(message, dialog_manager, "part2_q3", value)
 
 
 async def on_q4_entered(
-    _message: Message, _widget: Any, dialog_manager: DialogManager, value: str, **_kwargs: Any
+    message: Message, _widget: Any, dialog_manager: DialogManager, value: str, **_kwargs: Any
 ) -> None:
-    await _store_and_next(dialog_manager, "part2_q4", value)
+    await _store_and_next(message, dialog_manager, "part2_q4", value)
 
 
 async def on_q5_entered(
-    _message: Message, _widget: Any, dialog_manager: DialogManager, value: str, **_kwargs: Any
+    message: Message, _widget: Any, dialog_manager: DialogManager, value: str, **_kwargs: Any
 ) -> None:
-    await _store_and_next(dialog_manager, "part2_q5", value)
+    await _store_and_next(message, dialog_manager, "part2_q5", value)
 
 
 async def on_q6_entered(
-    _message: Message, _widget: Any, dialog_manager: DialogManager, value: str, **_kwargs: Any
+    message: Message, _widget: Any, dialog_manager: DialogManager, value: str, **_kwargs: Any
 ) -> None:
+    if len(value) > _MAX_ANSWER_LENGTH:
+        await message.answer(_TOO_LONG_TEXT)
+        return
     dialog_manager.dialog_data["part2_q6"] = value.strip()
 
 # # ── Submission ────────────────────────────────────────────────────────────────
