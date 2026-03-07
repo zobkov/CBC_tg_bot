@@ -12,7 +12,7 @@ from aiogram_dialog import DialogManager
 from aiogram_dialog.widgets.kbd import Button
 from better_profanity import profanity
 
-from app.bot.dialogs.guest.quiz_dod.profanity_list import RUSSIAN_PROFANITY
+from app.bot.dialogs.main.quiz_dod.profanity_list import RUSSIAN_PROFANITY
 from app.bot.dialogs.settings.states import SettingsSG
 from app.infrastructure.database.database.db import DB
 from app.infrastructure.database.models.user_info import UsersInfoModel

@@ -16,7 +16,7 @@ from .handlers import (
     on_submit_part2
 )
 from .states import CreativeSelectionPart2SG
-from app.bot.dialogs.guest.states import GuestMenuSG
+from app.bot.dialogs.main.states import MainMenuSG
 
 _INTRO_TEXT = (
     "<b>Второй этап отбора на ведущего мастер-классов</b>\n\n"
@@ -63,7 +63,7 @@ creative_selection_part2_dialog = Dialog(
         Start(
             Const("⬅️ Назад"),
             id="back_to_guest",
-            state=GuestMenuSG.MAIN,
+            state=MainMenuSG.MAIN,
             mode=StartMode.RESET_STACK,
         ),
         state=CreativeSelectionPart2SG.MAIN,
@@ -154,7 +154,7 @@ creative_selection_part2_dialog = Dialog(
     # ── Success ───────────────────────────────────────────────────────────────
     Window(
         Const(_SUCCESS_TEXT),
-        Start(Const("🏠 В главное меню"),state=GuestMenuSG.MAIN, id="go_home_part2", show_mode=StartMode.RESET_STACK),
+        Start(Const("🏠 В главное меню"),state=MainMenuSG.MAIN, id="go_home_part2", show_mode=StartMode.RESET_STACK),
         state=CreativeSelectionPart2SG.success,
     ),
 )

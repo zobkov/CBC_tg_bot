@@ -12,11 +12,11 @@ from aiogram_dialog import DialogManager, StartMode
 from aiogram_dialog.widgets.kbd import Button
 from better_profanity import profanity
 
-from app.bot.dialogs.guest.states import GuestMenuSG
+from app.bot.dialogs.main.states import MainMenuSG
 from app.infrastructure.database.database.db import DB
 from app.infrastructure.database.models.user_info import UsersInfoModel
 
-from app.bot.dialogs.guest.quiz_dod.profanity_list import RUSSIAN_PROFANITY
+from app.bot.dialogs.main.quiz_dod.profanity_list import RUSSIAN_PROFANITY
 
 logger = logging.getLogger(__name__)
 
@@ -160,9 +160,9 @@ async def on_email_entered(
     # Save registration data to database
     await save_registration_data(dialog_manager)
     
-    # Transition to guest menu with stack reset
+    # Transition to main menu with stack reset
     await dialog_manager.start(
-        state=GuestMenuSG.MAIN,
+        state=MainMenuSG.MAIN,
         mode=StartMode.RESET_STACK,
     )
 

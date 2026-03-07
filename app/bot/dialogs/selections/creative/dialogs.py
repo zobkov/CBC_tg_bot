@@ -46,7 +46,7 @@ from .handlers import (
     on_university_entered,
 )
 from .states import CreativeSelectionSG
-from app.bot.dialogs.guest.states import GuestMenuSG
+from app.bot.dialogs.main.states import MainMenuSG
 
 _SUCCESS_TEXT = (
     "🎉 <b>Заявка успешно отправлена!</b>\n\n"
@@ -90,7 +90,7 @@ creative_selection_dialog = Dialog(
         Format("{intro_text}"),
         Column(
             # Button(Const("📝 Подать заявку"), id="start_application", on_click=on_start_clicked),
-            Start(Const("🏠 Назад"), id="cancel_main", mode=StartMode.RESET_STACK, state=GuestMenuSG.MAIN),
+            Start(Const("🏠 Назад"), id="cancel_main", mode=StartMode.RESET_STACK, state=MainMenuSG.MAIN),
         ),
         state=CreativeSelectionSG.MAIN,
         getter=[get_main_text, get_creative_intro_media],
