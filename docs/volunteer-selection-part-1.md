@@ -1,7 +1,7 @@
 # Volunteer selection
 
 ## General information 
-Dialog path: `app/bot/dialogs/selections/creative`
+Dialog path: `app/bot/dialogs/selections/volunteer`
 
 ### States
 State: `VolunteerSelectionSG`

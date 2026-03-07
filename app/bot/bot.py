@@ -43,6 +43,7 @@ from app.bot.dialogs.main.quiz_dod.dialogs import quiz_dod_dialog
 from app.bot.dialogs.broadcasts.dialogs import broadcast_menu_dialog
 from app.bot.dialogs.selections.creative import creative_selection_dialog
 from app.bot.dialogs.selections.creative.part_2 import creative_selection_part2_dialog
+from app.bot.dialogs.selections.volunteer import volunteer_dialog
 from app.bot.dialogs.registration.dialogs import registration_dialog
 from app.bot.dialogs.settings.dialogs import settings_dialog
 from app.bot.dialogs.online import online_dialog
@@ -199,6 +200,7 @@ def _configure_dispatcher(
         broadcast_menu_dialog,
         creative_selection_dialog,
         creative_selection_part2_dialog,
+        volunteer_dialog,
         online_dialog,
         grants_dialog,
     )
@@ -332,6 +334,25 @@ async def main():
                     exc_info=True,
                 )
 
+        from app.services.volunteer_google_sync import VolunteerGoogleSheetsSync
+
+        async def scheduled_volunteer_google_sync():
+            """Runs hourly to sync volunteer applications to Google Sheets."""
+            try:
+                async with session_factory() as session:
+                    db = DB(session)
+                    sync_service = VolunteerGoogleSheetsSync(db)
+                    count = await sync_service.sync_all_applications()
+                    logger.info(
+                        "[SCHEDULED] Synced %d volunteer applications to Google Sheets",
+                        count,
+                    )
+            except Exception as e:
+                logger.error(
+                    "[SCHEDULED] Failed to sync volunteer applications: %s",
+                    e,
+                    exc_info=True,
+                )
 
         # Schedule hourly syncs
         scheduler.add_job(
@@ -339,6 +360,12 @@ async def main():
             "interval",
             hours=1,
             id="creative_google_sync",
+        )
+        scheduler.add_job(
+            scheduled_volunteer_google_sync,
+            "interval",
+            hours=1,
+            id="volunteer_google_sync",
         )
 
         scheduler.start()

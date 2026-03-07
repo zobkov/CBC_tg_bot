@@ -32,6 +32,7 @@ class UsersInfoModel(BaseModel):
     education: str | None = None
     university_course: str | None = None
     occupation: str | None = None
+    phone: str | None = None
 
     def normalized_copy(self) -> "UsersInfoModel":
         return replace(
@@ -42,6 +43,7 @@ class UsersInfoModel(BaseModel):
             education=_normalize_optional(self.education),
             university_course=_normalize_optional(self.university_course),
             occupation=_normalize_optional(self.occupation),
+            phone=_normalize_optional(self.phone),
         )
 
     def as_db_payload(self) -> dict[str, Any]:
@@ -54,6 +56,7 @@ class UsersInfoModel(BaseModel):
             "education": normalized.education,
             "university_course": normalized.university_course,
             "occupation": normalized.occupation,
+            "phone": normalized.phone,
         }
         if normalized.id is not None:
             payload["id"] = normalized.id
@@ -76,6 +79,7 @@ class UsersInfoModel(BaseModel):
             education=entity.education,
             university_course=entity.university_course,
             occupation=entity.occupation,
+            phone=entity.phone,
         )
 
 
@@ -104,6 +108,7 @@ class UsersInfo(Base):
     education: Mapped[str | None]
     university_course: Mapped[str | None]
     occupation: Mapped[str | None]
+    phone: Mapped[str | None]
 
     def to_model(self) -> UsersInfoModel:
         return UsersInfoModel.from_orm(self)
