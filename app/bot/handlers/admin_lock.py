@@ -214,17 +214,17 @@ def setup_admin_lock_router(admin_ids: list[int]) -> Router: # pylint: disable=t
             return
 
         try:
-            from app.services.creative_google_sync import CreativeGoogleSheetsSyncPart2
+            from app.services.volunteer_google_sync import VolunteerGoogleSheetsSync
 
-            await message.answer("⏳ Запускаю синхронизацию второго этапа с Google Sheets...")
+            await message.answer("⏳ Запускаю синхронизацию волонтёрских заявок с Google Sheets...")
 
-            sync_service = CreativeGoogleSheetsSyncPart2(db)
+            sync_service = VolunteerGoogleSheetsSync(db)
             count = await sync_service.sync_all_applications()
 
-            await message.answer(f"✅ Синхронизировано {count} заявок второго этапа")
+            await message.answer(f"✅ Синхронизировано {count} волонтёрских заявок")
 
             logger.info(
-                f"[ADMIN] Google Sheets part2 sync completed by user {message.from_user.id}, "
+                f"[ADMIN] Google Sheets volunteer sync completed by user {message.from_user.id}, "
                 f"synced {count} applications"
             )
 
