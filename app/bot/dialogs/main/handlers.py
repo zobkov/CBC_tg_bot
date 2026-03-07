@@ -1,4 +1,4 @@
-"""Callback handlers for guest dialog buttons."""
+"""Callback handlers for main dialog buttons."""
 
 from __future__ import annotations
 
@@ -9,8 +9,6 @@ from aiogram_dialog import DialogManager
 from aiogram_dialog.widgets.kbd import Button
 from sqlalchemy.exc import SQLAlchemyError
 
-from app.bot.states.main_menu import MainMenuSG
-from app.bot.states.tasks import TasksSG
 from app.infrastructure.database.database.db import DB
 from app.utils.deadline_checker import (
     get_task_submission_status_message,
@@ -73,32 +71,8 @@ async def _is_first_stage_accessible(dialog_manager: DialogManager) -> bool:
     )
 
 
-async def on_current_stage_clicked(
-    callback: CallbackQuery,
-    _button: Button,
-    dialog_manager: DialogManager,
-) -> None:
-    """Open task dialog if submissions are available for the user."""
-    await callback.answer()
-
-    if is_task_submission_closed():
-        await callback.message.answer(get_task_submission_status_message())
-        return
-
-    if not await _is_first_stage_accessible(dialog_manager):
-        await _notify_first_stage_denied(callback)
-        return
-
-    await dialog_manager.start(state=TasksSG.main)
 
 
-async def on_support_clicked(
-    _callback: CallbackQuery,
-    _button: Button,
-    dialog_manager: DialogManager,
-) -> None:
-    """Switch to the support screen."""
-    await dialog_manager.switch_to(state=MainMenuSG.support)
 
 
 async def on_interview_button_clicked(

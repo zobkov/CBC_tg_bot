@@ -10,7 +10,7 @@ from app.bot.dialogs.broadcasts.states import BroadcastMenuSG
 from app.bot.dialogs.settings.states import SettingsSG
 from app.bot.dialogs.settings import getters as settings_getters
 from app.bot.dialogs.settings import handlers as settings_handlers
-from app.bot.dialogs.guest import getters as guest_getters
+from app.bot.dialogs.main import getters as main_getters
 
 
 _SETTINGS_MAIN_TEXT = (
@@ -29,8 +29,8 @@ _SUPPORT_TEXT = (
     "📞 <b>Поддержка</b>\n\n"
     "Если возникнут вопросы, мы всегда на связи! Ты можешь обратиться к одному "
     "из контактов ниже и задать все интересующие тебя вопросы.\n\n"
-    "<b>По общим вопросам:</b> {general_support}\n"
-    "<b>Техническая поддержка:</b> {technical_support}\n\n"
+    "<b>По общим вопросам:</b> @cbc_assistant\n"
+    "<b>Техническая поддержка:</b> @zobko\n\n"
 )
 
 _EDIT_NAME_PROMPT = (
@@ -111,7 +111,7 @@ settings_dialog = Dialog(
         Format(_SUPPORT_TEXT),
         SwitchTo(Const("◀️ Назад"), id="back_to_menu", state=SettingsSG.MAIN),
         state=SettingsSG.SUPPORT,
-        getter=[settings_getters.get_support_contacts,settings_getters.get_support_media]
+        getter=[settings_getters.get_support_media]
     ),
     
     # Edit name window

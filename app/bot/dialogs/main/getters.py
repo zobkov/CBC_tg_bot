@@ -1,4 +1,4 @@
-"""Data getters used across the guest dialogs."""
+"""Data getters used across the main dialogs."""
 
 from __future__ import annotations
 

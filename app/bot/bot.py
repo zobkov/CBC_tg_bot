@@ -27,44 +27,18 @@ from app.infrastructure.database.sqlalchemy_core import (
 )
 from app.bot.middlewares.database import DatabaseMiddleware
 from app.bot.middlewares.error_handler import ErrorHandlerMiddleware
-from app.bot.middlewares.rbac import UserCtxMiddleware
 
 from app.bot.handlers.feedback_callbacks import feedback_callbacks_router
 from app.bot.handlers.admin_lock import setup_admin_lock_router
 from app.bot.middlewares.admin_lock import AdminLockMiddleware
 
-# Roles routers
-from app.bot.routers import (
-    public_router,
-    guest_router,
-    volunteer_router,
-    staff_router,
-    admin_router,
-)
-
-from app.bot.dialogs.access import (
-    RolesAccessValidator,
-    create_forbidden_filter,
-    create_forbidden_handler,
-)
+from app.bot.routers import public_router
 
 
-from app.utils.audit import init_auditor
 
-
-from app.bot.dialogs.legacy.test.dialogs import test_dialog
-from app.bot.dialogs.legacy.start.dialogs import start_dialog
-from app.bot.dialogs.legacy.main_menu.dialogs import main_menu_dialog
-from app.bot.dialogs.legacy.first_stage.dialogs import first_stage_dialog
-from app.bot.dialogs.legacy.job_selection.dialogs import job_selection_dialog
-from app.bot.dialogs.legacy.tasks.dialogs import task_dialog
-from app.bot.dialogs.legacy.interview.dialogs import interview_dialog
-
-from app.bot.dialogs.guest.dialogs import guest_menu_dialog
-from app.bot.dialogs.guest.feedback import feedback_dialog
-from app.bot.dialogs.guest.quiz_dod.dialogs import quiz_dod_dialog
-from app.bot.dialogs.volunteer.dialogs import volunteer_menu_dialog
-from app.bot.dialogs.staff.dialogs import staff_menu_dialog
+from app.bot.dialogs.main.dialogs import main_dialog
+#from app.bot.dialogs.main.feedback import feedback_dialog
+from app.bot.dialogs.main.quiz_dod.dialogs import quiz_dod_dialog
 
 from app.bot.dialogs.broadcasts.dialogs import broadcast_menu_dialog
 from app.bot.dialogs.selections.creative import creative_selection_dialog
@@ -78,6 +52,8 @@ from app.services.photo_file_id_manager import startup_photo_check
 from app.services.task_file_id_manager import startup_task_files_check
 
 logger = logging.getLogger(__name__)
+
+
 
 
 async def _init_redis_storage(config):
@@ -216,20 +192,10 @@ def _configure_dispatcher(
     )
 
     dp.include_routers(
-        test_dialog,
-        start_dialog,
-        main_menu_dialog,
-        first_stage_dialog,
-        job_selection_dialog,
-        task_dialog,
-        interview_dialog,
-        feedback_dialog,
         registration_dialog,
         settings_dialog,
-        guest_menu_dialog,
+        main_dialog,
         quiz_dod_dialog,
-        volunteer_menu_dialog,
-        staff_menu_dialog,
         broadcast_menu_dialog,
         creative_selection_dialog,
         creative_selection_part2_dialog,
@@ -237,31 +203,13 @@ def _configure_dispatcher(
         grants_dialog,
     )
 
-    dp.include_routers(
-        admin_router,
-        staff_router,
-        volunteer_router,
-        guest_router,
-    )
-
     logger.info("Including middlewares")
     dp.update.middleware(AdminLockMiddleware(config.admin_ids, storage))
-
-    init_auditor(redis=redis_client)
 
     dp.update.middleware(ErrorHandlerMiddleware())
     dp.update.middleware(DatabaseMiddleware())
 
-    user_ctx_middleware = UserCtxMiddleware(redis=redis_client)
-    dp["user_ctx_middleware"] = user_ctx_middleware
-    dp.update.middleware(user_ctx_middleware)
-
-    access_validator = RolesAccessValidator()
-    bg_factory = setup_dialogs(dp, stack_access_validator=access_validator)
-
-    forbidden_handler = create_forbidden_handler()
-    forbidden_filter = create_forbidden_filter()
-    dp.message.register(forbidden_handler, forbidden_filter)
+    bg_factory = setup_dialogs(dp)
 
     return dp, bg_factory
 
@@ -384,7 +332,8 @@ async def main():
                     exc_info=True,
                 )
 
-        # Schedule hourly sync
+
+        # Schedule hourly syncs
         scheduler.add_job(
             scheduled_creative_google_sync,
             "interval",
@@ -393,7 +342,7 @@ async def main():
         )
 
         scheduler.start()
-        logger.info("✅ Scheduled creative Google Sheets sync (hourly)")
+        logger.info("✅ Scheduled creative + volunteer Google Sheets sync (hourly)")
 
     except Exception as exc:  # pylint: disable=broad-except
         logger.error("Failed to set up scheduler: %s", exc)

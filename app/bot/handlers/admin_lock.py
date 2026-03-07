@@ -11,52 +11,12 @@ from aiogram_dialog import DialogManager, StartMode
 from app.bot.dialogs.registration.states import RegistrationSG
 from app.utils.rbac import is_lock_mode_enabled
 
+from app.bot.filters.admin import AdminFilter
+
 logger = logging.getLogger(__name__)
 
 # Константы для Redis ключей
 LOCK_KEY = "bot:lock_mode"
-
-admin_lock_router = Router(name="admin_commands")
-
-
-
-
-class AdminFilter(Filter):
-    """Admin filter. Returns bool when calle. Takes admin_ids list at init"""
-    def __init__(self, admin_ids: list[int]):
-        self.admin_ids = admin_ids
-
-    async def __call__(self, message: Message) -> bool:
-        is_admin = message.from_user.id in self.admin_ids
-        logger.debug("Admin filter check: user_id=%s, is_admin=%s",
-                     message.from_user.id, is_admin)
-        return is_admin
-
-
-class NonAdminFilter(Filter):
-    """Non-Admin filter. Returns bool when called. Takes admin_ids list at init"""
-
-    def __init__(self, admin_ids: list[int]):
-        self.admin_ids = admin_ids
-
-    async def __call__(self, message: Message) -> bool:
-        is_non_admin = message.from_user.id not in self.admin_ids
-        logger.debug("Non-admin flter check: user_id=%s, is_non_admin=%s",
-                     message.from_user.id, is_non_admin)
-        return is_non_admin
-
-
-class NonAdminCallbackFilter(Filter):
-    """Non-Admin callback filter. Returns bool when called. Takes admin_ids list at init"""
-
-    def __init__(self, admin_ids: list[int]):
-        self.admin_ids = admin_ids
-
-    async def __call__(self, callback_query: CallbackQuery) -> bool:
-        is_non_admin = callback_query.from_user.id not in self.admin_ids
-        logger.debug("Non-admin filter check (callback): user_id=%s, is_non_admin=%s",
-                    callback_query.from_user.id, is_non_admin)
-        return is_non_admin
 
 
 async def set_lock_mode(storage: RedisStorage, enabled: bool) -> bool:
@@ -81,8 +41,7 @@ def setup_admin_lock_router(admin_ids: list[int]) -> Router: # pylint: disable=t
     logger.info("Setup admin router for IDs: %s", admin_ids)
 
     admin_check = AdminFilter(admin_ids)
-    non_admin_check = NonAdminFilter(admin_ids)
-    non_admin_callback_check = NonAdminCallbackFilter(admin_ids)
+    admin_lock_router = Router(name="admin_commands")
 
     @admin_lock_router.message(Command("lock"), admin_check)
     async def cmd_lock(message: Message, state: FSMContext):

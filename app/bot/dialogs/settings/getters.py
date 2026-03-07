@@ -52,24 +52,6 @@ async def get_user_profile(
     }
 
 
-async def get_support_contacts(
-    dialog_manager: DialogManager,
-    **_kwargs: Any,
-) -> dict[str, Any]:
-    """Expose support contacts configured in settings."""
-    config: Config | None = dialog_manager.middleware_data.get("config")
-    
-    if not config:
-        return {
-            "general_support": "Недоступно",
-            "technical_support": "Недоступно",
-        }
-    
-    contacts = config.selection.support_contacts
-    return {
-        "general_support": contacts["general"],
-        "technical_support": contacts["technical"],
-    }
 
 async def get_support_media(
     dialog_manager: DialogManager,

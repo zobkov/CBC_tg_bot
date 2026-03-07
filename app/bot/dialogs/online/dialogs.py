@@ -28,7 +28,7 @@ from .states import OnlineSG
 
 # Импортируем QuizDodSG для кнопки перехода к квизу
 try:
-    from app.bot.dialogs.guest.quiz_dod.states import QuizDodSG
+    from app.bot.dialogs.main.quiz_dod.states import QuizDodSG
 except ImportError:
     QuizDodSG = None
 

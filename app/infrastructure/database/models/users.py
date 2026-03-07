@@ -3,7 +3,7 @@ from __future__ import annotations
 import json
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
-from typing import Any, Iterable
+from typing import Any
 
 from sqlalchemy import Boolean, DateTime, BigInteger, text
 from sqlalchemy.dialects.postgresql import JSONB
@@ -65,18 +65,6 @@ class UsersModel(BaseModel):
 
     def __post_init__(self) -> None:
         self.roles = _normalize_roles(self.roles)
-
-    def has_role(self, role: str) -> bool:
-        return role in self.roles
-
-    def has_any_role(self, roles: Iterable[str]) -> bool:
-        return bool(set(roles) & set(self.roles))
-
-    def is_admin(self) -> bool:
-        return self.has_role("admin")
-
-    def is_banned(self) -> bool:
-        return self.has_role("banned")
 
     @property
     def language(self) -> str:
