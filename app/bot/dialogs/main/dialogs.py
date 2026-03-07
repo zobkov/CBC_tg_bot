@@ -60,6 +60,7 @@ main_dialog = Dialog(
                 id="volunteer_selection_button",
                 state=VolunteerSelectionSG.MAIN,
             ),
+            when="is_admin",
         ),
         Row(
             Start(
