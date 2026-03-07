@@ -11,6 +11,7 @@ from app.bot.dialogs.main.quiz_dod.states import QuizDodSG
 from app.bot.dialogs.online.states import OnlineSG
 from app.bot.dialogs.main.states import MainMenuSG
 from app.bot.dialogs.selections.creative.part_2.states import CreativeSelectionPart2SG
+from app.bot.dialogs.selections.volunteer.states import VolunteerSelectionSG
 from app.bot.dialogs.settings.states import SettingsSG
 
 _MAIN_MENU_TEXT = """🏠 <b>Личный кабинет участника КБК'26</b>
@@ -52,6 +53,13 @@ main_dialog = Dialog(
                 on_click=on_grants_clicked,
             ),
             #when="is_admin",
+        ),
+        Row(
+            Start(
+                Const("💁 Отбор Волонтеров"),
+                id="volunteer_selection_button",
+                state=VolunteerSelectionSG.MAIN,
+            ),
         ),
         Row(
             Start(
