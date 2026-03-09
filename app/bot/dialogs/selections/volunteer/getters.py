@@ -9,6 +9,19 @@ from app.infrastructure.database.database.db import DB
 
 logger = logging.getLogger(__name__)
 
+_ROLE_LABELS = {
+    "general": "Общий волонтёрский функционал",
+    "photo": "Фотографирование",
+    "translate": "Перевод",
+}
+
+
+def _parse_roles(function_str: str | None) -> set[str]:
+    """Parse comma-separated function string into a set of role keys."""
+    if not function_str:
+        return set()
+    return {r.strip() for r in function_str.split(",") if r.strip()}
+
 
 async def get_main_data(dialog_manager: DialogManager, **_kwargs: Any) -> dict[str, Any]:
     """Check if user already has a volunteer application."""
@@ -17,10 +30,13 @@ async def get_main_data(dialog_manager: DialogManager, **_kwargs: Any) -> dict[s
     user_id = event.from_user.id if event and event.from_user else None
 
     already_applied = False
+    applied_roles: set[str] = set()
     if db and user_id:
         try:
             existing = await db.volunteer_applications.get_application(user_id=user_id)
-            already_applied = existing is not None
+            if existing is not None:
+                already_applied = True
+                applied_roles = _parse_roles(existing.function)
         except Exception as exc:
             logger.error(
                 "[VOLUNTEER] Failed to check existing application for user %s: %s",
@@ -28,7 +44,7 @@ async def get_main_data(dialog_manager: DialogManager, **_kwargs: Any) -> dict[s
                 exc,
             )
 
-    return {"already_applied": already_applied}
+    return {"already_applied": already_applied, "applied_roles": applied_roles}
 
 
 async def get_confirmation_data(
@@ -70,3 +86,52 @@ async def get_confirmation_data(
         "vol_email": email,
         "vol_education": education,
     }
+
+
+async def get_another_role_data(
+    dialog_manager: DialogManager, **_kwargs: Any
+) -> dict[str, Any]:
+    """Data for the another_role window: which roles are already filled."""
+    db: DB | None = dialog_manager.middleware_data.get("db")
+    event = dialog_manager.event
+    user_id = event.from_user.id if event and event.from_user else None
+
+    filled_roles: set[str] = set()
+    if db and user_id:
+        try:
+            existing = await db.volunteer_applications.get_application(user_id=user_id)
+            if existing:
+                filled_roles = _parse_roles(existing.function)
+                # Cache phone/dates into dialog_data so the re-application flow
+                # can skip those steps.
+                if existing.phone and not dialog_manager.dialog_data.get("vol_phone"):
+                    dialog_manager.dialog_data["vol_phone"] = existing.phone
+                if existing.volunteer_dates and not dialog_manager.dialog_data.get("vol_volunteer_dates"):
+                    dialog_manager.dialog_data["vol_volunteer_dates"] = existing.volunteer_dates
+        except Exception as exc:
+            logger.error(
+                "[VOLUNTEER] get_another_role_data failed for user %s: %s",
+                user_id,
+                exc,
+            )
+
+    def _role_label(key: str) -> str:
+        label = _ROLE_LABELS.get(key, key)
+        prefix = "✅ " if key in filled_roles else "➕ "
+        return prefix + label
+
+    return {
+        "general_btn_label": _role_label("general"),
+        "photo_btn_label": _role_label("photo"),
+        "translate_btn_label": _role_label("translate"),
+        "filled_roles": filled_roles,
+    }
+
+
+async def get_overwrite_confirm_data(
+    dialog_manager: DialogManager, **_kwargs: Any
+) -> dict[str, Any]:
+    """Data for the overwrite_confirm window."""
+    role_key = dialog_manager.dialog_data.get("overwriting_role", "")
+    label = _ROLE_LABELS.get(role_key, role_key)
+    return {"overwriting_role_label": label}
