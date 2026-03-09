@@ -427,8 +427,20 @@ async def on_translate_4_entered(
 
 # ─────────────── Ending ───────────────
 
+# Map role key → dialog_data key for per-role additional information
+_ROLE_ADD_INFO_KEY = {
+    "general": "vol_general_additional_information",
+    "photo": "vol_photo_additional_information",
+    "translate": "vol_translate_additional_information",
+}
+
+
 async def _save_application(dialog_manager: DialogManager) -> None:
-    """Persist user_info and volunteer application to the database."""
+    """Persist user_info and volunteer application to the database.
+
+    If ``dialog_data["is_additional_role"]`` is True the new role data is
+    merged into the existing DB row; otherwise a full upsert is performed.
+    """
     db: DB | None = dialog_manager.middleware_data.get("db")
     event = dialog_manager.event
     user_id = event.from_user.id if event and event.from_user else None
@@ -438,44 +450,67 @@ async def _save_application(dialog_manager: DialogManager) -> None:
         return
 
     data = dialog_manager.dialog_data
+    is_additional_role: bool = bool(data.get("is_additional_role", False))
+    current_role: str = data.get("vol_function", "") or ""
 
-    # Update user_info
-    await db.users_info.upsert(
-        model=UsersInfoModel(
-            user_id=user_id,
-            full_name=data.get("vol_full_name"),
-            email=data.get("vol_email"),
-            education=data.get("vol_education"),
-            phone=data.get("vol_phone"),
+    # Determine per-role additional_information field
+    add_info_key = _ROLE_ADD_INFO_KEY.get(current_role, "vol_additional_information")
+
+    # Always update user_info when personal data is present
+    full_name = data.get("vol_full_name")
+    email = data.get("vol_email")
+    education = data.get("vol_education")
+    phone = data.get("vol_phone")
+    if full_name or email or education or phone:
+        await db.users_info.upsert(
+            model=UsersInfoModel(
+                user_id=user_id,
+                full_name=full_name,
+                email=email,
+                education=education,
+                phone=phone,
+            )
         )
+
+    role_model = VolunteerApplicationModel(
+        user_id=user_id,
+        phone=data.get("vol_phone"),
+        volunteer_dates=data.get("vol_volunteer_dates"),
+        function=current_role,
+        general_1_type=data.get("vol_general_1_type"),
+        general_1_answer=data.get("vol_general_1_answer"),
+        general_2=data.get("vol_general_2"),
+        general_3=data.get("vol_general_3"),
+        general_additional_information=data.get("vol_general_additional_information"),
+        photo_portfolio=data.get("vol_photo_portfolio"),
+        photo_has_equipment=data.get("vol_photo_has_equipment"),
+        photo_experience=data.get("vol_photo_experience"),
+        photo_key_moments=data.get("vol_photo_key_moments"),
+        photo_additional_information=data.get("vol_photo_additional_information"),
+        translate_level=data.get("vol_translate_level"),
+        translate_has_cert=data.get("vol_translate_has_cert"),
+        translate_cert_link=data.get("vol_translate_cert_link"),
+        translate_experience_detail=data.get("vol_translate_experience_detail"),
+        translate_worked_with_foreigners=data.get("vol_translate_worked_with_foreigners"),
+        translate_difficult_situation=data.get("vol_translate_difficult_situation"),
+        translate_additional_information=data.get("vol_translate_additional_information"),
+        additional_information=data.get("vol_additional_information"),
     )
 
-    # Save volunteer application
-    await db.volunteer_applications.upsert_application(
-        model=VolunteerApplicationModel(
+    if is_additional_role:
+        await db.volunteer_applications.merge_role(
             user_id=user_id,
-            phone=data.get("vol_phone"),
-            volunteer_dates=data.get("vol_volunteer_dates"),
-            function=data.get("vol_function"),
-            general_1_type=data.get("vol_general_1_type"),
-            general_1_answer=data.get("vol_general_1_answer"),
-            general_2=data.get("vol_general_2"),
-            general_3=data.get("vol_general_3"),
-            photo_portfolio=data.get("vol_photo_portfolio"),
-            photo_has_equipment=data.get("vol_photo_has_equipment"),
-            photo_experience=data.get("vol_photo_experience"),
-            photo_key_moments=data.get("vol_photo_key_moments"),
-            translate_level=data.get("vol_translate_level"),
-            translate_has_cert=data.get("vol_translate_has_cert"),
-            translate_cert_link=data.get("vol_translate_cert_link"),
-            translate_experience_detail=data.get("vol_translate_experience_detail"),
-            translate_worked_with_foreigners=data.get("vol_translate_worked_with_foreigners"),
-            translate_difficult_situation=data.get("vol_translate_difficult_situation"),
-            additional_information=data.get("vol_additional_information"),
+            new_role_model=role_model,
         )
-    )
+    else:
+        await db.volunteer_applications.upsert_application(model=role_model)
 
-    logger.info("[VOLUNTEER] Application saved for user_id=%d", user_id)
+    logger.info(
+        "[VOLUNTEER] Application saved for user_id=%d (additional_role=%s, function=%s)",
+        user_id,
+        is_additional_role,
+        current_role,
+    )
 
 
 async def on_additional_info_entered(
@@ -485,7 +520,141 @@ async def on_additional_info_entered(
     value: str,
     **_kwargs: Any,
 ) -> None:
-    """Save additional info, persist everything, then show END screen."""
-    dialog_manager.dialog_data["vol_additional_information"] = value.strip()
+    """Save additional info into the correct per-role key, persist, then show END."""
+    current_role: str = dialog_manager.dialog_data.get("vol_function", "") or ""
+    add_info_key = _ROLE_ADD_INFO_KEY.get(current_role, "vol_additional_information")
+    dialog_manager.dialog_data[add_info_key] = value.strip()
     await _save_application(dialog_manager)
     await dialog_manager.switch_to(VolunteerSelectionSG.END)
+
+
+# ─────────────── Multi-role ───────────────
+
+async def on_another_role_clicked(
+    callback: CallbackQuery,
+    _button: Any,
+    dialog_manager: DialogManager,
+    **_kwargs: Any,
+) -> None:
+    """User wants to apply for an additional role. Preserve existing dialog_data."""
+    await callback.answer()
+    dialog_manager.dialog_data["is_additional_role"] = True
+    await dialog_manager.switch_to(VolunteerSelectionSG.another_role)
+
+
+def _roles_from_dialog(dialog_manager: DialogManager) -> set[str]:
+    """Return roles already stored in dialog_data (filled_roles from getter)."""
+    # filled_roles is populated by get_another_role_data getter; may not be in
+    # dialog_data itself so we check middleware / start_data fallback.
+    return set()
+
+
+async def _start_role(
+    callback: CallbackQuery,
+    dialog_manager: DialogManager,
+    role: str,
+    first_state: Any,
+) -> None:
+    """Common logic when user selects a role from another_role window."""
+    db: DB | None = dialog_manager.middleware_data.get("db")
+    user_id = callback.from_user.id
+
+    # Check whether this role is already filled
+    already_filled = False
+    if db:
+        try:
+            existing = await db.volunteer_applications.get_application(user_id=user_id)
+            if existing:
+                filled = {r.strip() for r in (existing.function or "").split(",") if r.strip()}
+                already_filled = role in filled
+        except Exception as exc:
+            logger.error("[VOLUNTEER] _start_role check failed: %s", exc)
+
+    if already_filled:
+        dialog_manager.dialog_data["overwriting_role"] = role
+        await dialog_manager.switch_to(VolunteerSelectionSG.overwrite_confirm)
+        return
+
+    # Clear stale role-specific data for the chosen role
+    dialog_manager.dialog_data["vol_function"] = role
+    _clear_role_data(dialog_manager, role)
+    await dialog_manager.switch_to(first_state)
+
+
+def _clear_role_data(dialog_manager: DialogManager, role: str) -> None:
+    """Remove dialog_data keys belonging to the given role branch."""
+    data = dialog_manager.dialog_data
+    if role == "general":
+        for k in ("vol_general_1_type", "vol_general_1_answer", "vol_general_2",
+                  "vol_general_3", "vol_general_additional_information"):
+            data.pop(k, None)
+    elif role == "photo":
+        for k in ("vol_photo_portfolio", "vol_photo_has_equipment", "vol_photo_experience",
+                  "vol_photo_key_moments", "vol_photo_additional_information"):
+            data.pop(k, None)
+    elif role == "translate":
+        for k in ("vol_translate_level", "vol_translate_has_cert", "vol_translate_cert_link",
+                  "vol_translate_experience_detail", "vol_translate_worked_with_foreigners",
+                  "vol_translate_difficult_situation", "vol_translate_additional_information"):
+            data.pop(k, None)
+
+
+async def on_another_select_general(
+    callback: CallbackQuery,
+    _button: Any,
+    dialog_manager: DialogManager,
+    **_kwargs: Any,
+) -> None:
+    await callback.answer()
+    await _start_role(callback, dialog_manager, "general", VolunteerSelectionSG.general_1)
+
+
+async def on_another_select_photo(
+    callback: CallbackQuery,
+    _button: Any,
+    dialog_manager: DialogManager,
+    **_kwargs: Any,
+) -> None:
+    await callback.answer()
+    await _start_role(callback, dialog_manager, "photo", VolunteerSelectionSG.photo_1)
+
+
+async def on_another_select_translate(
+    callback: CallbackQuery,
+    _button: Any,
+    dialog_manager: DialogManager,
+    **_kwargs: Any,
+) -> None:
+    await callback.answer()
+    await _start_role(callback, dialog_manager, "translate", VolunteerSelectionSG.translate_1)
+
+
+async def on_overwrite_confirm_yes(
+    callback: CallbackQuery,
+    _button: Any,
+    dialog_manager: DialogManager,
+    **_kwargs: Any,
+) -> None:
+    """User confirmed overwriting an already-filled role."""
+    await callback.answer()
+    role = dialog_manager.dialog_data.pop("overwriting_role", "")
+    dialog_manager.dialog_data["vol_function"] = role
+    _clear_role_data(dialog_manager, role)
+    state_map = {
+        "general": VolunteerSelectionSG.general_1,
+        "photo": VolunteerSelectionSG.photo_1,
+        "translate": VolunteerSelectionSG.translate_1,
+    }
+    await dialog_manager.switch_to(state_map[role])
+
+
+async def on_overwrite_confirm_no(
+    callback: CallbackQuery,
+    _button: Any,
+    dialog_manager: DialogManager,
+    **_kwargs: Any,
+) -> None:
+    """User cancelled overwriting; go back to role selection."""
+    await callback.answer()
+    dialog_manager.dialog_data.pop("overwriting_role", None)
+    await dialog_manager.switch_to(VolunteerSelectionSG.another_role)

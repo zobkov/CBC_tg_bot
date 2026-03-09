@@ -53,8 +53,13 @@ class VolunteerApplicationModel(BaseModel):
     translate_worked_with_foreigners: str | None = None
     translate_difficult_situation: str | None = None
 
-    # Additional info
+    # Additional info (shared legacy field kept for backward compat)
     additional_information: str | None = None
+
+    # Per-role additional info
+    general_additional_information: str | None = None
+    photo_additional_information: str | None = None
+    translate_additional_information: str | None = None
 
     # Auto-managed
     id: int | None = None
@@ -78,6 +83,9 @@ class VolunteerApplicationModel(BaseModel):
             translate_worked_with_foreigners=_normalize_optional(self.translate_worked_with_foreigners),
             translate_difficult_situation=_normalize_optional(self.translate_difficult_situation),
             additional_information=_normalize_optional(self.additional_information),
+            general_additional_information=_normalize_optional(self.general_additional_information),
+            photo_additional_information=_normalize_optional(self.photo_additional_information),
+            translate_additional_information=_normalize_optional(self.translate_additional_information),
         )
 
     def as_db_payload(self) -> dict[str, Any]:
@@ -103,6 +111,9 @@ class VolunteerApplicationModel(BaseModel):
             "translate_worked_with_foreigners": normalized.translate_worked_with_foreigners,
             "translate_difficult_situation": normalized.translate_difficult_situation,
             "additional_information": normalized.additional_information,
+            "general_additional_information": normalized.general_additional_information,
+            "photo_additional_information": normalized.photo_additional_information,
+            "translate_additional_information": normalized.translate_additional_information,
         }
         if normalized.id is not None:
             payload["id"] = normalized.id
@@ -136,6 +147,9 @@ class VolunteerApplicationModel(BaseModel):
             translate_worked_with_foreigners=entity.translate_worked_with_foreigners,
             translate_difficult_situation=entity.translate_difficult_situation,
             additional_information=entity.additional_information,
+            general_additional_information=entity.general_additional_information,
+            photo_additional_information=entity.photo_additional_information,
+            translate_additional_information=entity.translate_additional_information,
             submitted_at=entity.submitted_at,
             updated=entity.updated,
         )
@@ -179,6 +193,9 @@ class VolunteerApplications(Base):
 
     # Additional info
     additional_information: Mapped[str | None] = mapped_column(Text, nullable=True)
+    general_additional_information: Mapped[str | None] = mapped_column(Text, nullable=True)
+    photo_additional_information: Mapped[str | None] = mapped_column(Text, nullable=True)
+    translate_additional_information: Mapped[str | None] = mapped_column(Text, nullable=True)
 
     # Timestamps
     submitted_at: Mapped[created]

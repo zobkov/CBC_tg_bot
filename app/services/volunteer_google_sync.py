@@ -77,11 +77,13 @@ class VolunteerGoogleSheetsSync:
             "КБК ранее (ответ)",
             "Почему КБК",
             "Личные качества",
+            "Доп. инфо (Общий)",
             # Photo
             "Портфолио",
             "Своё оборудование",
             "Опыт съёмки",
             "Ключевые моменты",
+            "Доп. инфо (Фото)",
             # Translate
             "Уровень китайского",
             "Сертификат",
@@ -89,8 +91,8 @@ class VolunteerGoogleSheetsSync:
             "Опыт общения на кит.",
             "Опыт работы с иностр.",
             "Ситуация с переводом",
+            "Доп. инфо (Перевод)",
             # Common
-            "Доп. информация",
             "Дата заявки",
         ]
 
@@ -102,6 +104,12 @@ class VolunteerGoogleSheetsSync:
         submitted_str = (
             app.submitted_at.strftime("%Y-%m-%d %H:%M:%S") if app.submitted_at else ""
         )
+        # Handle comma-separated roles (multi-role submissions)
+        function_str = ", ".join(
+            _FUNCTION_LABELS.get(r.strip(), r.strip())
+            for r in (app.function or "").split(",")
+            if r.strip()
+        )
         return [
             app.id or "",
             app.user_id,
@@ -110,17 +118,19 @@ class VolunteerGoogleSheetsSync:
             user_info.education if user_info else "",
             app.phone or "",
             _DATES_LABELS.get(app.volunteer_dates or "", app.volunteer_dates or ""),
-            _FUNCTION_LABELS.get(app.function or "", app.function or ""),
+            function_str,
             # General
             _G1_LABELS.get(app.general_1_type or "", app.general_1_type or ""),
             app.general_1_answer or "",
             app.general_2 or "",
             app.general_3 or "",
+            app.general_additional_information or "",
             # Photo
             app.photo_portfolio or "",
             _YES_NO.get(app.photo_has_equipment or "", app.photo_has_equipment or ""),
             app.photo_experience or "",
             app.photo_key_moments or "",
+            app.photo_additional_information or "",
             # Translate
             app.translate_level or "",
             _YES_NO.get(app.translate_has_cert or "", app.translate_has_cert or ""),
@@ -128,8 +138,8 @@ class VolunteerGoogleSheetsSync:
             app.translate_experience_detail or "",
             app.translate_worked_with_foreigners or "",
             app.translate_difficult_situation or "",
+            app.translate_additional_information or "",
             # Common
-            app.additional_information or "",
             submitted_str,
         ]
 

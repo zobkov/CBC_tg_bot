@@ -2,10 +2,10 @@
 
 from aiogram_dialog import Dialog, Window
 from aiogram_dialog.widgets.input import TextInput
-from aiogram_dialog.widgets.kbd import Button, Cancel, Column, Row
+from aiogram_dialog.widgets.kbd import Button, Cancel, Column, Row, SwitchTo
 from aiogram_dialog.widgets.text import Case, Const, Format
 
-from .getters import get_confirmation_data, get_main_data
+from .getters import get_confirmation_data, get_main_data, get_another_role_data, get_overwrite_confirm_data
 from .handlers import (
     on_additional_info_entered,
     on_confirm_no,
@@ -42,6 +42,12 @@ from .handlers import (
     on_translate_cert_yes,
     on_translate_experience_no,
     on_translate_experience_yes,
+    on_another_role_clicked,
+    on_another_select_general,
+    on_another_select_photo,
+    on_another_select_translate,
+    on_overwrite_confirm_yes,
+    on_overwrite_confirm_no,
 )
 from .states import VolunteerSelectionSG
 
@@ -64,6 +70,8 @@ volunteer_dialog = Dialog(
 
 Мы вернемся с результатами первого этапа отбора <b>16 марта</b>.
 
+Если ты хочешь подать заявку на более чем одну роль, нажми «Подать ещё заявку».
+
 Хочешь что-то уточнить? Не стесняйся и пиши нам, мы на связи: @savitsanastya @drkirna"""
                 ),
             },
@@ -71,6 +79,12 @@ volunteer_dialog = Dialog(
         ),
         Column(
             Button(Const("""✏️ Начать"""), id="vol_start", on_click=on_start_clicked),
+            Button(
+                Const("""📋 Подать ещё заявку"""),
+                id="vol_another_role",
+                on_click=on_another_role_clicked,
+                when="already_applied",
+            ),
             Cancel(Const("""⬅️ Назад""")),
         ),
         state=VolunteerSelectionSG.MAIN,
@@ -166,7 +180,9 @@ volunteer_dialog = Dialog(
 
 1. Общий волонтёрский функционал
 2. Фотографирование
-3. Перевод"""
+3. Перевод
+
+<i>💡 После подачи заявки на одну роль ты сможешь подать заявку и на другие роли через «Подать еще заявку» в главном меню.</i>"""
         ),
         Column(
             Button(Const("""1. Общий волонтёрский функционал"""), id="vol_func_general", on_click=on_function_general),
@@ -372,9 +388,49 @@ volunteer_dialog = Dialog(
         Const(
             """<b>Спасибо за твои ответы!</b> Мы вернемся с результатами первого этапа отбора <b>16 марта</b>.
 
+Если ты хочешь подать заявку на более чем одну роль, нажми «Подать ещё заявку».
+
 Хочешь что-то уточнить? Не стесняйся и пиши нам, мы на связи: @savitsanastya @drkirna"""
         ),
+        Button(
+                Const("""📋 Подать ещё заявку"""),
+                id="vol_another_role",
+                on_click=on_another_role_clicked,
+            ),
         Cancel(Const("""🏠 В главное меню""")),
         state=VolunteerSelectionSG.END,
+    ),
+
+    # ── ANOTHER_ROLE ──────────────────────────────────────────────────────
+    Window(
+        Const(
+            """<b>Выбери роль для заполнения:</b>
+
+✅ — уже заполнена (нажми, чтобы перезаписать)
+➕ — ещё не заполнена"""
+        ),
+        Column(
+            Button(Format("""{general_btn_label}"""), id="vol_ar_general", on_click=on_another_select_general),
+            Button(Format("""{photo_btn_label}"""), id="vol_ar_photo", on_click=on_another_select_photo),
+            Button(Format("""{translate_btn_label}"""), id="vol_ar_translate", on_click=on_another_select_translate),
+            SwitchTo(Const("""⬅️ Назад"""), id="back_to_vol_sel_menu", state=VolunteerSelectionSG.MAIN),
+        ),
+        state=VolunteerSelectionSG.another_role,
+        getter=get_another_role_data,
+    ),
+
+    # ── OVERWRITE_CONFIRM ─────────────────────────────────────────────────
+    Window(
+        Format(
+            """⚠️ Роль <b>{overwriting_role_label}</b> уже заполнена.
+
+Перезаписать ответы? Старые данные по этой роли будут заменены."""
+        ),
+        Row(
+            Button(Const("""✅ Да, перезаписать"""), id="vol_ow_yes", on_click=on_overwrite_confirm_yes),
+            Button(Const("""❌ Нет, назад"""), id="vol_ow_no", on_click=on_overwrite_confirm_no),
+        ),
+        state=VolunteerSelectionSG.overwrite_confirm,
+        getter=get_overwrite_confirm_data,
     ),
 )

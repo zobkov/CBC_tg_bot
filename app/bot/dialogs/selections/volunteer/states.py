@@ -48,3 +48,7 @@ class VolunteerSelectionSG(StatesGroup):
     # Ending
     additional_information_prompt = State()
     END = State()
+
+    # Multi-role: second application flow
+    another_role = State()
+    overwrite_confirm = State()
