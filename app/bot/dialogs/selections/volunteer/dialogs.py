@@ -2,8 +2,10 @@
 
 from aiogram_dialog import Dialog, Window
 from aiogram_dialog.widgets.input import TextInput
-from aiogram_dialog.widgets.kbd import Button, Cancel, Column, Row, SwitchTo
+from aiogram_dialog.widgets.kbd import Button, Cancel, Column, Row, SwitchTo, Start
 from aiogram_dialog.widgets.text import Case, Const, Format
+
+from app.bot.dialogs.main.states import MainMenuSG
 
 from .getters import get_confirmation_data, get_main_data, get_another_role_data, get_overwrite_confirm_data
 from .handlers import (
@@ -85,7 +87,7 @@ volunteer_dialog = Dialog(
                 on_click=on_another_role_clicked,
                 when="already_applied",
             ),
-            Cancel(Const("""⬅️ Назад""")),
+            Start(Const("""⬅️ Назад"""), id="back_to_main_menu", state=MainMenuSG.MAIN),
         ),
         state=VolunteerSelectionSG.MAIN,
         getter=get_main_data,
@@ -397,7 +399,7 @@ volunteer_dialog = Dialog(
                 id="vol_another_role",
                 on_click=on_another_role_clicked,
             ),
-        Cancel(Const("""🏠 В главное меню""")),
+        Start(Const("""🏠 В главное меню"""), id="back_to_menu_main", state=MainMenuSG.MAIN),
         state=VolunteerSelectionSG.END,
     ),
 
