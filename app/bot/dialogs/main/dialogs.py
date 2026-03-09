@@ -22,6 +22,8 @@ _MAIN_MENU_TEXT = """🏠 <b>Личный кабинет участника КБ
 
 <b>Актуальные события:</b>
 ➡ Идёт регистрация на <b>конкурс Росмолодёжь.Гранты</b> — заявки принимаются до 03.04.26, 10:00 МСК
+
+➡ Идёт <b>отбор волонтёров</b> форума КБК — заявки принимаются до 15.03.26, 23:59 МСК
  
 """
 
@@ -31,12 +33,12 @@ main_dialog = Dialog(
         DynamicMedia("media"),
         Format(_MAIN_MENU_TEXT),
         Row(
-            Start(
-                Const("🎭 Кастинг"),
-                id="casting_creative_button",
-                state=CreativeSelectionPart2SG.MAIN,
-                when="show_casting",
-            ),
+            # Start(
+            #     Const("🎭 Кастинг"),
+            #     id="casting_creative_button",
+            #     state=CreativeSelectionPart2SG.MAIN,
+            #     when="show_casting",
+            # ),
         ),
         Row(
             Start(
