@@ -146,11 +146,11 @@ volunteer_dialog = Dialog(
             """<b>Когда ты можешь помогать?</b>
 
 1. Только в сам день форума (11 апреля 2026)
-2. В день форума и могу помочь в день до КБК (10 и 11 апреля 2026)"""
+2. 1 или 2 дня до КБК и в день форума (9, 10 и 11 апреля 2026) – в дни подготовки занятость не полный день"""
         ),
         Column(
             Button(Const("""1. Только 11 апреля"""), id="vol_dates_single", on_click=on_dates_single),
-            Button(Const("""2. 10 и 11 апреля"""), id="vol_dates_double", on_click=on_dates_double),
+            Button(Const("""2. 9, 10 и 11 апреля"""), id="vol_dates_double", on_click=on_dates_double),
         ),
         state=VolunteerSelectionSG.volunteer_dates,
     ),
@@ -189,7 +189,7 @@ volunteer_dialog = Dialog(
         Const(
             """<b>Поделись своим опытом участия.</b>
 
-Что тебе понравилось, а что, по твоему мнению, можно улучшить?
+Что тебе понравилось, а что, по твоему мнению, можно было бы улучшить?
 <i>(обязательно ответь на обе части вопроса)</i>"""
         ),
         TextInput(id="vol_g1_1_input", on_success=on_general_1_answer_entered),
@@ -201,7 +201,7 @@ volunteer_dialog = Dialog(
         Const(
             """<b>Поделись своим опытом волонтёрства.</b>
 
-Что тебе понравилось, а что, по твоему мнению, можно улучшить?
+Что тебе понравилось, а что, по твоему мнению, можно было бы улучшить?
 <i>(обязательно ответь на обе части вопроса)</i>"""
         ),
         TextInput(id="vol_g1_2_input", on_success=on_general_1_answer_entered),
@@ -213,7 +213,7 @@ volunteer_dialog = Dialog(
         Const(
             """<b>Поделись своим опытом участия/волонтёрства.</b>
 
-Что тебе понравилось, а что, по твоему мнению, можно улучшить?
+Что тебе понравилось, а что, по твоему мнению, можно было бы улучшить?
 <i>(обязательно ответь на обе части вопроса)</i>"""
         ),
         TextInput(id="vol_g1_3_input", on_success=on_general_1_answer_entered),
@@ -225,7 +225,7 @@ volunteer_dialog = Dialog(
         Const(
             """<b>Почему именно КБК?</b>
 
-Почему тебе хочется стать волонтером на этом мероприятии?"""
+Почему ты хочешь стать волонтером на нашем мероприятии?"""
         ),
         TextInput(id="vol_g2_input", on_success=on_general_2_entered),
         state=VolunteerSelectionSG.general_2,
@@ -236,7 +236,7 @@ volunteer_dialog = Dialog(
         Const(
             """<b>Как ты считаешь, какие твои личностные качества будут наиболее полезны для работы в команде волонтёров КБК?</b>
 
-Приведи примеры из своего опыта/жизни, когда твои качества помогали тебе решить проблему."""
+Приведи примеры из своего опыта/жизни, когда твои качества помогали тебе решить ту или иную проблему."""
         ),
         TextInput(id="vol_g3_input", on_success=on_general_3_entered),
         state=VolunteerSelectionSG.general_3,
@@ -268,7 +268,7 @@ volunteer_dialog = Dialog(
         Const(
             """<b>Есть ли у тебя опыт фото/видеосъемки на мероприятиях?</b>
 
-Расскажи, на каких."""
+Расскажи о нем поподробнее. """
         ),
         TextInput(id="vol_p3_input", on_success=on_photo_3_entered),
         state=VolunteerSelectionSG.photo_3,
@@ -324,9 +324,9 @@ volunteer_dialog = Dialog(
     # ── TRANSLATE_3_1 ─────────────────────────────────────────────────────
     Window(
         Const(
-            """<b>Расскажи подробнее, какой у тебя был опыт общения на китайском языке?</b>
+            """<b>Расскажи подробнее о своем опыте общения на китайском языке.</b>
 
-(учеба, работа, путешествия)"""
+(Например, учеба, работа, путешествия)"""
         ),
         TextInput(id="vol_t3_1_input", on_success=on_translate_3_1_entered),
         state=VolunteerSelectionSG.translate_3_1,
@@ -357,7 +357,7 @@ volunteer_dialog = Dialog(
     # ── ADDITIONAL_INFORMATION_PROMPT ─────────────────────────────────────
     Window(
         Const(
-            """<b>Есть ли что-то, что мы не спросили, но что важно, чтобы мы о тебе знали? Или у тебя есть вопросы к нам?</b>"""
+            """<b>Есть ли что-то, что мы не спросили, но что важно, чтобы мы о тебе знали? И есть ли у тебя есть вопросы к нам?</b>"""
         ),
         TextInput(id="vol_additional_input", on_success=on_additional_info_entered),
         state=VolunteerSelectionSG.additional_information_prompt,
