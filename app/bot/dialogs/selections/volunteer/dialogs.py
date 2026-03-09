@@ -78,7 +78,7 @@ volunteer_dialog = Dialog(
             selector="already_applied",
         ),
         Column(
-            Button(Const("""✏️ Начать"""), id="vol_start", on_click=on_start_clicked),
+            Button(Const("""✏️ Начать"""), id="vol_start", on_click=on_start_clicked, when="not_already_applied"),
             Button(
                 Const("""📋 Подать ещё заявку"""),
                 id="vol_another_role",

@@ -44,7 +44,7 @@ async def get_main_data(dialog_manager: DialogManager, **_kwargs: Any) -> dict[s
                 exc,
             )
 
-    return {"already_applied": already_applied, "applied_roles": applied_roles}
+    return {"already_applied": already_applied, "applied_roles": applied_roles, "not_already_applied": not already_applied}
 
 
 async def get_confirmation_data(
