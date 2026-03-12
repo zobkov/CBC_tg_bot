@@ -187,7 +187,8 @@ def _register_events(engine: AsyncEngine) -> None:
             return
         delattr(context, "_query_start_time")
         duration_ms = (time.perf_counter() - start) * 1000
-        logger.sqlalchemy_debug("SQL %.1f ms: %s", duration_ms, statement.splitlines()[0].strip())
+        log_sql = getattr(logger, "sqlalchemy_debug", logger.debug)
+        log_sql("SQL %.1f ms: %s", duration_ms, statement.splitlines()[0].strip())
 
 
 __all__ = [
