@@ -44,7 +44,7 @@ from app.bot.dialogs.broadcasts.dialogs import broadcast_menu_dialog
 from app.bot.dialogs.selections.creative import creative_selection_dialog
 from app.bot.dialogs.selections.creative.part_2 import creative_selection_part2_dialog
 from app.bot.dialogs.selections.volunteer import volunteer_dialog
-from app.bot.dialogs.registration.dialogs import registration_dialog
+from app.bot.dialogs.start_help.dialogs import start_help_dialog
 from app.bot.dialogs.settings.dialogs import settings_dialog
 from app.bot.dialogs.online import online_dialog
 from app.bot.dialogs.grants import grants_dialog
@@ -193,7 +193,7 @@ def _configure_dispatcher(
     )
 
     dp.include_routers(
-        registration_dialog,
+        start_help_dialog,
         settings_dialog,
         main_dialog,
         quiz_dod_dialog,
