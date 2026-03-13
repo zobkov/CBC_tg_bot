@@ -79,6 +79,7 @@ async def get_change_track(
 
     tracks = load_tracks()
     items: list[tuple[str, str]] = []
+    available_lines: list[str] = []
     number = 1
     for track in tracks:
         if not track.get("active", True):
@@ -89,9 +90,11 @@ async def get_change_track(
         prefix = "✅ " if is_current else ""
         label = f"{prefix}{number} – {name}"
         items.append((label, key))
+        available_lines.append(f"{number}. {name}")
         number += 1
 
     return {
         "user_track": user_track,
         "tracks": items,
+        "available_tracks": "\n".join(available_lines),
     }
