@@ -5,12 +5,14 @@ import operator
 
 from aiogram_dialog import Dialog, Window
 from aiogram_dialog.widgets.kbd import (
+    Button,
     Cancel,
     Group,
     Row,
     Select,
     Start,
     SwitchTo,
+    Url,
 )
 from aiogram_dialog.widgets.text import Const, Format
 
@@ -19,10 +21,21 @@ from app.bot.dialogs.forum.getters import (
     get_forum_main,
     get_tracks_info,
 )
-from app.bot.dialogs.forum.handlers import on_track_selected
+from app.bot.dialogs.forum.handlers import on_change_track_clicked, on_track_selected
 from app.bot.dialogs.forum.states import ForumSG
 from app.bot.dialogs.grants.states import GrantsSG
 from app.bot.dialogs.settings.states import SettingsSG
+
+# ---------------------------------------------------------------------------
+# REGISTRATION REQUIRED
+# ---------------------------------------------------------------------------
+_REGISTRATION_REQUIRED_TEXT = (
+    "Для участия в форуме необходимо <b>пройти регистрацию на сайте</b>. "
+    "После этого ты сможешь выбрать и изменить свой трек здесь, в боте.\n\n"
+    "<b>Как войти после регистрации:</b>\n"
+    "— Перейди по ссылке, которую тебе предоставят после регистрации\n"
+    "— Или напиши <b>/start</b> в этом боте и укажи полученный код вручную"
+)
 
 # ---------------------------------------------------------------------------
 # MAIN
@@ -78,10 +91,35 @@ _WAY_TEXT = (
 # ===========================================================================
 forum_dialog = Dialog(
     # -----------------------------------------------------------------------
+    # 0. REGISTRATION REQUIRED
+    # -----------------------------------------------------------------------
+    Window(
+        Const(_REGISTRATION_REQUIRED_TEXT),
+        Row(
+            Url(
+                Const("🌐 Регистрация на сайте"),
+                Const("https://forum-cbc.ru/registration_general.html"),
+                id="reg_url",
+            ),
+        ),
+        Row(
+            SwitchTo(Const("⬅️ В главное меню"), id="back_to_menu", state=ForumSG.MAIN),
+        ),
+        state=ForumSG.registration_required,
+    ),
+
+    # -----------------------------------------------------------------------
     # 1. MAIN
     # -----------------------------------------------------------------------
     Window(
         Format(_MAIN_TEXT),
+        Row(
+            SwitchTo(
+                Const("📋 Регистрация"),
+                id="registration_btn",
+                state=ForumSG.registration_required,
+            ),
+        ),
         Row(
             SwitchTo(
                 Const("↗️ Информация о треках"),
@@ -90,10 +128,10 @@ forum_dialog = Dialog(
             ),
         ),
         Row(
-            SwitchTo(
+            Button(
                 Const("🔄 Сменить трек"),
                 id="change_track_btn",
-                state=ForumSG.change_track,
+                on_click=on_change_track_clicked,
             ),
         ),
         Row(
