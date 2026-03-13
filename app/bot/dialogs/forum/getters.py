@@ -8,7 +8,7 @@ from aiogram.types import User
 from aiogram_dialog import DialogManager
 
 from app.infrastructure.database.database.db import DB
-from app.services.tracks_config import get_track_by_name, load_tracks
+from app.services.tracks_config import get_track_by_name, get_track_by_key, load_tracks
 
 logger = logging.getLogger(__name__)
 
@@ -84,10 +84,11 @@ async def get_change_track(
         if not track.get("active", True):
             continue
         name = track.get("name", "")
+        key = track.get("key", "")
         is_current = name == user_track
         prefix = "✅ " if is_current else ""
         label = f"{prefix}{number} – {name}"
-        items.append((label, name))
+        items.append((label, key))
         number += 1
 
     return {

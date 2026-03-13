@@ -43,3 +43,11 @@ def get_track_by_name(name: str) -> dict[str, Any] | None:
         if track.get("name") == name:
             return track
     return None
+
+
+def get_track_by_key(key: str) -> dict[str, Any] | None:
+    """Return a single track dict by its short key, or *None* if not found."""
+    for track in load_tracks():
+        if track.get("key") == key:
+            return track
+    return None
