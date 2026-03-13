@@ -90,6 +90,10 @@ async def start_command(message: Message, command: CommandStart, dialog_manager:
                     logger.info(
                         "User id=%s registered via deeplink code=%s", user.id, numeric_key
                     )
+                    await message.answer(
+                        "✅ Регистрация прошла успешно! Ждем тебя на форуме КБК'26 11 апреля! "
+                        "А пока можешь ознакомиться с деталями форума в боте."
+                    )
                     await dialog_manager.start(state=MainMenuSG.MAIN, mode=StartMode.RESET_STACK)
                     return
                 else:

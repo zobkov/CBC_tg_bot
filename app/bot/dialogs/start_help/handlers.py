@@ -141,4 +141,8 @@ async def on_code_entered(
     )
 
     logger.info("Forum registration complete for user_id=%s", user.id)
+    await message.answer(
+        "✅ Регистрация прошла успешно! Ждем тебя на форуме КБК'26 11 апреля! "
+        "А пока можешь ознакомиться с деталями форума в боте."
+    )
     await dialog_manager.start(MainMenuSG.MAIN, mode=StartMode.RESET_STACK)
