@@ -2,8 +2,10 @@
 
 from aiogram_dialog import Dialog, Window
 from aiogram_dialog.widgets.input import TextInput
-from aiogram_dialog.widgets.kbd import Button, Row, SwitchTo, Url
+from aiogram_dialog.widgets.kbd import Button, Row, SwitchTo, Url, Start
 from aiogram_dialog.widgets.text import Const
+
+from app.bot.dialogs.selections.volunteer.states import VolunteerSelectionSG
 
 from app.bot.dialogs.start_help.states import StartHelpSG
 from app.bot.dialogs.start_help.handlers import (
@@ -54,6 +56,7 @@ start_help_dialog = Dialog(
             Button(Const("Да"), id="sh_yes", on_click=on_yes_clicked),
             Button(Const("Нет"), id="sh_no", on_click=on_no_clicked),
         ),
+        Start(Const("👤 ОТБОР ВОЛОНТЁРОВ"), id="start_vol", state=VolunteerSelectionSG.MAIN),
         state=StartHelpSG.want_reg,
     ),
 
