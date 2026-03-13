@@ -13,6 +13,7 @@ from app.bot.dialogs.main.states import MainMenuSG
 from app.bot.dialogs.selections.creative.part_2.states import CreativeSelectionPart2SG
 from app.bot.dialogs.selections.volunteer.states import VolunteerSelectionSG
 from app.bot.dialogs.settings.states import SettingsSG
+from app.bot.dialogs.forum.states import ForumSG
 
 _MAIN_MENU_TEXT = """🏠 <b>Личный кабинет участника КБК'26</b>
 
@@ -32,6 +33,13 @@ main_dialog = Dialog(
     Window(
         DynamicMedia("media"),
         Format(_MAIN_MENU_TEXT),
+        Row(
+            Start(
+                Const("🐉 Форум КБК"),
+                id="forum_button",
+                state=ForumSG.MAIN,
+            ),
+        ),
         Row(
             # Start(
             #     Const("🎭 Кастинг"),

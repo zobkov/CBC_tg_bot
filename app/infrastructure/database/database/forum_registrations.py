@@ -18,7 +18,7 @@ class _ForumRegistrationsDB:
         """Return bot_forum_registrations row for the given Telegram user, or None."""
         result = await self.session.execute(
             text(
-                "SELECT id, user_id, unique_id, name, status "
+                "SELECT id, user_id, unique_id, name, status, track "
                 "FROM bot_forum_registrations "
                 "WHERE user_id = :user_id "
                 "LIMIT 1"
@@ -27,6 +27,22 @@ class _ForumRegistrationsDB:
         )
         row = result.mappings().first()
         return dict(row) if row else None
+
+    async def update_track(self, *, user_id: int, track: str) -> None:
+        """Update the track for the given Telegram user."""
+        await self.session.execute(
+            text(
+                "UPDATE bot_forum_registrations "
+                "SET track = :track "
+                "WHERE user_id = :user_id"
+            ),
+            {"track": track, "user_id": user_id},
+        )
+        logger.info(
+            "bot_forum_registrations: updated track for user_id=%d to '%s'",
+            user_id,
+            track,
+        )
 
     async def get_site_registration(self, *, numeric_key: str) -> dict | None:
         """Return site_registrations row matching the 6-digit numeric_key, or None."""

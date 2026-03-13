@@ -48,6 +48,7 @@ from app.bot.dialogs.start_help.dialogs import start_help_dialog
 from app.bot.dialogs.settings.dialogs import settings_dialog
 from app.bot.dialogs.online import online_dialog
 from app.bot.dialogs.grants import grants_dialog
+from app.bot.dialogs.forum import forum_dialog
 
 from app.services.photo_file_id_manager import startup_photo_check
 from app.services.task_file_id_manager import startup_task_files_check
@@ -203,6 +204,7 @@ def _configure_dispatcher(
         volunteer_dialog,
         online_dialog,
         grants_dialog,
+        forum_dialog,
     )
 
     logger.info("Including middlewares")
