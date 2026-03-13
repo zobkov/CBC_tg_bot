@@ -51,3 +51,20 @@ def get_track_by_key(key: str) -> dict[str, Any] | None:
         if track.get("key") == key:
             return track
     return None
+
+
+def resolve_track_name(value: str) -> str:
+    """Return the full track name for a given value.
+
+    Accepts either a short key (e.g. ``logistics``) or a full name
+    (e.g. ``Логистика и ВЭД (Supply Chain & Trade)``) and always returns
+    the full display name. Falls back to the original value if no match.
+    """
+    # Try exact full-name match first
+    if get_track_by_name(value):
+        return value
+    # Try key lookup
+    track = get_track_by_key(value)
+    if track:
+        return track["name"]
+    return value

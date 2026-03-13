@@ -8,7 +8,7 @@ from aiogram.types import User
 from aiogram_dialog import DialogManager
 
 from app.infrastructure.database.database.db import DB
-from app.services.tracks_config import get_track_by_name, get_track_by_key, load_tracks
+from app.services.tracks_config import get_track_by_name, get_track_by_key, load_tracks, resolve_track_name
 
 logger = logging.getLogger(__name__)
 
@@ -32,7 +32,7 @@ async def get_forum_main(
             if reg:
                 is_registered = True
                 if reg.get("track"):
-                    user_track = reg["track"]
+                    user_track = resolve_track_name(reg["track"])
         except Exception as exc:  # noqa: BLE001
             logger.error("get_forum_main: DB error for user %d: %s", event_from_user.id, exc)
 
@@ -77,7 +77,7 @@ async def get_change_track(
         try:
             reg = await db.forum_registrations.get_by_user_id(user_id=event_from_user.id)
             if reg and reg.get("track"):
-                user_track = reg["track"]
+                user_track = resolve_track_name(reg["track"])
         except Exception as exc:  # noqa: BLE001
             logger.error("get_change_track: DB error for user %d: %s", event_from_user.id, exc)
 
