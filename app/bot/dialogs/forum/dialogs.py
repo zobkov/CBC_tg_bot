@@ -118,6 +118,7 @@ forum_dialog = Dialog(
                 Const("📋 Регистрация"),
                 id="registration_btn",
                 state=ForumSG.registration_required,
+                when="is_not_registered",
             ),
         ),
         Row(

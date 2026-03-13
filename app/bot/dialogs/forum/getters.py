@@ -25,11 +25,14 @@ async def get_forum_main(
     db: DB | None = dialog_manager.middleware_data.get("db")
 
     user_track = _NO_TRACK
+    is_registered = False
     if db:
         try:
             reg = await db.forum_registrations.get_by_user_id(user_id=event_from_user.id)
-            if reg and reg.get("track"):
-                user_track = reg["track"]
+            if reg:
+                is_registered = True
+                if reg.get("track"):
+                    user_track = reg["track"]
         except Exception as exc:  # noqa: BLE001
             logger.error("get_forum_main: DB error for user %d: %s", event_from_user.id, exc)
 
@@ -39,6 +42,7 @@ async def get_forum_main(
     return {
         "user_track": user_track,
         "track_curator": track_curator,
+        "is_not_registered": not is_registered,
     }
 
 
