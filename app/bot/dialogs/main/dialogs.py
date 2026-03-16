@@ -64,14 +64,14 @@ main_dialog = Dialog(
             ),
             #when="is_admin",
         ),
-        Row(
-            Start(
-                Const("💁 Отбор Волонтеров"),
-                id="volunteer_selection_button",
-                state=VolunteerSelectionSG.MAIN,
-            ),
-            # when="is_admin",
-        ),
+        # Row(
+        #     Start(
+        #         Const("💁 Отбор Волонтеров"),
+        #         id="volunteer_selection_button",
+        #         state=VolunteerSelectionSG.MAIN,
+        #     ),
+        #     # when="is_admin",
+        # ),
         Row(
             Start(
                 Const("⚙️ Помощь и настройки"),
