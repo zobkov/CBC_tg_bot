@@ -316,7 +316,7 @@ async def main():
         from app.services.creative_google_sync import CreativeGoogleSheetsSync
         from app.infrastructure.database.database.db import DB
 
-        scheduler = AsyncIOScheduler()
+        scheduler = AsyncIOScheduler(timezone="Europe/Moscow")
 
         async def scheduled_creative_google_sync():
             """Runs hourly to sync creative applications to Google Sheets."""
@@ -368,6 +368,35 @@ async def main():
             "interval",
             hours=1,
             id="volunteer_google_sync",
+        )
+
+        # Daily dashboard report at 10:00 Moscow time → chat -5223773417
+        DASHBOARD_CHAT_ID = -5223773417
+
+        async def scheduled_dashboard_broadcast():
+            """Send daily registration stats report to the dashboard chat."""
+            try:
+                from app.services.dashboard_service import build_report_text
+
+                async with session_factory() as session:
+                    db = DB(session)
+                    stats = await db.forum_registrations.get_dashboard_stats()
+                report = build_report_text(stats)
+                await bot.send_message(
+                    chat_id=DASHBOARD_CHAT_ID,
+                    text=report,
+                    parse_mode="HTML",
+                )
+                logger.info("[SCHEDULED] daily_dashboard: report sent to %d", DASHBOARD_CHAT_ID)
+            except Exception as e:
+                logger.error("[SCHEDULED] daily_dashboard failed: %s", e, exc_info=True)
+
+        scheduler.add_job(
+            scheduled_dashboard_broadcast,
+            "cron",
+            hour=10,
+            minute=0,
+            id="daily_dashboard",
         )
 
         scheduler.start()

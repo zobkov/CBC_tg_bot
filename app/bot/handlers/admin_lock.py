@@ -319,6 +319,25 @@ def setup_admin_lock_router(admin_ids: list[int]) -> Router: # pylint: disable=t
             logger.error("grant_gsom failed: %s", exc, exc_info=True)
             await message.answer(f"❌ Ошибка: {exc}")
 
+    @admin_lock_router.message(Command("dashboard"), admin_check)
+    async def cmd_dashboard(message: Message, db=None) -> None:
+        """/dashboard — send registration statistics report."""
+        logger.info("ADMIN %d executes /dashboard", message.from_user.id)
+
+        if not db:
+            await message.answer("❌ DB недоступна")
+            return
+
+        try:
+            from app.services.dashboard_service import build_report_text
+
+            stats = await db.forum_registrations.get_dashboard_stats()
+            report = build_report_text(stats)
+            await message.answer(report, parse_mode="HTML")
+        except Exception as exc:
+            logger.error("dashboard failed: %s", exc, exc_info=True)
+            await message.answer(f"❌ Ошибка при генерации отчёта: {exc}")
+
     @admin_lock_router.message(Command("config_reset"), admin_check)
     async def cmd_config_reset(message: Message) -> None:
         """/config_reset — force-reload grant_lessons.json from disk."""
