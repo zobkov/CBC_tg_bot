@@ -115,3 +115,83 @@ class _ForumRegistrationsDB:
             user_id,
             unique_id,
         )
+
+    async def get_dashboard_stats(self) -> dict:
+        """Return aggregated registration statistics for the dashboard report.
+
+        Returns a dict with keys:
+            site_total        – total rows in site_registrations
+            bot_total         – total rows in bot_forum_registrations
+            site_by_track     – {track_key: count} from site_registrations
+            bot_by_track      – {track_key: count} from bot_forum_registrations
+            site_by_status    – {status_value: count} from site_registrations
+            bot_by_status     – {status_value: count} from bot_forum_registrations
+        """
+        # site_registrations totals
+        site_total_result = await self.session.execute(
+            text("SELECT COUNT(*) FROM site_registrations")
+        )
+        site_total: int = site_total_result.scalar() or 0
+
+        site_track_result = await self.session.execute(
+            text(
+                "SELECT track, COUNT(*) AS cnt "
+                "FROM site_registrations "
+                "GROUP BY track"
+            )
+        )
+        site_by_track: dict[str, int] = {
+            row["track"] or "": row["cnt"]
+            for row in site_track_result.mappings()
+        }
+
+        site_status_result = await self.session.execute(
+            text(
+                "SELECT status, COUNT(*) AS cnt "
+                "FROM site_registrations "
+                "GROUP BY status"
+            )
+        )
+        site_by_status: dict[str, int] = {
+            row["status"] or "": row["cnt"]
+            for row in site_status_result.mappings()
+        }
+
+        # bot_forum_registrations totals
+        bot_total_result = await self.session.execute(
+            text("SELECT COUNT(*) FROM bot_forum_registrations")
+        )
+        bot_total: int = bot_total_result.scalar() or 0
+
+        bot_track_result = await self.session.execute(
+            text(
+                "SELECT track, COUNT(*) AS cnt "
+                "FROM bot_forum_registrations "
+                "GROUP BY track"
+            )
+        )
+        bot_by_track: dict[str, int] = {
+            row["track"] or "": row["cnt"]
+            for row in bot_track_result.mappings()
+        }
+
+        bot_status_result = await self.session.execute(
+            text(
+                "SELECT status, COUNT(*) AS cnt "
+                "FROM bot_forum_registrations "
+                "GROUP BY status"
+            )
+        )
+        bot_by_status: dict[str, int] = {
+            row["status"] or "": row["cnt"]
+            for row in bot_status_result.mappings()
+        }
+
+        return {
+            "site_total": site_total,
+            "bot_total": bot_total,
+            "site_by_track": site_by_track,
+            "bot_by_track": bot_by_track,
+            "site_by_status": site_by_status,
+            "bot_by_status": bot_by_status,
+        }
