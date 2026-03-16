@@ -7,11 +7,11 @@ _TRACKS: list[tuple[str, str]] = [
     ("finance", "Финансы и инвестиции (Finance & Banking)"),
     ("logistics", "Логистика и ВЭД (Supply Chain & Trade)"),
     ("consulting", "Консалтинг и риск-менеджмент (Strategy & Consulting)"),
-    ("policy", "Политика, право и дипломатия (Rules of the Game)"),
+    ("politics", "Политика, право и дипломатия (Rules of the Game)"),
     ("marketing", "Маркетинг и медиа (Digital & Brand)"),
-    ("humanities", "Язык, культура и перевод (Humanities & Arts)"),
+    ("language", "Язык, культура и перевод (Humanities & Arts)"),
     ("chinese", "Китайский трек (Chinese Track)"),
-    ("project_management", "Росмолодёжь.Гранты"),
+    ("rosmolodezh_grants", "Росмолодёжь.Гранты"),
 ]
 
 
