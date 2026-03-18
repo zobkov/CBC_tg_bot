@@ -12,6 +12,7 @@ from app.bot.dialogs.online.states import OnlineSG
 from app.bot.dialogs.main.states import MainMenuSG
 from app.bot.dialogs.selections.creative.part_2.states import CreativeSelectionPart2SG
 from app.bot.dialogs.selections.volunteer.states import VolunteerSelectionSG
+from app.bot.dialogs.selections.volunteer.part_2.states import VolSelPart2SG
 from app.bot.dialogs.settings.states import SettingsSG
 from app.bot.dialogs.forum.states import ForumSG
 
@@ -64,14 +65,14 @@ main_dialog = Dialog(
             ),
             #when="is_admin",
         ),
-        # Row(
-        #     Start(
-        #         Const("💁 Отбор Волонтеров"),
-        #         id="volunteer_selection_button",
-        #         state=VolunteerSelectionSG.MAIN,
-        #     ),
-        #     # when="is_admin",
-        # ),
+        Row(
+            Start(
+                Const("📝 Волонтёры: 2-й этап"),
+                id="vol_part2_button",
+                state=VolSelPart2SG.MAIN,
+            ),
+            when="is_admin",
+        ),
         Row(
             Start(
                 Const("⚙️ Помощь и настройки"),

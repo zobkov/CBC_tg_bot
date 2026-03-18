@@ -12,6 +12,7 @@ from app.infrastructure.database.database.online_events import _OnlineEventsDB
 from app.infrastructure.database.database.online_registrations import _OnlineRegistrationsDB
 from app.infrastructure.database.database.user_mentors import _UserMentorsDB
 from app.infrastructure.database.database.volunteer_applications import _VolunteerApplicationsDB
+from app.infrastructure.database.database.volunteer_selection_part2 import _VolSelPart2DB
 from app.infrastructure.database.database.forum_registrations import _ForumRegistrationsDB
 
 
@@ -30,6 +31,7 @@ class DB:
         self.online_registrations = _OnlineRegistrationsDB(session=session)
         self.user_mentors = _UserMentorsDB(session=session)
         self.volunteer_applications = _VolunteerApplicationsDB(session=session)
+        self.volunteer_selection_part2 = _VolSelPart2DB(session=session)
         self.forum_registrations = _ForumRegistrationsDB(session=session)
 
     @property
