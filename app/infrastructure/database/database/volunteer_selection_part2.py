@@ -2,7 +2,7 @@
 
 import logging
 
-from sqlalchemy import select
+from sqlalchemy import func, select
 from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -49,3 +49,20 @@ class _VolSelPart2DB:
         if entity is None:
             return None
         return entity.to_model()
+
+    async def count_all(self) -> int:
+        """Return total number of part2 submissions."""
+        stmt = select(func.count()).select_from(VolSelPart2)
+        result = await self.session.execute(stmt)
+        return result.scalar_one()
+
+    async def list_page(self, *, page: int, limit: int = 10) -> list[VolSelPart2]:
+        """Return ORM entities for a given page (0-indexed), ordered by id."""
+        stmt = (
+            select(VolSelPart2)
+            .order_by(VolSelPart2.id.asc())
+            .offset(page * limit)
+            .limit(limit)
+        )
+        result = await self.session.execute(stmt)
+        return list(result.scalars().all())

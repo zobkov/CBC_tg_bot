@@ -45,6 +45,7 @@ from app.bot.dialogs.selections.creative import creative_selection_dialog
 from app.bot.dialogs.selections.creative.part_2 import creative_selection_part2_dialog
 from app.bot.dialogs.selections.volunteer import volunteer_dialog
 from app.bot.dialogs.selections.volunteer.part_2 import volunteer_selection_part2_dialog
+from app.bot.dialogs.selections.volunteer.review import volunteer_review_dialog
 from app.bot.dialogs.start_help.dialogs import start_help_dialog
 from app.bot.dialogs.settings.dialogs import settings_dialog
 from app.bot.dialogs.online import online_dialog
@@ -204,6 +205,7 @@ def _configure_dispatcher(
         creative_selection_part2_dialog,
         volunteer_dialog,
         volunteer_selection_part2_dialog,
+        volunteer_review_dialog,
         online_dialog,
         grants_dialog,
         forum_dialog,
