@@ -371,7 +371,7 @@ async def main():
         )
 
         # Daily dashboard report at 10:00 Moscow time → chat -5223773417
-        DASHBOARD_CHAT_ID = -5223773417
+        DASHBOARD_CHAT_ID = -1003777835633
 
         async def scheduled_dashboard_broadcast():
             """Send daily registration stats report to the dashboard chat."""
