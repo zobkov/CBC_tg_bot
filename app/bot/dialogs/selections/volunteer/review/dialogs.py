@@ -20,6 +20,7 @@ from .handlers import (
     on_page_selected,
     on_prev_page,
     on_to_videos,
+    on_toggle_reviewed,
     on_video_back,
 )
 from .states import VolReviewSG
@@ -83,6 +84,20 @@ volunteer_review_dialog = Dialog(
                 id="rev_detail_video",
                 on_click=on_to_videos,
                 when="has_videos",
+            ),
+        ),
+        Row(
+            Button(
+                Const("❌ Просмотрено"),
+                id="rev_mark_reviewed",
+                on_click=on_toggle_reviewed,
+                when="not_is_reviewed",
+            ),
+            Button(
+                Const("✅ Просмотрено"),
+                id="rev_mark_not_reviewed",
+                on_click=on_toggle_reviewed,
+                when="is_reviewed",
             ),
         ),
         getter=get_app_detail_data,

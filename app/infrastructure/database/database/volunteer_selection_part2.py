@@ -66,3 +66,14 @@ class _VolSelPart2DB:
         )
         result = await self.session.execute(stmt)
         return list(result.scalars().all())
+
+    async def set_reviewed(self, *, user_id: int, reviewed: bool) -> None:
+        """Set the reviewed flag for a single part2 submission."""
+        from sqlalchemy import update
+
+        stmt = (
+            update(VolSelPart2)
+            .where(VolSelPart2.user_id == user_id)
+            .values(reviewed=reviewed)
+        )
+        await self.session.execute(stmt)

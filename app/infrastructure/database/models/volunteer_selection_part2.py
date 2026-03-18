@@ -6,7 +6,7 @@ from dataclasses import dataclass
 from datetime import datetime
 from typing import Any
 
-from sqlalchemy import BigInteger, ForeignKey, Text
+from sqlalchemy import BigInteger, Boolean, ForeignKey, Text, false
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.infrastructure.database.models.base import BaseModel
@@ -42,6 +42,9 @@ class VolSelPart2Model(BaseModel):
     vq1_file_id: str | None = None
     vq2_file_id: str | None = None
     vq3_file_id: str | None = None
+
+    # Admin review flag
+    reviewed: bool = False
 
     # Auto-managed
     id: int | None = None
@@ -100,6 +103,8 @@ class VolSelPart2(Base):
     vq2_file_id: Mapped[str | None] = mapped_column(Text, nullable=True)
     vq3_file_id: Mapped[str | None] = mapped_column(Text, nullable=True)
 
+    reviewed: Mapped[bool] = mapped_column(Boolean, nullable=False, server_default=false())
+
     submitted_at: Mapped[created]
     updated: Mapped[updated]
 
@@ -119,6 +124,7 @@ class VolSelPart2(Base):
             vq1_file_id=self.vq1_file_id,
             vq2_file_id=self.vq2_file_id,
             vq3_file_id=self.vq3_file_id,
+            reviewed=self.reviewed,
             submitted_at=self.submitted_at,
             updated=self.updated,
         )

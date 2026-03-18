@@ -82,6 +82,34 @@ async def on_back_to_page(
     await manager.switch_to(VolReviewSG.PAGE)
 
 
+async def on_toggle_reviewed(
+    callback: CallbackQuery,
+    _button: Button,
+    manager: DialogManager,
+    **_kwargs: Any,
+) -> None:
+    """Toggle the reviewed flag for the selected application."""
+    await callback.answer()
+
+    db = manager.middleware_data.get("db")
+    selected_user_id: int | None = manager.dialog_data.get("selected_user_id")
+    if not db or selected_user_id is None:
+        return
+
+    try:
+        app = await db.volunteer_selection_part2.get(user_id=selected_user_id)
+        if app is None:
+            return
+        new_value = not app.reviewed
+        await db.volunteer_selection_part2.set_reviewed(
+            user_id=selected_user_id, reviewed=new_value
+        )
+        await manager.switch_to(VolReviewSG.APP_DETAIL)
+    except Exception as exc:
+        logger.error("[VOL_REVIEW] on_toggle_reviewed failed: %s", exc)
+        await callback.message.answer(f"❌ Ошибка: {exc}")
+
+
 async def on_to_videos(
     callback: CallbackQuery,
     _button: Button,

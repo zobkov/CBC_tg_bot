@@ -85,6 +85,8 @@ async def get_page_data(
                     if user_info and user_info.full_name
                     else f"user_{entity.user_id}"
                 )
+                if entity.reviewed:
+                    display = f"👀 {display}"
                 apps.append((str(entity.user_id), display))
         except Exception as exc:
             logger.error("[VOL_REVIEW] get_page_data failed: %s", exc)
@@ -114,6 +116,7 @@ async def get_app_detail_data(
 
     detail_text = "⚠️ Заявка не найдена."
     has_videos = False
+    is_reviewed = False
 
     if db and selected_user_id is not None:
         try:
@@ -126,6 +129,7 @@ async def get_app_detail_data(
 
             if app:
                 has_videos = bool(app.vq1_file_id and app.vq2_file_id and app.vq3_file_id)
+                is_reviewed = app.reviewed
                 name = (user_info.full_name if user_info and user_info.full_name else f"user_{selected_user_id}")
                 email = _v(user_info.email if user_info else None)
                 education = _v(user_info.education if user_info else None)
@@ -157,6 +161,8 @@ async def get_app_detail_data(
     return {
         "detail_text": detail_text,
         "has_videos": has_videos,
+        "is_reviewed": is_reviewed,
+        "not_is_reviewed": not is_reviewed,
     }
 
 
