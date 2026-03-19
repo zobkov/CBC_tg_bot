@@ -403,8 +403,35 @@ async def main():
             id="daily_dashboard",
         )
 
+        from app.services.volunteer_part2_google_sync import VolunteerPart2GoogleSheetsSync
+
+        async def scheduled_volunteer_part2_google_sync():
+            """Runs hourly to sync volunteer part2 applications to Google Sheets."""
+            try:
+                async with session_factory() as session:
+                    db = DB(session)
+                    sync_service = VolunteerPart2GoogleSheetsSync(db)
+                    count = await sync_service.sync_all_applications()
+                    logger.info(
+                        "[SCHEDULED] Synced %d volunteer part2 applications to Google Sheets",
+                        count,
+                    )
+            except Exception as e:
+                logger.error(
+                    "[SCHEDULED] Failed to sync volunteer part2 applications: %s",
+                    e,
+                    exc_info=True,
+                )
+
+        scheduler.add_job(
+            scheduled_volunteer_part2_google_sync,
+            "interval",
+            hours=1,
+            id="volunteer_part2_google_sync",
+        )
+
         scheduler.start()
-        logger.info("✅ Scheduled creative + volunteer Google Sheets sync (hourly)")
+        logger.info("✅ Scheduled creative + volunteer + volunteer_part2 Google Sheets sync (hourly)")
 
     except Exception as exc:  # pylint: disable=broad-except
         logger.error("Failed to set up scheduler: %s", exc)

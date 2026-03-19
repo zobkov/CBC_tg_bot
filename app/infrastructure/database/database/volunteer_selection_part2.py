@@ -67,6 +67,12 @@ class _VolSelPart2DB:
         result = await self.session.execute(stmt)
         return list(result.scalars().all())
 
+    async def list_all(self) -> list["VolSelPart2Model"]:
+        """Return all part2 submissions as models, ordered by id."""
+        stmt = select(VolSelPart2).order_by(VolSelPart2.id.asc())
+        result = await self.session.execute(stmt)
+        return [entity.to_model() for entity in result.scalars().all()]
+
     async def set_reviewed(self, *, user_id: int, reviewed: bool) -> None:
         """Set the reviewed flag for a single part2 submission."""
         from sqlalchemy import update

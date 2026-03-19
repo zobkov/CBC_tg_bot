@@ -13,6 +13,33 @@ from .states import VolReviewSG
 logger = logging.getLogger(__name__)
 
 
+async def on_sync_to_sheets(
+    callback: CallbackQuery,
+    _button: Button,
+    manager: DialogManager,
+    **_kwargs: Any,
+) -> None:
+    """Trigger manual sync of part2 applications to Google Sheets."""
+    await callback.answer("⏳ Синхронизирую...")
+
+    db = manager.middleware_data.get("db")
+    if not db:
+        await callback.message.answer("❌ Ошибка доступа к базе данных")
+        return
+
+    try:
+        from app.services.volunteer_part2_google_sync import VolunteerPart2GoogleSheetsSync
+
+        sync_service = VolunteerPart2GoogleSheetsSync(db)
+        count = await sync_service.sync_all_applications()
+        await callback.message.answer(
+            f"✅ Синхронизировано {count} заявок (этап 2) в Google Sheets"
+        )
+    except Exception as exc:
+        logger.error("[VOL_REVIEW] on_sync_to_sheets failed: %s", exc)
+        await callback.message.answer(f"❌ Ошибка синхронизации: {exc}")
+
+
 async def on_page_selected(
     callback: CallbackQuery,
     _widget: Select,
