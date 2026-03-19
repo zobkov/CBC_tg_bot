@@ -44,6 +44,8 @@ from app.bot.dialogs.broadcasts.dialogs import broadcast_menu_dialog
 from app.bot.dialogs.selections.creative import creative_selection_dialog
 from app.bot.dialogs.selections.creative.part_2 import creative_selection_part2_dialog
 from app.bot.dialogs.selections.volunteer import volunteer_dialog
+from app.bot.dialogs.selections.volunteer.part_2 import volunteer_selection_part2_dialog
+from app.bot.dialogs.selections.volunteer.review import volunteer_review_dialog
 from app.bot.dialogs.start_help.dialogs import start_help_dialog
 from app.bot.dialogs.settings.dialogs import settings_dialog
 from app.bot.dialogs.online import online_dialog
@@ -202,6 +204,8 @@ def _configure_dispatcher(
         creative_selection_dialog,
         creative_selection_part2_dialog,
         volunteer_dialog,
+        volunteer_selection_part2_dialog,
+        volunteer_review_dialog,
         online_dialog,
         grants_dialog,
         forum_dialog,
@@ -242,6 +246,10 @@ async def main():
         session_factory=session_factory,
         storage=storage,
     )
+
+    from app.services.app_container import setup_container
+    setup_container(bot=bot, dp=dp)
+    logger.info("✅ AppContainer initialized")
 
     # await set_main_menu(bot) is deprecated. Use botfather app instead
 
@@ -399,11 +407,52 @@ async def main():
             id="daily_dashboard",
         )
 
+        from app.services.volunteer_part2_google_sync import VolunteerPart2GoogleSheetsSync
+
+        async def scheduled_volunteer_part2_google_sync():
+            """Runs hourly to sync volunteer part2 applications to Google Sheets."""
+            try:
+                async with session_factory() as session:
+                    db = DB(session)
+                    sync_service = VolunteerPart2GoogleSheetsSync(db)
+                    count = await sync_service.sync_all_applications()
+                    logger.info(
+                        "[SCHEDULED] Synced %d volunteer part2 applications to Google Sheets",
+                        count,
+                    )
+            except Exception as e:
+                logger.error(
+                    "[SCHEDULED] Failed to sync volunteer part2 applications: %s",
+                    e,
+                    exc_info=True,
+                )
+
+        scheduler.add_job(
+            scheduled_volunteer_part2_google_sync,
+            "interval",
+            hours=1,
+            id="volunteer_part2_google_sync",
+        )
+
         scheduler.start()
-        logger.info("✅ Scheduled creative + volunteer Google Sheets sync (hourly)")
+        logger.info("✅ Scheduled creative + volunteer + volunteer_part2 Google Sheets sync (hourly)")
 
     except Exception as exc:  # pylint: disable=broad-except
         logger.error("Failed to set up scheduler: %s", exc)
+
+    # ––– VOL2 TIMER SCHEDULER (APScheduler + RedisJobStore)
+    try:
+        from app.services.vol_part2_timer import init_timer_scheduler
+
+        _vol2_timer_scheduler = init_timer_scheduler(
+            redis_host=config.redis.host,
+            redis_port=int(config.redis.port),
+            redis_password=config.redis.password or None,
+        )
+        _vol2_timer_scheduler.start()
+        logger.info("✅ Vol2 timer scheduler started")
+    except Exception as exc:  # pylint: disable=broad-except
+        logger.error("Failed to set up vol2 timer scheduler: %s", exc)
 
     # Launch polling
     try:

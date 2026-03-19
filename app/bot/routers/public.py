@@ -11,6 +11,7 @@ from app.bot.dialogs.main.states import MainMenuSG
 from app.bot.dialogs.start_help.states import StartHelpSG
 from app.infrastructure.database.database.db import DB
 from app.infrastructure.database.models.user_info import UsersInfoModel
+from app.services.vol_part2_timer import cancel_user_timer
 
 logger = logging.getLogger(__name__)
 
@@ -60,6 +61,8 @@ async def start_command(message: Message, command: CommandStart, dialog_manager:
     """Команда /start — routing based on forum registration state."""
     user = message.from_user
     payload = command.args or ""
+
+    cancel_user_timer(user.id)
 
     logger.debug("User id=%s reached /start, payload=%r", user.id, payload)
 
@@ -117,6 +120,7 @@ async def start_command(message: Message, command: CommandStart, dialog_manager:
 @router.message(Command("menu"))
 async def menu_command(message: Message, dialog_manager: DialogManager):
     """Команда /menu - переход в главное меню"""
+    cancel_user_timer(message.from_user.id)
     await dialog_manager.start(state=MainMenuSG.MAIN, mode=StartMode.RESET_STACK)
 
 

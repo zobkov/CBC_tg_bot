@@ -505,5 +505,16 @@ def setup_admin_lock_router(admin_ids: list[int]) -> Router: # pylint: disable=t
             logger.error("grant_status failed: %s", exc, exc_info=True)
             await message.answer(f"❌ Ошибка: {exc}")
 
+    @admin_lock_router.message(Command("volunteer_review"), admin_check)
+    async def cmd_volunteer_review(message: Message, dialog_manager: DialogManager) -> None:
+        """/volunteer_review — open paginated review of volunteer part 2 applications."""
+        logger.info("ADMIN %d executes /volunteer_review", message.from_user.id)
+        from app.bot.dialogs.selections.volunteer.review.states import VolReviewSG
+        try:
+            await dialog_manager.start(VolReviewSG.PAGE_SELECT, mode=StartMode.RESET_STACK)
+        except Exception as exc:
+            logger.error("volunteer_review start failed: %s", exc, exc_info=True)
+            await message.answer(f"❌ Ошибка при открытии меню: {exc}")
+
     # RETURN ROUTER !!!
     return admin_lock_router
