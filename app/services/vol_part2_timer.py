@@ -98,7 +98,7 @@ def get_timer_scheduler() -> AsyncIOScheduler | None:
     return _timer_scheduler
 
 
-def schedule_user_timer(user_id: int, bot_token: str) -> None:
+def schedule_user_timer(user_id: int) -> None:
     """Schedule 3 timed jobs for a user's test session."""
     scheduler = _timer_scheduler
     if scheduler is None or not scheduler.running:
@@ -113,7 +113,7 @@ def schedule_user_timer(user_id: int, bot_token: str) -> None:
         _send_reminder_job,
         trigger="date",
         run_date=now + timedelta(minutes=REMINDER_1_OFFSET_MIN),
-        args=[user_id, bot_token, _REMINDER_10_TEXT],
+        args=[user_id, _REMINDER_10_TEXT],
         id=f"vol2_r10_{user_id}",
         jobstore="timers",
         replace_existing=True,
@@ -123,7 +123,7 @@ def schedule_user_timer(user_id: int, bot_token: str) -> None:
         _send_reminder_job,
         trigger="date",
         run_date=now + timedelta(minutes=REMINDER_2_OFFSET_MIN),
-        args=[user_id, bot_token, _REMINDER_5_TEXT],
+        args=[user_id, _REMINDER_5_TEXT],
         id=f"vol2_r5_{user_id}",
         jobstore="timers",
         replace_existing=True,
@@ -133,7 +133,7 @@ def schedule_user_timer(user_id: int, bot_token: str) -> None:
         _force_finish_job,
         trigger="date",
         run_date=now + timedelta(minutes=FINISH_OFFSET_MIN),
-        args=[user_id, bot_token],
+        args=[user_id],
         id=f"vol2_finish_{user_id}",
         jobstore="timers",
         replace_existing=True,
@@ -163,9 +163,9 @@ def cancel_user_timer(user_id: int) -> None:
 
 # Job functions must be at module level for APScheduler pickle serialisation
 
-async def _send_reminder_job(user_id: int, bot_token: str, text: str) -> None:
+async def _send_reminder_job(user_id: int, text: str) -> None:
     """Send a timed reminder if the user has not finished the test yet."""
-    from aiogram import Bot
+    from app.services.app_container import get_container
     from app.infrastructure.database.sqlalchemy_core import get_session_factory
     from app.infrastructure.database.database.db import DB
 
@@ -184,26 +184,19 @@ async def _send_reminder_job(user_id: int, bot_token: str, text: str) -> None:
             "[VOL2_TIMER] DB check failed in reminder for user_id=%d: %s", user_id, exc
         )
 
-    bot = Bot(token=bot_token)
     try:
+        bot = get_container().bot
         await bot.send_message(user_id, text, parse_mode="HTML")
         logger.info("[VOL2_TIMER] Reminder sent to user_id=%d", user_id)
     except Exception as exc:
         logger.error("[VOL2_TIMER] Send reminder failed for user_id=%d: %s", user_id, exc)
-    finally:
-        await bot.session.close()
 
 
-async def _force_finish_job(user_id: int, bot_token: str) -> None:
+async def _force_finish_job(user_id: int) -> None:
     """Force-finish the test: clear FSM state and notify the user."""
-    from aiogram import Bot
-    from aiogram.fsm.context import FSMContext
-    from aiogram.fsm.storage.base import DefaultKeyBuilder, StorageKey
-    from aiogram.fsm.storage.redis import RedisStorage
-    from redis.asyncio import Redis
+    from app.services.app_container import get_container
     from app.infrastructure.database.sqlalchemy_core import get_session_factory
     from app.infrastructure.database.database.db import DB
-    from config.config import load_config
 
     # 1. Skip if already completed
     try:
@@ -221,39 +214,30 @@ async def _force_finish_job(user_id: int, bot_token: str) -> None:
             "[VOL2_TIMER] DB check failed in force_finish for user_id=%d: %s", user_id, exc
         )
 
-    # 2. Clear FSM / dialog state
-    bot_id = int(bot_token.split(":")[0])
-    config = load_config()
-    if config.redis.password:
-        redis_url = (
-            f"redis://:{config.redis.password}@{config.redis.host}:{config.redis.port}/0"
-        )
-    else:
-        redis_url = f"redis://{config.redis.host}:{config.redis.port}/0"
-
-    redis_client: Redis | None = None
+    # 2. Clear FSM / dialog state via direct Redis key deletion.
+    #    aiogram-dialog scatters state across multiple Redis keys with pattern
+    #    fsm:{bot_id}:{chat_id}:{user_id}:* (stack, context entries, etc.).
+    #    state.clear() on a single StorageKey only removes one destiny's data,
+    #    so we must scan and delete every matching key explicitly.
+    c = get_container()
     try:
-        redis_client = Redis.from_url(redis_url, decode_responses=False)
-        storage = RedisStorage(
-            redis=redis_client,
-            key_builder=DefaultKeyBuilder(with_bot_id=True, with_destiny=True),
-        )
-        key = StorageKey(bot_id=bot_id, chat_id=user_id, user_id=user_id)
-        state = FSMContext(storage=storage, key=key)
-        await state.clear()
-        logger.info("[VOL2_TIMER] FSM state cleared for user_id=%d", user_id)
+        redis = c.dp.storage.redis
+        pattern = f"fsm:{c.bot.id}:{user_id}:{user_id}:*"
+        keys = [key async for key in redis.scan_iter(pattern)]
+        if keys:
+            await redis.delete(*keys)
+            logger.info(
+                "[VOL2_TIMER] Deleted %d FSM keys for user_id=%d (pattern=%s)",
+                len(keys), user_id, pattern,
+            )
+        else:
+            logger.info("[VOL2_TIMER] No FSM keys found for user_id=%d", user_id)
     except Exception as exc:
         logger.error("[VOL2_TIMER] FSM clear failed for user_id=%d: %s", user_id, exc)
-    finally:
-        if redis_client is not None:
-            await redis_client.aclose()
 
     # 3. Notify user
-    bot = Bot(token=bot_token)
     try:
-        await bot.send_message(user_id, _TIMEOUT_TEXT, parse_mode="HTML")
+        await c.bot.send_message(user_id, _TIMEOUT_TEXT, parse_mode="HTML")
         logger.info("[VOL2_TIMER] Force-finish message sent to user_id=%d", user_id)
     except Exception as exc:
         logger.error("[VOL2_TIMER] Notify failed for user_id=%d: %s", user_id, exc)
-    finally:
-        await bot.session.close()

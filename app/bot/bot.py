@@ -247,6 +247,10 @@ async def main():
         storage=storage,
     )
 
+    from app.services.app_container import setup_container
+    setup_container(bot=bot, dp=dp)
+    logger.info("✅ AppContainer initialized")
+
     # await set_main_menu(bot) is deprecated. Use botfather app instead
 
     # ––– PHOTO FILE_ID CHECK

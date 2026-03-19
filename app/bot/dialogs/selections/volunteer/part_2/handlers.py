@@ -49,12 +49,11 @@ async def on_start_yes(
     )
 
     user_id = callback.from_user.id
-    bot_token = callback.bot.token
     now_utc = datetime.now(tz=timezone.utc)
     now_msk = now_utc + MSK_OFFSET
     deadline_msk = now_msk + timedelta(minutes=FINISH_OFFSET_MIN)
 
-    schedule_user_timer(user_id, bot_token)
+    schedule_user_timer(user_id)
     await callback.message.answer(
         STARTED_TEXT.format(
             started=now_msk.strftime("%H:%M"),
