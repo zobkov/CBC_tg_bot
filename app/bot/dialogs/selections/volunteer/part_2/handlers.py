@@ -44,7 +44,7 @@ async def on_start_yes(
     from app.services.vol_part2_timer import (
         schedule_user_timer,
         STARTED_TEXT,
-        TEST_DURATION_MIN,
+        FINISH_OFFSET_MIN,
         MSK_OFFSET,
     )
 
@@ -52,7 +52,7 @@ async def on_start_yes(
     bot_token = callback.bot.token
     now_utc = datetime.now(tz=timezone.utc)
     now_msk = now_utc + MSK_OFFSET
-    deadline_msk = now_msk + timedelta(minutes=TEST_DURATION_MIN)
+    deadline_msk = now_msk + timedelta(minutes=FINISH_OFFSET_MIN)
 
     schedule_user_timer(user_id, bot_token)
     await callback.message.answer(

@@ -20,14 +20,20 @@ logger = logging.getLogger(__name__)
 
 _timer_scheduler: AsyncIOScheduler | None = None
 
-TEST_DURATION_MIN = 45
+# ── Timer durations (change these for testing) ───────────────────────────────
+TEST_DURATION_MIN = 3       # total test length in minutes
+REMINDER_1_OFFSET_MIN = 1   # T+ minutes → "10 минут осталось"
+REMINDER_2_OFFSET_MIN = 2   # T+ minutes → "5 минут осталось"
+FINISH_OFFSET_MIN = 3       # T+ minutes → force_finish
+# ─────────────────────────────────────────────────────────────────────────────
+
 MSK_OFFSET = timedelta(hours=3)
 
 STARTED_TEXT = (
     "<b>Тест начат!</b>\n\n"
     "Старт: <b>{started}</b> МСК\n"
     "Дедлайн: <b>{deadline}</b> МСК\n\n"
-    "Время на выполнение: 45 минут."
+    f"Время на выполнение: {TEST_DURATION_MIN} минут."
 )
 _REMINDER_10_TEXT = (
     "<b>Осталось 10 минут!</b>\n\n"
@@ -106,7 +112,7 @@ def schedule_user_timer(user_id: int, bot_token: str) -> None:
     scheduler.add_job(
         _send_reminder_job,
         trigger="date",
-        run_date=now + timedelta(minutes=35),
+        run_date=now + timedelta(minutes=REMINDER_1_OFFSET_MIN),
         args=[user_id, bot_token, _REMINDER_10_TEXT],
         id=f"vol2_r10_{user_id}",
         jobstore="timers",
@@ -116,7 +122,7 @@ def schedule_user_timer(user_id: int, bot_token: str) -> None:
     scheduler.add_job(
         _send_reminder_job,
         trigger="date",
-        run_date=now + timedelta(minutes=40),
+        run_date=now + timedelta(minutes=REMINDER_2_OFFSET_MIN),
         args=[user_id, bot_token, _REMINDER_5_TEXT],
         id=f"vol2_r5_{user_id}",
         jobstore="timers",
@@ -126,7 +132,7 @@ def schedule_user_timer(user_id: int, bot_token: str) -> None:
     scheduler.add_job(
         _force_finish_job,
         trigger="date",
-        run_date=now + timedelta(minutes=45),
+        run_date=now + timedelta(minutes=FINISH_OFFSET_MIN),
         args=[user_id, bot_token],
         id=f"vol2_finish_{user_id}",
         jobstore="timers",
