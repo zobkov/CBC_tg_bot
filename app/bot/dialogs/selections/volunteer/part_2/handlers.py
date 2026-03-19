@@ -1,6 +1,7 @@
 """Handlers for the volunteer selection part 2 dialog."""
 
 import logging
+from datetime import datetime, timedelta, timezone
 from typing import Any
 
 from aiogram.enums import ContentType
@@ -39,6 +40,29 @@ async def on_start_yes(
     **_kwargs: Any,
 ) -> None:
     await callback.answer()
+
+    from app.services.vol_part2_timer import (
+        schedule_user_timer,
+        STARTED_TEXT,
+        TEST_DURATION_MIN,
+        MSK_OFFSET,
+    )
+
+    user_id = callback.from_user.id
+    bot_token = callback.bot.token
+    now_utc = datetime.now(tz=timezone.utc)
+    now_msk = now_utc + MSK_OFFSET
+    deadline_msk = now_msk + timedelta(minutes=TEST_DURATION_MIN)
+
+    schedule_user_timer(user_id, bot_token)
+    await callback.message.answer(
+        STARTED_TEXT.format(
+            started=now_msk.strftime("%H:%M"),
+            deadline=deadline_msk.strftime("%H:%M"),
+        ),
+        parse_mode="HTML",
+    )
+
     await dialog_manager.switch_to(VolSelPart2SG.q1)
 
 
@@ -255,6 +279,10 @@ async def on_vq3(
     dialog_manager.dialog_data["vq3_file_id"] = message.video_note.file_id
 
     user_id = message.from_user.id
+
+    from app.services.vol_part2_timer import cancel_user_timer
+    cancel_user_timer(user_id)
+
     try:
         await _save_to_db(dialog_manager, user_id)
     except Exception as exc:

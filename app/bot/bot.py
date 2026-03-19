@@ -436,6 +436,20 @@ async def main():
     except Exception as exc:  # pylint: disable=broad-except
         logger.error("Failed to set up scheduler: %s", exc)
 
+    # ––– VOL2 TIMER SCHEDULER (APScheduler + RedisJobStore)
+    try:
+        from app.services.vol_part2_timer import init_timer_scheduler
+
+        _vol2_timer_scheduler = init_timer_scheduler(
+            redis_host=config.redis.host,
+            redis_port=int(config.redis.port),
+            redis_password=config.redis.password or None,
+        )
+        _vol2_timer_scheduler.start()
+        logger.info("✅ Vol2 timer scheduler started")
+    except Exception as exc:  # pylint: disable=broad-except
+        logger.error("Failed to set up vol2 timer scheduler: %s", exc)
+
     # Launch polling
     try:
         await bot.delete_webhook(drop_pending_updates=True)
