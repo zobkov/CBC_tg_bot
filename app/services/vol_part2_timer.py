@@ -21,10 +21,10 @@ logger = logging.getLogger(__name__)
 _timer_scheduler: AsyncIOScheduler | None = None
 
 # ── Timer durations (change these for testing) ───────────────────────────────
-TEST_DURATION_MIN = 3       # total test length in minutes
-REMINDER_1_OFFSET_MIN = 1   # T+ minutes → "10 минут осталось"
-REMINDER_2_OFFSET_MIN = 2   # T+ minutes → "5 минут осталось"
-FINISH_OFFSET_MIN = 3       # T+ minutes → force_finish
+TEST_DURATION_MIN = 35       # total test length in minutes
+REMINDER_1_OFFSET_MIN = 10   # T+ minutes → "10 минут осталось"
+REMINDER_2_OFFSET_MIN = 25  # T+ minutes → "5 минут осталось"
+FINISH_OFFSET_MIN = 35       # T+ minutes → force_finish
 # ─────────────────────────────────────────────────────────────────────────────
 
 MSK_OFFSET = timedelta(hours=3)
@@ -264,6 +264,7 @@ async def _force_finish_job(user_id: int) -> None:
                 vq3_file_id=dialog_data.get("vq3_file_id") or _D,
             )
             await db.volunteer_selection_part2.upsert(model=model)
+            await session.commit()
             logger.info("[VOL2_TIMER] Partial answers saved for user_id=%d", user_id)
     except Exception as exc:
         logger.error(
