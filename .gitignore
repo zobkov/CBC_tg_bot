@@ -188,3 +188,5 @@ config/*_file_ids_backup.json
 *.ics
 .vscode/*.env
 .vscode/*
+
+!КБК 26 Отбор волонтеров - общ_рассылка_прошли.csv

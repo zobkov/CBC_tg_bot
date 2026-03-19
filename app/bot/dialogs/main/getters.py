@@ -35,6 +35,22 @@ except FileNotFoundError:
     _FAIR_USER_IDS = frozenset()
     LOGGER.warning("export_fair.csv not found — casting button hidden for all non-admins")
 
+# Load vol general passed CSV user IDs once at import time
+_VOL_GENERAL_PASSED_CSV_PATH = Path("КБК 26 Отбор волонтеров - общ_рассылка_прошли.csv")
+try:
+    with _VOL_GENERAL_PASSED_CSV_PATH.open(newline="", encoding="utf-8") as _f:
+        _VOL_GENERAL_PASSED_IDS: frozenset[int] = frozenset(
+            int(row[0]) for row in csv.reader(_f) if row and row[0].strip().isdigit()
+        )
+    LOGGER.info(
+        "Loaded %d vol general passed user IDs from %s",
+        len(_VOL_GENERAL_PASSED_IDS),
+        _VOL_GENERAL_PASSED_CSV_PATH,
+    )
+except FileNotFoundError:
+    _VOL_GENERAL_PASSED_IDS = frozenset()
+    LOGGER.warning("%s not found — vol part2 button hidden for all non-admins", _VOL_GENERAL_PASSED_CSV_PATH)
+
 
 def _get_config(dialog_manager: DialogManager) -> Config | None:
     config: Config | None = dialog_manager.middleware_data.get("config")
@@ -116,9 +132,12 @@ async def get_is_admin(
                     app.part2_case_q1, app.part2_case_q2, app.part2_case_q3,
                 ])
 
+    is_vol_part2_user = event_from_user.id in _VOL_GENERAL_PASSED_IDS
+
     return {
         "is_admin": is_admin,
         "show_casting": (is_admin or is_fair_user) and not already_done,
+        "show_vol_part2": is_admin or is_vol_part2_user,
     }
 
 

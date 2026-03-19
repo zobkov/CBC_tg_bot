@@ -71,7 +71,7 @@ main_dialog = Dialog(
                 id="vol_part2_button",
                 state=VolSelPart2SG.MAIN,
             ),
-            when="is_admin",
+            when="show_vol_part2",
         ),
         Row(
             Start(
