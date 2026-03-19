@@ -76,6 +76,17 @@ async def on_start_no(
     await dialog_manager.switch_to(VolSelPart2SG.MAIN)
 
 
+async def on_part2_dialog_close(result: Any, manager: DialogManager) -> None:
+    """Called when the Part 2 dialog is closed from outside (RESET_STACK, /start, /menu)."""
+    try:
+        user_id = manager.event.from_user.id
+    except AttributeError:
+        return
+    from app.services.vol_part2_timer import cancel_user_timer
+    cancel_user_timer(user_id)
+    logger.info("[VOL_PART2] Timer cancelled on dialog close for user_id=%d", user_id)
+
+
 # ── Q1 – КБК ordinal (button choice) ─────────────────────────────────────────
 
 async def on_q1_selected(

@@ -12,6 +12,7 @@ from .handlers import (
     on_proceed_to_timer,
     on_start_yes,
     on_start_no,
+    on_part2_dialog_close,
     on_q1_selected,
     on_q2_entered,
     on_q3_entered,
@@ -271,4 +272,5 @@ volunteer_selection_part2_dialog = Dialog(
         ),
         state=VolSelPart2SG.success,
     ),
+    on_close=on_part2_dialog_close,
 )
