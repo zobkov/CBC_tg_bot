@@ -211,8 +211,9 @@ volunteer_selection_part2_dialog = Dialog(
             "<b>Внимание!</b> Не спеши отправлять кружок после записи! В телеграме можно его "
             "пересмотреть перед отправкой и удалить, если хочется перезаписать. Если его отправить, "
             "то твой ответ фиксируется.\n\n"
-            "Если есть технические трудности, то пиши @zobko. Также можешь посмотреть "
-            '<a href="https://docs.google.com/document/d/1xfs3T5pvM60ttPTy-fud8MtrGnq1haum6YT6yU_AOtE/edit?usp=sharing">инструкцию</a>.'
+            "Если есть технические трудности, то пиши @zobko. "
+            # "Также можешь посмотреть "
+            # '<a href="https://docs.google.com/document/d/1xfs3T5pvM60ttPTy-fud8MtrGnq1haum6YT6yU_AOtE/edit?usp=sharing">инструкцию</a>.'
         ),
         Button(Const("Далее"), id="vsp2_video_proceed", on_click=on_video_proceed),
         state=VolSelPart2SG.video_intro,
