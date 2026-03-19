@@ -62,7 +62,7 @@ async def on_start_yes(
         parse_mode="HTML",
     )
 
-    await dialog_manager.switch_to(VolSelPart2SG.q1)
+    await dialog_manager.switch_to(VolSelPart2SG.q1,show_mode=ShowMode.DELETE_AND_SEND)
 
 
 async def on_start_no(

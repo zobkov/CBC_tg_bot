@@ -175,7 +175,7 @@ async def on_to_videos(
     ]
 
     for label, file_id in video_file_ids:
-        if not file_id:
+        if not file_id or file_id == "-":
             msg = await bot.send_message(chat_id, f"⚠️ {label}: файл отсутствует")
             sent_ids.append(msg.message_id)
             continue

@@ -193,10 +193,12 @@ async def _send_reminder_job(user_id: int, text: str) -> None:
 
 
 async def _force_finish_job(user_id: int) -> None:
-    """Force-finish the test: clear FSM state and notify the user."""
+    """Force-finish the test: save partial answers to DB, clear FSM state, notify user."""
+    import json
     from app.services.app_container import get_container
     from app.infrastructure.database.sqlalchemy_core import get_session_factory
     from app.infrastructure.database.database.db import DB
+    from app.infrastructure.database.models.volunteer_selection_part2 import VolSelPart2Model
 
     # 1. Skip if already completed
     try:
@@ -214,12 +216,65 @@ async def _force_finish_job(user_id: int) -> None:
             "[VOL2_TIMER] DB check failed in force_finish for user_id=%d: %s", user_id, exc
         )
 
-    # 2. Clear FSM / dialog state via direct Redis key deletion.
+    c = get_container()
+
+    # 2. Read FSM context keys to extract partial dialog_data before clearing.
+    #    aiogram-dialog stores dialog_data in keys matching:
+    #    fsm:{bot_id}:{chat_id}:{user_id}:aiogd:context:*:data
+    dialog_data: dict = {}
+    try:
+        redis = c.dp.storage.redis
+        ctx_pattern = f"fsm:{c.bot.id}:{user_id}:{user_id}:aiogd:context:*:data"
+        async for key in redis.scan_iter(ctx_pattern):
+            raw = await redis.get(key)
+            if raw is None:
+                continue
+            ctx = json.loads(raw)
+            if "VolSelPart2SG" in ctx.get("state", ""):
+                dialog_data = ctx.get("dialog_data", {})
+                logger.info(
+                    "[VOL2_TIMER] Extracted dialog_data from state=%s for user_id=%d",
+                    ctx["state"], user_id,
+                )
+                break
+    except Exception as exc:
+        logger.error(
+            "[VOL2_TIMER] Failed to read dialog_data for user_id=%d: %s", user_id, exc
+        )
+
+    # 3. Save partial answers; empty fields filled with "-" so display logic works.
+    _D = "-"
+    try:
+        session_factory = get_session_factory()
+        async with session_factory() as session:
+            db = DB(session)
+            model = VolSelPart2Model(
+                user_id=user_id,
+                q1_kbc_ordinal=dialog_data.get("q1_kbc_ordinal") or _D,
+                q2_kbc_date=dialog_data.get("q2_kbc_date") or _D,
+                q3_kbc_theme=dialog_data.get("q3_kbc_theme") or _D,
+                q4_team_experience=dialog_data.get("q4_team_experience") or _D,
+                q5_badge_case=dialog_data.get("q5_badge_case") or _D,
+                q6_foreign_guest_case=dialog_data.get("q6_foreign_guest_case") or _D,
+                q7_want_tour=dialog_data.get("q7_want_tour") or _D,
+                q7_has_tour_experience=dialog_data.get("q7_has_tour_experience") or _D,
+                q7_tour_route=dialog_data.get("q7_tour_route") or _D,
+                vq1_file_id=dialog_data.get("vq1_file_id") or _D,
+                vq2_file_id=dialog_data.get("vq2_file_id") or _D,
+                vq3_file_id=dialog_data.get("vq3_file_id") or _D,
+            )
+            await db.volunteer_selection_part2.upsert(model=model)
+            logger.info("[VOL2_TIMER] Partial answers saved for user_id=%d", user_id)
+    except Exception as exc:
+        logger.error(
+            "[VOL2_TIMER] Failed to save partial answers for user_id=%d: %s", user_id, exc
+        )
+
+    # 4. Clear FSM / dialog state via direct Redis key deletion.
     #    aiogram-dialog scatters state across multiple Redis keys with pattern
     #    fsm:{bot_id}:{chat_id}:{user_id}:* (stack, context entries, etc.).
     #    state.clear() on a single StorageKey only removes one destiny's data,
     #    so we must scan and delete every matching key explicitly.
-    c = get_container()
     try:
         redis = c.dp.storage.redis
         pattern = f"fsm:{c.bot.id}:{user_id}:{user_id}:*"
@@ -235,7 +290,7 @@ async def _force_finish_job(user_id: int) -> None:
     except Exception as exc:
         logger.error("[VOL2_TIMER] FSM clear failed for user_id=%d: %s", user_id, exc)
 
-    # 3. Notify user
+    # 5. Notify user
     try:
         await c.bot.send_message(user_id, _TIMEOUT_TEXT, parse_mode="HTML")
         logger.info("[VOL2_TIMER] Force-finish message sent to user_id=%d", user_id)
