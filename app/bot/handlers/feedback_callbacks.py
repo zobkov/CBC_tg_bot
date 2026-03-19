@@ -13,7 +13,7 @@ from app.bot.dialogs.selections.volunteer.states import VolunteerSelectionSG
 from app.bot.dialogs.selections.volunteer.part_2.states import VolSelPart2SG
 
 # Users who receive photographer/translator confirmation notifications
-_VOL_NOTIFY_ADMIN_IDS = [257026813]
+_VOL_NOTIFY_ADMIN_IDS = [721299210, 257026813]
 
 feedback_callbacks_router = Router()
 
