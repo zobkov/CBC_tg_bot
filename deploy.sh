@@ -6,11 +6,10 @@ BOT_DIR="/opt/CBC_tg_bot"
 SERVICE="cbc-bot"
 
 echo "==> Pulling latest changes..."
-cd "$BOT_DIR"
-git pull
+sudo -u cbc_bot git -C "$BOT_DIR" pull
 
 echo "==> Installing dependencies..."
-poetry install --no-root
+sudo -u cbc_bot bash -c "cd $BOT_DIR && poetry install --no-root"
 
 echo "==> Restarting service..."
 systemctl restart "$SERVICE"
