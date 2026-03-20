@@ -61,6 +61,7 @@ async def on_app_selected(
 ) -> None:
     await callback.answer()
     manager.dialog_data["selected_user_id"] = int(item_id)
+    manager.dialog_data["detail_page_idx"] = 0
     await manager.switch_to(VolReviewSG.APP_DETAIL)
 
 
@@ -106,7 +107,34 @@ async def on_back_to_page(
 ) -> None:
     """Go back from APP_DETAIL to the page list."""
     await callback.answer()
+    manager.dialog_data["detail_page_idx"] = 0
     await manager.switch_to(VolReviewSG.PAGE)
+
+
+async def on_detail_next(
+    callback: CallbackQuery,
+    _button: Button,
+    manager: DialogManager,
+    **_kwargs: Any,
+) -> None:
+    """Advance to the next detail page."""
+    await callback.answer()
+    idx = manager.dialog_data.get("detail_page_idx", 0)
+    manager.dialog_data["detail_page_idx"] = idx + 1
+    await manager.switch_to(VolReviewSG.APP_DETAIL)
+
+
+async def on_detail_prev(
+    callback: CallbackQuery,
+    _button: Button,
+    manager: DialogManager,
+    **_kwargs: Any,
+) -> None:
+    """Go back to the previous detail page."""
+    await callback.answer()
+    idx = manager.dialog_data.get("detail_page_idx", 0)
+    manager.dialog_data["detail_page_idx"] = max(0, idx - 1)
+    await manager.switch_to(VolReviewSG.APP_DETAIL)
 
 
 async def on_toggle_reviewed(

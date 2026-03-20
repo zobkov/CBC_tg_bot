@@ -104,11 +104,38 @@ async def get_page_data(
     }
 
 
+_TG_LIMIT = 4096
+
+
+def _split_pages(text: str, limit: int = _TG_LIMIT) -> list[str]:
+    """Split *text* into pages each ≤ *limit* chars, breaking at paragraph/line boundaries."""
+    if len(text) <= limit:
+        return [text]
+    pages: list[str] = []
+    remaining = text
+    while remaining:
+        if len(remaining) <= limit:
+            pages.append(remaining)
+            break
+        split_pos = remaining.rfind("\n\n", 0, limit)
+        if split_pos == -1:
+            split_pos = remaining.rfind("\n", 0, limit)
+        if split_pos == -1:
+            split_pos = limit
+        pages.append(remaining[:split_pos])
+        remaining = remaining[split_pos:].lstrip("\n")
+    return pages
+
+
 async def get_app_detail_data(
     dialog_manager: DialogManager,
     **_kwargs: Any,
 ) -> dict[str, Any]:
-    """Load the selected application and build a formatted text."""
+    """Load the selected application and build paginated formatted text.
+
+    The full answer text is split into as many pages as needed (each ≤ 4096
+    chars). The current page index is stored in dialog_data["detail_page_idx"].
+    """
     from app.infrastructure.database.database.db import DB
 
     db: DB | None = dialog_manager.middleware_data.get("db")
@@ -117,6 +144,8 @@ async def get_app_detail_data(
     detail_text = "⚠️ Заявка не найдена."
     has_videos = False
     is_reviewed = False
+    has_detail_prev = False
+    has_detail_next = False
 
     if db and selected_user_id is not None:
         try:
@@ -142,7 +171,7 @@ async def get_app_detail_data(
                         f"\n<b>Маршрут:</b> {_v(app.q7_tour_route)}"
                     )
 
-                detail_text = (
+                full_text = (
                     f"👤 <b>{name}</b>\n"
                     f"📧 {email} | 🎓 {education} | 📱 {phone}\n\n"
                     f"<b>Q1 – Порядковый номер КБК:</b> {_v(app.q1_kbc_ordinal)}\n"
@@ -154,6 +183,22 @@ async def get_app_detail_data(
                     f"<b>Q7 – Хочет экскурсии:</b> {_yn(app.q7_want_tour)}"
                     f"{tour_block}"
                 )
+
+                pages = _split_pages(full_text)
+                total_pages = len(pages)
+
+                idx = dialog_manager.dialog_data.get("detail_page_idx", 0)
+                idx = max(0, min(idx, total_pages - 1))
+                dialog_manager.dialog_data["detail_page_idx"] = idx
+
+                page_text = pages[idx]
+                if total_pages > 1:
+                    page_text = f"<i>📄 {idx + 1}/{total_pages}</i>\n\n" + page_text
+
+                detail_text = page_text
+                has_detail_prev = idx > 0
+                has_detail_next = idx < total_pages - 1
+
         except Exception as exc:
             logger.error("[VOL_REVIEW] get_app_detail_data failed: %s", exc)
             detail_text = f"❌ Ошибка загрузки: {exc}"
@@ -163,6 +208,8 @@ async def get_app_detail_data(
         "has_videos": has_videos,
         "is_reviewed": is_reviewed,
         "not_is_reviewed": not is_reviewed,
+        "has_detail_prev": has_detail_prev,
+        "has_detail_next": has_detail_next,
     }
 
 

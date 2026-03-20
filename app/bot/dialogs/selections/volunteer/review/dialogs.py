@@ -16,6 +16,8 @@ from .handlers import (
     on_app_selected,
     on_back_to_page,
     on_back_to_pages,
+    on_detail_next,
+    on_detail_prev,
     on_next_page,
     on_page_selected,
     on_prev_page,
@@ -84,12 +86,26 @@ volunteer_review_dialog = Dialog(
     Window(
         Format("{detail_text}"),
         Row(
-            Button(Const("⬅️ Назад"), id="rev_detail_back", on_click=on_back_to_page),
+            Button(Const("⬅️ К списку"), id="rev_detail_back", on_click=on_back_to_page),
             Button(
                 Const("🎥 Видео ▶️"),
                 id="rev_detail_video",
                 on_click=on_to_videos,
                 when="has_videos",
+            ),
+        ),
+        Row(
+            Button(
+                Const("◀️ Назад"),
+                id="rev_detail_pg_prev",
+                on_click=on_detail_prev,
+                when="has_detail_prev",
+            ),
+            Button(
+                Const("Далее ▶️"),
+                id="rev_detail_pg_next",
+                on_click=on_detail_next,
+                when="has_detail_next",
             ),
         ),
         Row(
