@@ -9,7 +9,7 @@ echo "==> Pulling latest changes..."
 sudo -u cbc_bot git -C "$BOT_DIR" pull
 
 echo "==> Installing dependencies..."
-sudo -u cbc_bot bash -c "cd $BOT_DIR && poetry install --no-root"
+sudo -u cbc_bot HOME="$BOT_DIR" bash -c "cd $BOT_DIR && poetry install --no-root"
 
 echo "==> Restarting service..."
 systemctl restart "$SERVICE"
