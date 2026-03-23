@@ -6,5 +6,6 @@ class ForumSG(StatesGroup):
     MAIN = State()
     registration_required = State()
     tracks_info = State()
+    tracks_info_page2 = State()
     change_track = State()
     way = State()
