@@ -163,3 +163,25 @@ async def vol_trans_confirm_no(callback: CallbackQuery, bot: Bot):
         "Спасибо за ответ! Очень жаль, надеемся увидеться с тобой в следующий раз! Успехов!"
     )
     await _notify_admins(bot, "Переводчик", confirmed=False, user=callback)
+
+
+@feedback_callbacks_router.callback_query(F.data == "vol_general_confirm_yes")
+async def vol_general_confirm_yes(callback: CallbackQuery, bot: Bot):
+    """General volunteer confirmed participation."""
+    await callback.answer()
+    await callback.message.edit_reply_markup(reply_markup=None)
+    await callback.message.answer(
+        "✅ Спасибо! Мы свяжемся с тобой в ближайшее время."
+    )
+    await _notify_admins(bot, "Общий волонтер", confirmed=True, user=callback)
+
+
+@feedback_callbacks_router.callback_query(F.data == "vol_general_confirm_no")
+async def vol_general_confirm_no(callback: CallbackQuery, bot: Bot):
+    """General volunteer declined participation."""
+    await callback.answer()
+    await callback.message.edit_reply_markup(reply_markup=None)
+    await callback.message.answer(
+        "😔 Очень жаль. Если передумаешь или появятся вопросы, то пиши Даше @drkirna."
+    )
+    await _notify_admins(bot, "Общий волонтер", confirmed=False, user=callback)

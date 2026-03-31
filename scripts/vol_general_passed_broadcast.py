@@ -2,7 +2,8 @@
 """
 Broadcast script — Volunteer selection: General functionality, PASSED.
 
-Sends congratulations + "Второй этап" button to users listed in the CSV.
+Sends congratulations + confirmation buttons (Yes / No) to users listed in the CSV.
+Upon clicking, the bot notifies 721299210 and 257026813.
 
 Modes:
   1. TEST  — send only to ADMIN_USER_ID (257026813)
@@ -29,11 +30,14 @@ from config.config import load_config
 ADMIN_USER_ID = 257026813
 SOURCE_CSV = "КБК 26 Отбор волонтеров - общ_рассылка_прошли.csv"
 
-_MESSAGE_TEXT = (
-    "<b>Привет!</b>\n\n"
-    "Ты отлично справился(-ась) с заданиями первого этапа отбора волонтёров! "
-    "Сейчас тебе предстоит пройти второй этап заданий:"
-)
+_MESSAGE_TEXT = """<b>Привет!</b>
+
+Поздравляем с успешным прохождением отбора на форум КБК'26! 
+
+Если ты готов(-а) принимать участие в волонтерстве на форуме 11 апреля, подтверди свое участие до 31 марта 23:59.
+
+Если у тебя возникли вопросы, самое время задать их Даше @drkirna или Насте @savitsanastya
+"""
 
 # ── Logging ───────────────────────────────────────────────────────────────────
 
@@ -74,10 +78,10 @@ def create_keyboard() -> InlineKeyboardMarkup:
     return InlineKeyboardMarkup(
         inline_keyboard=[
             [
+                InlineKeyboardButton(text="Да", callback_data="vol_general_confirm_yes"),
                 InlineKeyboardButton(
-                    text="Второй этап",
-                    callback_data="start_volunteer_selection_part2",
-                )
+                    text="К сожалению, нет", callback_data="vol_general_confirm_no"
+                ),
             ]
         ]
     )
@@ -89,8 +93,10 @@ def preview(logger: logging.Logger) -> None:
     logger.info("=" * 60)
     print("\n📝 Message text:")
     print(_MESSAGE_TEXT)
-    print("\n🔘 Button: Второй этап")
-    print("   └─ callback_data: start_volunteer_selection_part2")
+    print("\n🔘 Buttons:")
+    print("   [Да]  (callback: vol_general_confirm_yes)")
+    print("   [К сожалению, нет]  (callback: vol_general_confirm_no)")
+    print("\nℹ️  Responses will be forwarded to: 721299210, 257026813")
     print("=" * 60 + "\n")
 
 
