@@ -17,6 +17,9 @@ from app.bot.dialogs.start_help.handlers import (
     code_check,
     code_error_handler,
     on_code_entered,
+    on_fio_by_name_clicked,
+    on_fio_entered,
+    on_email_entered,
 )
 
 _WANT_REG_TEXT = """<b>Привет!</b> 
@@ -45,6 +48,28 @@ _WRONG_CODE_TEXT = (
     "Код неверный или мы не смогли найти его 😢\n\n"
     "Попробуй ещё раз ввести код или пройти регистрацию.\n\n"
     "Если проблема сохраняется, мы всегда на связи!\n"
+    "Тех. поддержка: @zobko"
+)
+
+_FIO_ENTER_TEXT = (
+    "Введи своё ФИО (полностью), как указано при регистрации на сайте."
+)
+
+_FIO_NOT_FOUND_TEXT = (
+    "Имя не найдено в базе данных 😢\n\n"
+    "Убедись, что вводишь ФИО точно так, как при регистрации на сайте.\n\n"
+    "Если не получается, мы на связи!\n"
+    "Тех. поддержка: @zobko"
+)
+
+_EMAIL_ENTER_TEXT = (
+    "Отлично! Теперь введи email, который ты использовал при регистрации на сайте."
+)
+
+_EMAIL_WRONG_TEXT = (
+    "Email не совпадает с нашими данными 😢\n\n"
+    "Попробуй ещё раз или уточни адрес, который указывал при регистрации.\n\n"
+    "Если проблема сохраняется, мы на связи!\n"
     "Тех. поддержка: @zobko"
 )
 
@@ -95,6 +120,11 @@ start_help_dialog = Dialog(
             on_error=code_error_handler,
             on_success=on_code_entered,
         ),
+        Button(
+            Const("Найти по ФИО и email"),
+            id="sh_by_fio",
+            on_click=on_fio_by_name_clicked,
+        ),
         SwitchTo(
             Const("Назад к регистрации"),
             id="sh_back_to_need_reg",
@@ -118,5 +148,67 @@ start_help_dialog = Dialog(
             state=StartHelpSG.need_reg,
         ),
         state=StartHelpSG.wrong_code,
+    ),
+
+    # ── 6. fio_enter ──────────────────────────────────────────────────────────
+    Window(
+        Const(_FIO_ENTER_TEXT),
+        TextInput(
+            id="sh_fio_input",
+            on_success=on_fio_entered,
+        ),
+        SwitchTo(
+            Const("Назад"),
+            id="sh_fio_back",
+            state=StartHelpSG.id_enter,
+        ),
+        state=StartHelpSG.fio_enter,
+    ),
+
+    # ── 7. fio_not_found ──────────────────────────────────────────────────────
+    Window(
+        Const(_FIO_NOT_FOUND_TEXT),
+        SwitchTo(
+            Const("Попробовать снова"),
+            id="sh_fio_retry",
+            state=StartHelpSG.fio_enter,
+        ),
+        SwitchTo(
+            Const("Назад к коду"),
+            id="sh_fio_not_found_back",
+            state=StartHelpSG.id_enter,
+        ),
+        state=StartHelpSG.fio_not_found,
+    ),
+
+    # ── 8. email_enter ────────────────────────────────────────────────────────
+    Window(
+        Const(_EMAIL_ENTER_TEXT),
+        TextInput(
+            id="sh_email_input",
+            on_success=on_email_entered,
+        ),
+        SwitchTo(
+            Const("Назад"),
+            id="sh_email_back",
+            state=StartHelpSG.fio_enter,
+        ),
+        state=StartHelpSG.email_enter,
+    ),
+
+    # ── 9. email_wrong ────────────────────────────────────────────────────────
+    Window(
+        Const(_EMAIL_WRONG_TEXT),
+        SwitchTo(
+            Const("Попробовать снова"),
+            id="sh_email_retry",
+            state=StartHelpSG.email_enter,
+        ),
+        SwitchTo(
+            Const("Изменить ФИО"),
+            id="sh_email_wrong_back_fio",
+            state=StartHelpSG.fio_enter,
+        ),
+        state=StartHelpSG.email_wrong,
     ),
 )

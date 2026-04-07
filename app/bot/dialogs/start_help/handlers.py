@@ -122,14 +122,23 @@ async def on_code_entered(
         await dialog_manager.switch_to(StartHelpSG.wrong_code)
         return
 
-    # 3. Create bot_forum_registrations entry
+    # 3. Register
+    await _do_register(message, dialog_manager, db, site_reg)
+
+
+async def _do_register(
+    message: Message,
+    dialog_manager: DialogManager,
+    db: "DB",
+    site_reg: dict,
+) -> None:
+    """Shared registration logic used by both code and FIO+email flows."""
+    user = message.from_user
     await db.forum_registrations.create_registration(
         user_id=user.id,
         unique_id=site_reg["id"],
         site_reg=site_reg,
     )
-
-    # 4. Upsert user_info
     await db.users_info.upsert(
         model=UsersInfoModel(
             user_id=user.id,
@@ -139,10 +148,89 @@ async def on_code_entered(
             education=site_reg.get("education"),
         )
     )
-
     logger.info("Forum registration complete for user_id=%s", user.id)
     await message.answer(
         "✅ Регистрация прошла успешно! Ждем тебя на форуме КБК'26 11 апреля! "
         "А пока можешь ознакомиться с деталями форума в боте."
     )
     await dialog_manager.start(MainMenuSG.MAIN, mode=StartMode.RESET_STACK)
+
+
+# ── FIO + email flow ──────────────────────────────────────────────────────────
+
+async def on_fio_by_name_clicked(
+    callback: CallbackQuery,
+    _button: Button,
+    dialog_manager: DialogManager,
+) -> None:
+    """User chose to register by full name instead of code."""
+    await callback.answer()
+    await dialog_manager.switch_to(StartHelpSG.fio_enter)
+
+
+async def on_fio_entered(
+    message: Message,
+    _widget: Any,
+    dialog_manager: DialogManager,
+    value: str,
+    **_kwargs: Any,
+) -> None:
+    """Check if the entered full name exists in site_registrations."""
+    db: DB | None = dialog_manager.middleware_data.get("db")
+    if db is None:
+        logger.error("on_fio_entered: db not found in middleware_data")
+        await message.answer("Произошла ошибка. Попробуй позже.")
+        return
+
+    full_name = value.strip()
+    site_reg = await db.forum_registrations.get_site_registration_by_full_name(
+        full_name=full_name
+    )
+    if site_reg is None:
+        logger.info("FIO lookup failed: full_name=%r user_id=%s", full_name, message.from_user.id)
+        await dialog_manager.switch_to(StartHelpSG.fio_not_found)
+        return
+
+    # Store the exact DB full_name to use in the email step
+    dialog_manager.dialog_data["fio_for_email_check"] = site_reg["full_name"]
+    await dialog_manager.switch_to(StartHelpSG.email_enter)
+
+
+async def on_email_entered(
+    message: Message,
+    _widget: Any,
+    dialog_manager: DialogManager,
+    value: str,
+    **_kwargs: Any,
+) -> None:
+    """Check if email matches the found site_registration and register if so."""
+    db: DB | None = dialog_manager.middleware_data.get("db")
+    if db is None:
+        logger.error("on_email_entered: db not found in middleware_data")
+        await message.answer("Произошла ошибка. Попробуй позже.")
+        return
+
+    user = message.from_user
+    full_name: str = dialog_manager.dialog_data.get("fio_for_email_check", "")
+    email = value.strip()
+
+    site_reg = await db.forum_registrations.get_site_registration_by_fio_and_email(
+        full_name=full_name, email=email
+    )
+    if site_reg is None:
+        logger.info(
+            "FIO+email lookup failed: full_name=%r email=%r user_id=%s",
+            full_name, email, user.id,
+        )
+        await dialog_manager.switch_to(StartHelpSG.email_wrong)
+        return
+
+    if await db.forum_registrations.is_unique_id_locked(unique_id=site_reg["id"]):
+        logger.info(
+            "FIO+email unique_id already locked: unique_id=%s user_id=%s",
+            site_reg["id"], user.id,
+        )
+        await dialog_manager.switch_to(StartHelpSG.email_wrong)
+        return
+
+    await _do_register(message, dialog_manager, db, site_reg)

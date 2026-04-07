@@ -116,6 +116,39 @@ class _ForumRegistrationsDB:
             unique_id,
         )
 
+    async def get_site_registration_by_full_name(self, *, full_name: str) -> dict | None:
+        """Return first site_registrations row matching full_name (case-insensitive), or None."""
+        result = await self.session.execute(
+            text(
+                "SELECT id, full_name, status, email, adult18, region, "
+                "participant_status, education, track, transport, car_number, passport "
+                "FROM site_registrations "
+                "WHERE LOWER(full_name) = LOWER(:full_name) "
+                "LIMIT 1"
+            ),
+            {"full_name": full_name},
+        )
+        row = result.mappings().first()
+        return dict(row) if row else None
+
+    async def get_site_registration_by_fio_and_email(
+        self, *, full_name: str, email: str
+    ) -> dict | None:
+        """Return site_registrations row matching full_name+email pair (case-insensitive), or None."""
+        result = await self.session.execute(
+            text(
+                "SELECT id, full_name, status, email, adult18, region, "
+                "participant_status, education, track, transport, car_number, passport "
+                "FROM site_registrations "
+                "WHERE LOWER(full_name) = LOWER(:full_name) "
+                "AND LOWER(email) = LOWER(:email) "
+                "LIMIT 1"
+            ),
+            {"full_name": full_name, "email": email},
+        )
+        row = result.mappings().first()
+        return dict(row) if row else None
+
     async def get_dashboard_stats(self) -> dict:
         """Return aggregated registration statistics for the dashboard report.
 
