@@ -23,9 +23,8 @@ _MAIN_MENU_TEXT = """🏠 <b>Личный кабинет участника КБ
 
 
 <b>Актуальные события:</b>
-➡ Идёт регистрация на <b>конкурс Росмолодёжь.Гранты</b> — заявки принимаются до 03.04.26, 10:00 МСК
 
-➡ Идёт <b>отбор волонтёров</b> форума КБК (прием заявок закрыт) — результаты второго этапа до 30.03.26, 12:00 МСК
+➡ Идёт регистрация на Форум КБК! Заявку можно заполнить на сайте.
  
 """
 
@@ -41,38 +40,38 @@ main_dialog = Dialog(
                 state=ForumSG.MAIN,
             ),
         ),
-        Row(
-            # Start(
-            #     Const("🎭 Кастинг"),
-            #     id="casting_creative_button",
-            #     state=CreativeSelectionPart2SG.MAIN,
-            #     when="show_casting",
-            # ),
-        ),
-        Row(
-            Start(
-                Const("📗 Онлайн-мероприятия"),
-                id="online_button",
-                state=OnlineSG.MAIN,
-            ),
-            when="is_admin",
-        ),
-        Row(
-            Button(
-                Const("🏆 Росмолодёжь.Гранты"),
-                id="grants_btn",
-                on_click=on_grants_clicked,
-            ),
-            #when="is_admin",
-        ),
-        Row(
-            Start(
-                Const("📝 Волонтёры: 2-й этап"),
-                id="vol_part2_button",
-                state=VolSelPart2SG.MAIN,
-            ),
-            when="show_vol_part2",
-        ),
+        # Row(
+        #     # Start(
+        #     #     Const("🎭 Кастинг"),
+        #     #     id="casting_creative_button",
+        #     #     state=CreativeSelectionPart2SG.MAIN,
+        #     #     when="show_casting",
+        #     # ),
+        # ),
+        # Row(
+        #     Start(
+        #         Const("📗 Онлайн-мероприятия"),
+        #         id="online_button",
+        #         state=OnlineSG.MAIN,
+        #     ),
+        #     when="is_admin",
+        # ),
+        # Row(
+        #     Button(
+        #         Const("🏆 Росмолодёжь.Гранты"),
+        #         id="grants_btn",
+        #         on_click=on_grants_clicked,
+        #     ),
+        #     #when="is_admin",
+        # ),
+        # Row(
+        #     Start(
+        #         Const("📝 Волонтёры: 2-й этап"),
+        #         id="vol_part2_button",
+        #         state=VolSelPart2SG.MAIN,
+        #     ),
+        #     when="show_vol_part2",
+        # ),
         Row(
             Start(
                 Const("⚙️ Помощь и настройки"),
