@@ -26,9 +26,7 @@ _MAIN_MENU_TEXT = """🏠 <b>Личный кабинет участника КБ
 
 ➡ Идёт регистрация на Форум КБК! Заявку можно заполнить на сайте.
  
-"""
-
-
+{registration_badge}"""
 main_dialog = Dialog(
     Window(
         DynamicMedia("media"),
@@ -84,6 +82,7 @@ main_dialog = Dialog(
         getter=[
             main_getters.get_main_menu_media,
             main_getters.get_is_admin,
+            main_getters.get_forum_registration_badge,
         ],
     ),
 )

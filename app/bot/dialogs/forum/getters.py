@@ -39,10 +39,13 @@ async def get_forum_main(
     track_info = get_track_by_name(user_track)
     track_curator = track_info["curator"] if track_info else _NO_CURATOR
 
+    registration_badge = "✅ Ты успешно зарегистрирован на КБК'26!\n\n" if is_registered else ""
+
     return {
         "user_track": user_track,
         "track_curator": track_curator,
         "is_not_registered": not is_registered,
+        "registration_badge": registration_badge,
     }
 
 

@@ -141,6 +141,26 @@ async def get_is_admin(
     }
 
 
+async def get_forum_registration_badge(
+    dialog_manager: DialogManager,
+    event_from_user: User,
+    **_kwargs: Any,
+) -> dict[str, Any]:
+    """Return registration badge for main menu if user is registered on forum."""
+    db: DB | None = dialog_manager.middleware_data.get("db")
+    is_registered = False
+    if db:
+        try:
+            reg = await db.forum_registrations.get_by_user_id(user_id=event_from_user.id)
+            if reg and reg.get("track"):
+                is_registered = True
+        except Exception as exc:  # noqa: BLE001
+            LOGGER.error("get_forum_registration_badge: DB error for user %d: %s", event_from_user.id, exc)
+    return {
+        "registration_badge": "✅ Ты успешно зарегистрирован на КБК'26!\n\n" if is_registered else "",
+    }
+
+
 async def get_main_menu_media(
     **_kwargs: Any,
 ) -> dict[str, Any]:
