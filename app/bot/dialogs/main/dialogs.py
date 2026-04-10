@@ -15,6 +15,7 @@ from app.bot.dialogs.selections.volunteer.states import VolunteerSelectionSG
 from app.bot.dialogs.selections.volunteer.part_2.states import VolSelPart2SG
 from app.bot.dialogs.settings.states import SettingsSG
 from app.bot.dialogs.forum.states import ForumSG
+from app.bot.dialogs.career_fair.states import CareerFairSG
 
 _MAIN_MENU_TEXT = """🏠 <b>Личный кабинет участника КБК'26</b>
 
@@ -36,6 +37,13 @@ main_dialog = Dialog(
                 Const("🐉 Форум КБК"),
                 id="forum_button",
                 state=ForumSG.MAIN,
+            ),
+        ),
+        Row(
+            Start(
+                Const("🏪 Ярмарка карьеры"),
+                id="career_fair_button",
+                state=CareerFairSG.MAIN,
             ),
         ),
         # Row(
