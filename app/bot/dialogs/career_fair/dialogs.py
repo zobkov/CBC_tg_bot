@@ -2,12 +2,12 @@
 import operator
 
 from aiogram_dialog import Dialog, Window
-from aiogram_dialog.widgets.kbd import Back, Cancel, Group, Select, SwitchTo
+from aiogram_dialog.widgets.kbd import Back, Button, Cancel, Group, Select
 from aiogram_dialog.widgets.media import DynamicMedia
 from aiogram_dialog.widgets.text import Const, Format
 
 from .getters import get_companies, get_company_detail, get_company_vacancies, get_tracks
-from .handlers import on_company_selected, on_track_selected
+from .handlers import on_company_selected, on_track_selected, on_vacancies_clicked
 from .states import CareerFairSG
 
 _MAIN_TEXT = """🏪 <b>Ярмарка карьеры КБК'26</b>
@@ -64,10 +64,10 @@ career_fair_dialog = Dialog(
     Window(
         DynamicMedia("media", when="has_image"),
         Format("{company_header}"),
-        SwitchTo(
+        Button(
             Const("📋 Вакансии"),
             id="to_vacancies",
-            state=CareerFairSG.COMPANY_VACANCIES,
+            on_click=on_vacancies_clicked,
             when="has_vacancies",
         ),
         Back(Const("◀️ Назад")),
