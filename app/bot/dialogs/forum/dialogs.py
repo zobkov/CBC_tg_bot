@@ -23,6 +23,7 @@ from app.bot.dialogs.forum.getters import (
 from app.bot.dialogs.forum.handlers import on_change_track_clicked, on_track_selected
 from app.bot.dialogs.forum.states import ForumSG
 from app.bot.dialogs.grants.states import GrantsSG
+from app.bot.dialogs.lectory.states import LectorySG
 from app.bot.dialogs.settings.states import SettingsSG
 
 # ---------------------------------------------------------------------------
@@ -197,6 +198,13 @@ forum_dialog = Dialog(
                 Const("↗️ Информация о треках"),
                 id="tracks_info_btn",
                 state=ForumSG.tracks_info,
+            ),
+        ),
+        Row(
+            Start(
+                Const("📚 Лекторий"),
+                id="lectory_btn",
+                state=LectorySG.SCHEDULE,
             ),
         ),
         Row(
