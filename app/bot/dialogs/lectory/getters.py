@@ -27,7 +27,6 @@ except (FileNotFoundError, json.JSONDecodeError) as _exc:
 _COMMON_EVENTS: list[dict[str, Any]] = _LECTORY_DATA.get("common", [])
 _TRACK_DATA: dict[str, Any] = _LECTORY_DATA.get("tracks", {})
 
-# Overview text for common events (shown as static header)
 _COMMON_OVERVIEW = (
     "10:30 Открытие  |  11:30 Панель 1\n"
     "16:30 Панель 2  |  20:00 Закрытие"
@@ -38,6 +37,23 @@ _MAX_LABEL_NAME = 45
 
 def _truncate(text: str, max_len: int = _MAX_LABEL_NAME) -> str:
     return text if len(text) <= max_len else text[:max_len].rstrip() + "…"
+
+
+async def _resolve_track_key(dialog_manager: DialogManager, user_id: int) -> str:
+    """Return the short track key for the user, or empty string."""
+    db: DB | None = dialog_manager.middleware_data.get("db")
+    if not db:
+        return ""
+    try:
+        reg = await db.forum_registrations.get_by_user_id(user_id=user_id)
+        if reg and reg.get("track"):
+            track_name = resolve_track_name(reg["track"])
+            track_info = get_track_by_name(track_name)
+            if track_info:
+                return track_info.get("key", "")
+    except Exception as exc:
+        logger.error("_resolve_track_key: DB error for user %d: %s", user_id, exc)
+    return ""
 
 
 async def get_schedule(
@@ -69,7 +85,6 @@ async def get_schedule(
     has_events = bool(track_events)
     has_track_no_events = has_track and not has_events
 
-    # Short track name (strip English subtitle in parentheses)
     short_track = track_name.split("(")[0].strip() if track_name else ""
 
     schedule_text = (
@@ -78,7 +93,6 @@ async def get_schedule(
         "Мероприятия трека:"
     ) if has_track else ""
 
-    # Build event buttons: (label, key)
     events: list[tuple[str, str]] = []
     for ev in track_events:
         name = ev.get("name", "")
@@ -114,29 +128,21 @@ async def get_event_detail(
 ) -> dict[str, Any]:
     """Return event detail data for the EVENT_DETAIL window."""
     event_key: str = dialog_manager.dialog_data.get("selected_event", "")
-
-    # Resolve track key to search track events
-    db: DB | None = dialog_manager.middleware_data.get("db")
-    track_key = ""
-    if db:
-        try:
-            reg = await db.forum_registrations.get_by_user_id(user_id=event_from_user.id)
-            if reg and reg.get("track"):
-                track_name = resolve_track_name(reg["track"])
-                track_info = get_track_by_name(track_name)
-                if track_info:
-                    track_key = track_info.get("key", "")
-        except Exception as exc:
-            logger.error("get_event_detail: DB error for user %d: %s", event_from_user.id, exc)
+    track_key = await _resolve_track_key(dialog_manager, event_from_user.id)
 
     ev = _find_event(event_key, track_key) or {}
+    event_name = ev.get("name", "")
+
+    # Store event name in dialog_data so ASK_QUESTION handler can read it
+    dialog_manager.dialog_data["selected_event_name"] = event_name
 
     stream_url = ev.get("stream_url", "")
     description = ev.get("description", "")
     event_format = ev.get("format", "")
+    question_submitted = dialog_manager.dialog_data.get("question_submitted", False)
 
     return {
-        "event_name": ev.get("name", ""),
+        "event_name": event_name,
         "event_time": ev.get("time", ""),
         "event_auditorium": ev.get("auditorium", ""),
         "event_format": event_format,
@@ -145,4 +151,46 @@ async def get_event_detail(
         "stream_url": stream_url,
         "has_format": bool(event_format),
         "has_description": bool(description),
+        "question_submitted": question_submitted,
+    }
+
+
+async def get_my_questions(
+    dialog_manager: DialogManager,
+    event_from_user: User,
+    **_kwargs: Any,
+) -> dict[str, Any]:
+    """Return the user's Q&A list for the current event."""
+    event_key: str = dialog_manager.dialog_data.get("selected_event", "")
+    event_name: str = dialog_manager.dialog_data.get("selected_event_name", "")
+
+    db: DB | None = dialog_manager.middleware_data.get("db")
+    questions: list[dict[str, Any]] = []
+    if db:
+        try:
+            questions = await db.lectory_questions.get_user_questions_for_event(
+                user_id=event_from_user.id,
+                event_key=event_key,
+            )
+        except Exception as exc:
+            logger.error("get_my_questions: DB error for user %d: %s", event_from_user.id, exc)
+
+    if questions:
+        lines: list[str] = []
+        for i, q in enumerate(questions, 1):
+            lines.append(f"{i}. {q['question_text']}")
+            if q.get("answer_text"):
+                lines.append(f"   💬 <i>{q['answer_text']}</i>")
+            else:
+                lines.append("   ⏳ <i>Ответ пока не получен</i>")
+        questions_text = "\n\n".join(lines)
+    else:
+        questions_text = "Ты ещё не задавал вопросов к этому мероприятию."
+
+    short_name = _truncate(event_name, 50)
+
+    return {
+        "event_name": short_name,
+        "questions_text": questions_text,
+        "has_questions": bool(questions),
     }

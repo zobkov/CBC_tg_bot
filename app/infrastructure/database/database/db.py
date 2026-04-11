@@ -15,6 +15,7 @@ from app.infrastructure.database.database.volunteer_applications import _Volunte
 from app.infrastructure.database.database.volunteer_selection_part2 import _VolSelPart2DB
 from app.infrastructure.database.database.forum_registrations import _ForumRegistrationsDB
 from app.infrastructure.database.database.career_fair_stats import _CareerFairStatsDB
+from app.infrastructure.database.database.lectory_questions import _LectoryQuestionsDB
 
 
 class DB:
@@ -35,6 +36,7 @@ class DB:
         self.volunteer_selection_part2 = _VolSelPart2DB(session=session)
         self.forum_registrations = _ForumRegistrationsDB(session=session)
         self.career_fair_stats = _CareerFairStatsDB(session=session)
+        self.lectory_questions = _LectoryQuestionsDB(session=session)
 
     @property
     def session(self) -> AsyncSession:
