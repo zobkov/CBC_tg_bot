@@ -32,13 +32,13 @@ main_dialog = Dialog(
     Window(
         DynamicMedia("media"),
         Format(_MAIN_MENU_TEXT),
-        Row(
-            Start(
-                Const("🐉 Форум КБК"),
-                id="forum_button",
-                state=ForumSG.MAIN,
-            ),
-        ),
+        # Row(
+        #     Start(
+        #         Const("🐉 Форум КБК"),
+        #         id="forum_button",
+        #         state=ForumSG.MAIN,
+        #     ),
+        # ),
         Row(
             Start(
                 Const("🏪 Ярмарка карьеры"),
