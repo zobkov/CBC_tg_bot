@@ -3,13 +3,10 @@
 set -e
 
 BOT_DIR="/opt/CBC_tg_bot"
-SERVICE="cbc-bot"
+SERVICE="cbc_bot"
 
 echo "==> Pulling latest changes..."
-sudo -u cbc_bot git -C "$BOT_DIR" pull
-
-echo "==> Installing dependencies..."
-sudo -u cbc_bot HOME="$BOT_DIR" bash -c "cd $BOT_DIR && poetry install --no-root"
+git -C "$BOT_DIR" pull
 
 echo "==> Restarting service..."
 systemctl restart "$SERVICE"
