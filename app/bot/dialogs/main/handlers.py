@@ -4,12 +4,14 @@ from __future__ import annotations
 
 import logging
 
-from aiogram.types import CallbackQuery
+from aiogram.types import CallbackQuery, FSInputFile
 from aiogram_dialog import DialogManager
 from aiogram_dialog.widgets.kbd import Button
 from sqlalchemy.exc import SQLAlchemyError
 
 from app.infrastructure.database.database.db import DB
+from app.services.participant_cert import generate_cert, get_participant_info
+from app.utils.certificate_gen.generator import CertificateGenerationError
 from app.utils.deadline_checker import (
     get_task_submission_status_message,
     is_task_submission_closed,
@@ -105,3 +107,35 @@ async def on_grants_clicked(
             )
 
     await dialog_manager.start(target_state)
+
+
+async def on_participant_cert_clicked(
+    callback: CallbackQuery,
+    _button: Button,
+    _dialog_manager: DialogManager,
+) -> None:
+    """Generate (or return cached) the participant certificate and send it."""
+    user_id = callback.from_user.id
+
+    info = get_participant_info(user_id)
+    if info is None:
+        await callback.answer(
+            "Вы не найдены в списке участников форума.", show_alert=True
+        )
+        return
+
+    await callback.answer("Генерирую сертификат…")
+
+    try:
+        cert_path = generate_cert(user_id)
+    except CertificateGenerationError as exc:
+        _LOGGER.error("Certificate generation failed for user %d: %s", user_id, exc)
+        await callback.message.answer(
+            "Не удалось сгенерировать сертификат. Пожалуйста, обратитесь к @cbc_assistant."
+        )
+        return
+
+    await callback.message.answer_document(
+        FSInputFile(cert_path),
+        caption="🎓 Твой сертификат участника форума КБК'26",
+    )

@@ -6,7 +6,7 @@ from aiogram_dialog.widgets.media import DynamicMedia
 from aiogram_dialog.widgets.text import Const, Format
 
 from app.bot.dialogs.main import getters as main_getters
-from app.bot.dialogs.main.handlers import on_grants_clicked
+from app.bot.dialogs.main.handlers import on_grants_clicked, on_participant_cert_clicked
 from app.bot.dialogs.main.quiz_dod.states import QuizDodSG
 from app.bot.dialogs.online.states import OnlineSG
 from app.bot.dialogs.main.states import MainMenuSG
@@ -78,6 +78,14 @@ main_dialog = Dialog(
         #     ),
         #     when="show_vol_part2",
         # ),
+        Row(
+            Button(
+                Const("📜 Сертификат участника"),
+                id="participant_cert_btn",
+                on_click=on_participant_cert_clicked,
+            ),
+            when="show_participant_cert",
+        ),
         Row(
             Start(
                 Const("⚙️ Помощь и настройки"),

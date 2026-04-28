@@ -35,11 +35,13 @@ class CertificateGenerator:
         output_dir: Path | None = None,
         template_path: Path | None = None,
         placeholder: str = _PLACEHOLDER,
+        page_style: str | None = _PDF_PAGE_STYLE,
     ) -> None:
         base_dir = Path(__file__).resolve().parent
         self.template_path = template_path or base_dir / "certificate.html"
         self.output_dir = output_dir or base_dir / "output"
         self.placeholder = placeholder
+        self._page_style = page_style
 
         self.output_dir.mkdir(parents=True, exist_ok=True)
 
@@ -58,22 +60,43 @@ class CertificateGenerator:
         self._css_cls: type | None = None
         self._cached_css: Any | None = None
 
-    def generate(self, full_name: str) -> Path:
-        """Render a certificate for the provided name and return the saved path."""
+    def generate(
+        self,
+        full_name: str,
+        *,
+        output_filename: str | None = None,
+        substitutions: dict[str, str] | None = None,
+    ) -> Path:
+        """Render a certificate for the provided name and return the saved path.
+
+        Args:
+            full_name: Participant's full name (replaces ``self.placeholder``).
+            output_filename: Optional fixed output filename; random UUID suffix used otherwise.
+            substitutions: Additional ``{placeholder: value}`` pairs applied after the
+                main name substitution.  Values are HTML-escaped automatically.
+        """
         normalized_name = full_name.strip()
         if not normalized_name:
             raise CertificateGenerationError("Full name must not be empty")
         html_markup = self._template.replace(self.placeholder, escape(normalized_name))
-        output_path = self._build_output_path(normalized_name)
+        if substitutions:
+            for key, value in substitutions.items():
+                html_markup = html_markup.replace(key, escape(value))
+        output_path = (
+            self.output_dir / output_filename
+            if output_filename
+            else self._build_output_path(normalized_name)
+        )
 
         try:
             html_cls, css_cls = self._load_weasyprint()
-            if self._cached_css is None:
-                self._cached_css = css_cls(string=_PDF_PAGE_STYLE)
+            if self._page_style is not None and self._cached_css is None:
+                self._cached_css = css_cls(string=self._page_style)
 
+            stylesheets = [self._cached_css] if self._cached_css is not None else []
             html_cls(string=html_markup, base_url=self._base_url).write_pdf(
                 output_path.as_posix(),
-                stylesheets=[self._cached_css],
+                stylesheets=stylesheets,
             )
         except CertificateGenerationError:
             raise
