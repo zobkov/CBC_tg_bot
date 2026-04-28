@@ -81,6 +81,7 @@ def _get_gen_m() -> CertificateGenerator:
     return CertificateGenerator(
         output_dir=_OUTPUT_DIR,
         template_path=_TEMPLATE_DIR / "certificate_participant_m.html",
+        page_style=None,  # @page dimensions are defined inside the template
     )
 
 
@@ -89,6 +90,7 @@ def _get_gen_f() -> CertificateGenerator:
     return CertificateGenerator(
         output_dir=_OUTPUT_DIR,
         template_path=_TEMPLATE_DIR / "certificate_participant_f.html",
+        page_style=None,  # @page dimensions are defined inside the template
     )
 
 

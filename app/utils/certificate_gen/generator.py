@@ -35,11 +35,13 @@ class CertificateGenerator:
         output_dir: Path | None = None,
         template_path: Path | None = None,
         placeholder: str = _PLACEHOLDER,
+        page_style: str | None = _PDF_PAGE_STYLE,
     ) -> None:
         base_dir = Path(__file__).resolve().parent
         self.template_path = template_path or base_dir / "certificate.html"
         self.output_dir = output_dir or base_dir / "output"
         self.placeholder = placeholder
+        self._page_style = page_style
 
         self.output_dir.mkdir(parents=True, exist_ok=True)
 
@@ -88,12 +90,13 @@ class CertificateGenerator:
 
         try:
             html_cls, css_cls = self._load_weasyprint()
-            if self._cached_css is None:
-                self._cached_css = css_cls(string=_PDF_PAGE_STYLE)
+            if self._page_style is not None and self._cached_css is None:
+                self._cached_css = css_cls(string=self._page_style)
 
+            stylesheets = [self._cached_css] if self._cached_css is not None else []
             html_cls(string=html_markup, base_url=self._base_url).write_pdf(
                 output_path.as_posix(),
-                stylesheets=[self._cached_css],
+                stylesheets=stylesheets,
             )
         except CertificateGenerationError:
             raise

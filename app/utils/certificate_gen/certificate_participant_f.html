@@ -31,12 +31,34 @@
 
         * { margin: 0; padding: 0; box-sizing: border-box; }
 
-        body {
+        @page {
+            size: 210mm 297mm;
+            margin: 0;
+        }
+
+        /*
+         * WeasyPrint renders HTML at 96 dpi → A4 = ~793.7 × 1122.5 CSS px.
+         * The design is at 300 dpi → 2480 × 3508 px.
+         * Scale factor: 793.7 / 2480 ≈ 0.32004
+         * The .canvas div holds the full 300-dpi layout; transform scales it to A4.
+         */
+        html, body {
+            margin: 0;
+            padding: 0;
+            width: 793.7px;
+            height: 1122.5px;
+            overflow: hidden;
+            background: #ffffff;
+        }
+
+        .canvas {
+            position: relative;
             width: 2480px;
             height: 3508px;
             background: #ffffff;
             font-family: 'Montserrat', Arial, sans-serif;
-            position: relative;
+            transform: scale(0.32004);
+            transform-origin: 0 0;
             overflow: hidden;
         }
 
@@ -225,6 +247,7 @@
     </style>
 </head>
 <body>
+<div class="canvas">
 
     <!-- Bottom-left star decoration -->
     <div class="deco-star-bl">
@@ -283,5 +306,6 @@
         </div>
     </div>
 
+</div>
 </body>
 </html>
