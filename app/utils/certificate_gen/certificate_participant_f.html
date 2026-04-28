@@ -37,10 +37,9 @@
         }
 
         /*
-         * WeasyPrint renders HTML at 96 dpi → A4 = ~793.7 × 1122.5 CSS px.
-         * The design is at 300 dpi → 2480 × 3508 px.
-         * Scale factor: 793.7 / 2480 ≈ 0.32004
-         * The .canvas div holds the full 300-dpi layout; transform scales it to A4.
+         * WeasyPrint renders at 96 dpi → A4 ≈ 793.7 × 1122.5 CSS px.
+         * Design is at 300 dpi → 2480 × 3508 px.
+         * Scale: 793.7 / 2480 ≈ 0.32004
          */
         html, body {
             margin: 0;
@@ -62,7 +61,7 @@
             overflow: hidden;
         }
 
-        /* ── Bottom-left star decoration ── */
+        /* ── Bottom-left star (deco_flower.svg: 1097×1097 teal star) ── */
         .deco-star-bl {
             position: absolute;
             left: -210px;
@@ -70,61 +69,61 @@
             width: 1098px;
             height: 1097px;
         }
-        .deco-star-bl img { width: 100%; height: 100%; }
+        .deco-star-bl img { width: 100%; height: 100%; display: block; }
 
-        /* ── Right flower decoration ── */
+        /* ── Right asterisk/flower (deco_star.svg: 566×758 orange asterisk) ── */
         .deco-flower-r {
             position: absolute;
             left: 2064px;
             top: 378px;
             width: 566px;
-            height: 757px;
-            overflow: visible;
+            height: 758px;
         }
-        .deco-flower-r img { width: 100%; height: 100%; }
+        .deco-flower-r img { width: 100%; height: 100%; display: block; }
 
-        /* ── Header: ФИО (left) | Апрель 2026 (right) ── */
+        /* ── Header: name (left) | date (right) ── */
         .header {
             position: absolute;
             left: 160px;
             top: 223px;
             width: 2160px;
-            display: flex;
-            justify-content: space-between;
-            align-items: flex-start;
+            height: 58px;
             font-size: 48px;
             color: #000000;
             line-height: normal;
         }
         .header-name {
+            position: absolute;
+            left: 0;
+            top: 0;
             font-family: 'Montserrat', Arial, sans-serif;
             font-weight: 400;
             white-space: nowrap;
         }
         .header-date {
+            position: absolute;
+            right: 0;
+            top: 0;
             font-family: 'Montserrat Alternates', Arial, sans-serif;
             font-weight: 400;
-            font-style: normal;
             text-align: right;
             width: 710px;
         }
 
-        /* ── Gratitude message title ── */
+        /* ── Gratitude title ── */
         .gratitude {
             position: absolute;
             left: 166px;
             top: 480px;
             width: 2154px;
             color: #c22034;
-            display: flex;
-            flex-direction: column;
-            gap: 23px;
             line-height: 1.075;
         }
         .gratitude-subtitle {
             font-family: 'Montserrat', Arial, sans-serif;
             font-weight: 600;
             font-size: 64px;
+            margin-bottom: 23px;
         }
         .gratitude-title {
             font-family: 'Marvin Visions', Arial, sans-serif;
@@ -133,7 +132,7 @@
             font-style: normal;
         }
 
-        /* ── Body: salutation + paragraphs ── */
+        /* ── Body text ── */
         .body {
             position: absolute;
             left: 160px;
@@ -143,15 +142,10 @@
             font-weight: 400;
             font-size: 48px;
             color: #000000;
-            display: flex;
-            flex-direction: column;
-            gap: 79px;
+            line-height: 1.35;
         }
         .salutation {
-            line-height: normal;
-        }
-        .body-text {
-            line-height: normal;
+            margin-bottom: 79px;
         }
         .body-text p {
             margin-bottom: 48px;
@@ -160,37 +154,46 @@
             margin-bottom: 0;
         }
 
-        /* ── Signature container ── */
+        /* ── Signature ── */
         .signature {
             position: absolute;
             left: 160px;
             top: 2486px;
             width: 2160px;
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
+            height: 339px;
             font-size: 48px;
             color: #000000;
-            line-height: normal;
+            line-height: 1.35;
         }
         .signature-role {
+            position: absolute;
+            left: 0;
+            top: 50px;
+            width: 880px;
             font-family: 'Montserrat', Arial, sans-serif;
             font-weight: 400;
-            width: 880px;
         }
-        .signature-image {
-            width: 339px;
-            height: 323px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            transform: rotate(90deg);
-        }
-        .signature-image img {
+        .sig-wrap {
+            position: absolute;
+            left: 930px;
+            top: 0;
             width: 323px;
             height: 339px;
+            overflow: hidden;
+        }
+        .sig-wrap img {
+            position: relative;
+            left: -8px;
+            top: 8px;
+            width: 339px;
+            height: 323px;
+            transform: rotate(90deg);
+            transform-origin: 50% 50%;
         }
         .signature-name {
+            position: absolute;
+            right: 0;
+            top: 80px;
             font-family: 'Montserrat', Arial, sans-serif;
             font-weight: 600;
             text-align: right;
@@ -202,29 +205,27 @@
             position: absolute;
             left: 160px;
             top: 3251px;
-            display: flex;
-            align-items: center;
-            gap: 634px;
+            width: 2160px;
+            height: 110px;
         }
         .footer-rosmol {
+            position: absolute;
+            left: 0;
+            top: 14px;
             width: 372px;
             height: 79px;
-            flex-shrink: 0;
         }
-        .footer-rosmol img {
-            width: 100%;
-            height: 100%;
-            object-fit: contain;
-        }
+        .footer-rosmol img { width: 100%; height: 100%; object-fit: contain; display: block; }
         .footer-kbc-logo {
-            position: relative;
+            position: absolute;
+            left: 1006px;
+            top: 0;
             width: 243px;
             height: 106px;
-            flex-shrink: 0;
         }
         .footer-kbc-logo img.circle {
             position: absolute;
-            left: 0; top: 0;
+            left: 0; top: 2px;
             width: 85px;
             height: 103px;
         }
@@ -235,28 +236,26 @@
             height: 106px;
         }
         .footer-kbc-mark {
+            position: absolute;
+            left: 1883px;
+            top: 11px;
             width: 277px;
             height: 88px;
-            flex-shrink: 0;
         }
-        .footer-kbc-mark img {
-            width: 100%;
-            height: 100%;
-            object-fit: contain;
-        }
+        .footer-kbc-mark img { width: 100%; height: 100%; object-fit: contain; display: block; }
     </style>
 </head>
 <body>
 <div class="canvas">
 
-    <!-- Bottom-left star decoration -->
+    <!-- Bottom-left star decoration (deco_flower.svg = teal 12-pointed star) -->
     <div class="deco-star-bl">
-        <img src="participant_assets/deco_star.svg" alt="" />
+        <img src="participant_assets/deco_flower.svg" alt="" />
     </div>
 
-    <!-- Right flower decoration -->
+    <!-- Right asterisk decoration (deco_star.svg = orange asterisk/flower) -->
     <div class="deco-flower-r">
-        <img src="participant_assets/deco_flower.svg" alt="" />
+        <img src="participant_assets/deco_star.svg" alt="" />
     </div>
 
     <!-- Header -->
@@ -286,7 +285,7 @@
     <!-- Signature -->
     <div class="signature">
         <p class="signature-role">Руководитель Всероссийского проекта «Китай Бизнес Культура»</p>
-        <div class="signature-image">
+        <div class="sig-wrap">
             <img src="participant_assets/signature.png" alt="" />
         </div>
         <p class="signature-name">Артём Васильевич Кириенков</p>
