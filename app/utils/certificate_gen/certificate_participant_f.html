@@ -37,58 +37,56 @@
         }
 
         /*
-         * WeasyPrint renders at 96 dpi → A4 ≈ 793.7 × 1122.5 CSS px.
-         * Design is at 300 dpi → 2480 × 3508 px.
-         * Scale: 793.7 / 2480 ≈ 0.32004
+         * All pixel values are pre-scaled from the 2480×3508 design canvas
+         * to the 793.7×1122.5 CSS viewport (96 dpi A4).
+         * Scale factor: 793.7 / 2480 = 0.32004
+         * No CSS transform is used — WeasyPrint clips transformed content
+         * at pre-transform layout coordinates, making deep elements invisible.
          */
         html, body {
             margin: 0;
             padding: 0;
             width: 793.7px;
             height: 1122.5px;
-            overflow: hidden;
+            overflow: visible;
             background: #ffffff;
         }
 
         .canvas {
             position: relative;
-            width: 2480px;
-            height: 3508px;
+            width: 793.7px;
+            height: 1122.5px;
             background: #ffffff;
             font-family: 'Montserrat', Arial, sans-serif;
-            transform: scale(0.32004);
-            transform-origin: 0 0;
-            overflow: hidden;
+            overflow: visible;
         }
 
-        /* ── Bottom-left star (deco_flower.svg: 1097×1097 teal star) ── */
+        /* ── Decorations ── */
         .deco-star-bl {
             position: absolute;
-            left: -210px;
-            top: 2745px;
-            width: 1098px;
-            height: 1097px;
+            left: -67px;
+            top: 879px;
+            width: 351px;
+            height: 351px;
         }
         .deco-star-bl img { width: 100%; height: 100%; display: block; }
 
-        /* ── Right asterisk/flower (deco_star.svg: 566×758 orange asterisk) ── */
         .deco-flower-r {
             position: absolute;
-            left: 2064px;
-            top: 378px;
-            width: 566px;
-            height: 758px;
+            left: 661px;
+            top: 121px;
+            width: 181px;
+            height: 243px;
         }
         .deco-flower-r img { width: 100%; height: 100%; display: block; }
 
-        /* ── Header: name (left) | date (right) ── */
+        /* ── Header ── */
         .header {
             position: absolute;
-            left: 160px;
-            top: 223px;
-            width: 2160px;
-            height: 58px;
-            font-size: 48px;
+            left: 51px;
+            top: 71px;
+            width: 691px;
+            font-size: 15.4px;
             color: #000000;
             line-height: normal;
         }
@@ -107,140 +105,129 @@
             font-family: 'Montserrat Alternates', Arial, sans-serif;
             font-weight: 400;
             text-align: right;
-            width: 710px;
+            width: 227px;
         }
 
         /* ── Gratitude title ── */
         .gratitude {
             position: absolute;
-            left: 166px;
-            top: 480px;
-            width: 2154px;
+            left: 53px;
+            top: 154px;
+            width: 689px;
             color: #c22034;
             line-height: 1.075;
         }
         .gratitude-subtitle {
             font-family: 'Montserrat', Arial, sans-serif;
             font-weight: 600;
-            font-size: 64px;
-            margin-bottom: 23px;
+            font-size: 20.5px;
+            margin-bottom: 7px;
         }
         .gratitude-title {
             font-family: 'Marvin Visions', Arial, sans-serif;
             font-weight: 700;
-            font-size: 128px;
-            font-style: normal;
+            font-size: 41px;
         }
 
         /* ── Body text ── */
         .body {
             position: absolute;
-            left: 160px;
-            top: 947px;
-            width: 1938px;
+            left: 51px;
+            top: 303px;
+            width: 620px;
             font-family: 'Montserrat', Arial, sans-serif;
             font-weight: 400;
-            font-size: 48px;
+            font-size: 15.4px;
             color: #000000;
             line-height: 1.35;
+            overflow: visible;
         }
         .salutation {
-            margin-bottom: 79px;
+            margin-bottom: 25px;
         }
-        .body-text p {
-            margin-bottom: 48px;
-        }
-        .body-text p:last-child {
-            margin-bottom: 0;
+        .body-p {
+            margin-bottom: 15px;
         }
 
         /* ── Signature ── */
-        .signature {
-            position: absolute;
-            left: 160px;
-            top: 2486px;
-            width: 2160px;
-            height: 339px;
-            font-size: 48px;
-            color: #000000;
-            line-height: 1.35;
-        }
         .signature-role {
             position: absolute;
-            left: 0;
-            top: 50px;
-            width: 880px;
+            left: 51px;
+            top: 812px;
+            width: 282px;
             font-family: 'Montserrat', Arial, sans-serif;
             font-weight: 400;
+            font-size: 15.4px;
+            color: #000000;
+            line-height: 1.35;
+            overflow: visible;
         }
         .sig-wrap {
             position: absolute;
-            left: 930px;
-            top: 0;
-            width: 323px;
-            height: 339px;
+            left: 349px;
+            top: 796px;
+            width: 103px;
+            height: 109px;
             overflow: hidden;
         }
         .sig-wrap img {
             position: relative;
-            left: -8px;
-            top: 8px;
-            width: 339px;
-            height: 323px;
+            left: -3px;
+            top: 3px;
+            width: 109px;
+            height: 103px;
             transform: rotate(90deg);
             transform-origin: 50% 50%;
         }
         .signature-name {
             position: absolute;
-            right: 0;
-            top: 80px;
+            right: 51px;
+            top: 822px;
             font-family: 'Montserrat', Arial, sans-serif;
             font-weight: 600;
+            font-size: 15.4px;
+            color: #000000;
+            line-height: 1.35;
             text-align: right;
             white-space: nowrap;
         }
 
         /* ── Footer ── */
-        .footer {
-            position: absolute;
-            left: 160px;
-            top: 3251px;
-            width: 2160px;
-            height: 110px;
-        }
         .footer-rosmol {
             position: absolute;
-            left: 0;
-            top: 14px;
-            width: 372px;
-            height: 79px;
+            left: 51px;
+            top: 1045px;
+            width: 119px;
+            height: 25px;
         }
         .footer-rosmol img { width: 100%; height: 100%; object-fit: contain; display: block; }
+
         .footer-kbc-logo {
             position: absolute;
-            left: 1006px;
-            top: 0;
-            width: 243px;
-            height: 106px;
+            left: 373px;
+            top: 1041px;
+            width: 78px;
+            height: 34px;
         }
         .footer-kbc-logo img.circle {
             position: absolute;
-            left: 0; top: 2px;
-            width: 85px;
-            height: 103px;
+            left: 0; top: 1px;
+            width: 27px;
+            height: 33px;
         }
         .footer-kbc-logo img.text {
             position: absolute;
             left: 0; top: 0;
-            width: 243px;
-            height: 106px;
+            width: 78px;
+            height: 34px;
         }
+
         .footer-kbc-mark {
             position: absolute;
-            left: 1883px;
-            top: 11px;
-            width: 277px;
-            height: 88px;
+            left: 653px;
+            top: 1044px;
+            width: 89px;
+            height: 28px;
         }
         .footer-kbc-mark img { width: 100%; height: 100%; object-fit: contain; display: block; }
     </style>
@@ -248,12 +235,12 @@
 <body>
 <div class="canvas">
 
-    <!-- Bottom-left star decoration (deco_flower.svg = teal 12-pointed star) -->
+    <!-- Bottom-left star decoration -->
     <div class="deco-star-bl">
         <img src="participant_assets/deco_flower.svg" alt="" />
     </div>
 
-    <!-- Right asterisk decoration (deco_star.svg = orange asterisk/flower) -->
+    <!-- Right asterisk decoration -->
     <div class="deco-flower-r">
         <img src="participant_assets/deco_star.svg" alt="" />
     </div>
@@ -266,43 +253,37 @@
 
     <!-- Gratitude title -->
     <div class="gratitude">
-        <p class="gratitude-subtitle">О выражении благодарности за участие</p>
-        <p class="gratitude-title">во Всероссийском студенческом форуме «Китай Бизнес Культура»</p>
+        <div class="gratitude-subtitle">О выражении благодарности за участие</div>
+        <div class="gratitude-title">во Всероссийском студенческом форуме «Китай Бизнес Культура»</div>
     </div>
 
     <!-- Body -->
     <div class="body">
         <p class="salutation">Уважаемая ИО_PLACEHOLDER!</p>
-        <div class="body-text">
-            <p>Всероссийский студенческий форум «Китай Бизнес Культура» выражает Вам благодарность за участие в форуме, состоявшемся 11 апреля 2026 года на площадке Высшей школы менеджмента СПбГУ (кампус «Михайловская дача», г. Санкт-Петербург).</p>
-            <p>Форум «Китай Бизнес Культура» — федеральная очная и онлайн-площадка, объединяющая студентов и молодых специалистов из более чем 80 регионов Российской Федерации. Программа формируется совместно с ведущими университетами и индустриальными партнёрами и включает панельные дискуссии, экспертные сессии и практико-ориентированные форматы по обмену опытом и профессиональными знаниями в контексте российско-китайского сотрудничества.</p>
-            <p>В рамках форума Вы приняли участие в работе трека «ТРЕК_PLACEHOLDER», став частью профессионального диалога студентов, молодых специалистов и экспертов, заинтересованных в развитии российско-китайского взаимодействия.</p>
-            <p>Благодарим Вас за проявленный интерес и вовлечённость. Уверены, что полученный опыт, знания и контакты станут основой для Вашего дальнейшего профессионального и личностного развития.</p>
-            <p>Желаем Вам успехов и новых достижений.</p>
-        </div>
+        <p class="body-p">Всероссийский студенческий форум «Китай Бизнес Культура» выражает Вам благодарность за участие в форуме, состоявшемся 11 апреля 2026 года на площадке Высшей школы менеджмента СПбГУ (кампус «Михайловская дача», г. Санкт-Петербург).</p>
+        <p class="body-p">Форум «Китай Бизнес Культура» — федеральная очная и онлайн-площадка, объединяющая студентов и молодых специалистов из более чем 80 регионов Российской Федерации. Программа формируется совместно с ведущими университетами и индустриальными партнёрами и включает панельные дискуссии, экспертные сессии и практико-ориентированные форматы по обмену опытом и профессиональными знаниями в контексте российско-китайского сотрудничества.</p>
+        <p class="body-p">В рамках форума Вы приняли участие в работе трека «ТРЕК_PLACEHOLDER», став частью профессионального диалога студентов, молодых специалистов и экспертов, заинтересованных в развитии российско-китайского взаимодействия.</p>
+        <p class="body-p">Благодарим Вас за проявленный интерес и вовлечённость. Уверены, что полученный опыт, знания и контакты станут основой для Вашего дальнейшего профессионального и личностного развития.</p>
+        <p>Желаем Вам успехов и новых достижений.</p>
     </div>
 
     <!-- Signature -->
-    <div class="signature">
-        <p class="signature-role">Руководитель Всероссийского проекта «Китай Бизнес Культура»</p>
-        <div class="sig-wrap">
-            <img src="participant_assets/signature.png" alt="" />
-        </div>
-        <p class="signature-name">Артём Васильевич Кириенков</p>
+    <div class="signature-role">Руководитель Всероссийского проекта «Китай Бизнес Культура»</div>
+    <div class="sig-wrap">
+        <img src="participant_assets/signature.png" alt="" />
     </div>
+    <div class="signature-name">Артём Васильевич Кириенков</div>
 
     <!-- Footer -->
-    <div class="footer">
-        <div class="footer-rosmol">
-            <img src="participant_assets/rosmol_logo.png" alt="Росмолодёжь гранты" />
-        </div>
-        <div class="footer-kbc-logo">
-            <img class="circle" src="participant_assets/kbc_logo_circle.svg" alt="" />
-            <img class="text" src="participant_assets/kbc_logo_text.svg" alt="ВШМ СПбГУ" />
-        </div>
-        <div class="footer-kbc-mark">
-            <img src="participant_assets/kbc_mark.svg" alt="КБК" />
-        </div>
+    <div class="footer-rosmol">
+        <img src="participant_assets/rosmol_logo.png" alt="Росмолодёжь гранты" />
+    </div>
+    <div class="footer-kbc-logo">
+        <img class="circle" src="participant_assets/kbc_logo_circle.svg" alt="" />
+        <img class="text" src="participant_assets/kbc_logo_text.svg" alt="ВШМ СПбГУ" />
+    </div>
+    <div class="footer-kbc-mark">
+        <img src="participant_assets/kbc_mark.svg" alt="КБК" />
     </div>
 
 </div>
