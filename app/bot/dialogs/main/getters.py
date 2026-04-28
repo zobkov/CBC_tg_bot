@@ -17,6 +17,7 @@ from sqlalchemy.exc import SQLAlchemyError
 from app.infrastructure.database.dao.feedback import FeedbackDAO
 from app.infrastructure.database.dao.interview import InterviewDAO
 from app.infrastructure.database.database.db import DB
+from app.services.participant_cert import is_cert_eligible
 from app.utils.deadline_checker import is_task_submission_closed
 from app.utils.optimized_dialog_widgets import get_file_id_for_path
 from config.config import Config, load_config
@@ -138,6 +139,7 @@ async def get_is_admin(
         "is_admin": is_admin,
         "show_casting": (is_admin or is_fair_user) and not already_done,
         "show_vol_part2": is_admin or is_vol_part2_user,
+        "show_participant_cert": is_admin or is_cert_eligible(event_from_user.id),
     }
 
 

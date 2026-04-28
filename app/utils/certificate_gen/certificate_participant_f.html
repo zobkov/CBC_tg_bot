@@ -1,0 +1,287 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <title>Сертификат участника КБК</title>
+    <style>
+        @font-face {
+            font-family: 'Montserrat';
+            src: url('fonts/montserrat/Montserrat-Regular.ttf') format('truetype');
+            font-weight: 400;
+            font-style: normal;
+        }
+        @font-face {
+            font-family: 'Montserrat';
+            src: url('fonts/montserrat/Montserrat-SemiBold.ttf') format('truetype');
+            font-weight: 600;
+            font-style: normal;
+        }
+        @font-face {
+            font-family: 'Montserrat Alternates';
+            src: url('fonts/montseratt alternates/MontserratAlternates-Regular.ttf') format('truetype');
+            font-weight: 400;
+            font-style: normal;
+        }
+        @font-face {
+            font-family: 'Marvin Visions';
+            src: url('fonts/MarvinVisions-Bold.otf') format('opentype');
+            font-weight: 700;
+            font-style: normal;
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            width: 2480px;
+            height: 3508px;
+            background: #ffffff;
+            font-family: 'Montserrat', Arial, sans-serif;
+            position: relative;
+            overflow: hidden;
+        }
+
+        /* ── Bottom-left star decoration ── */
+        .deco-star-bl {
+            position: absolute;
+            left: -210px;
+            top: 2745px;
+            width: 1098px;
+            height: 1097px;
+        }
+        .deco-star-bl img { width: 100%; height: 100%; }
+
+        /* ── Right flower decoration ── */
+        .deco-flower-r {
+            position: absolute;
+            left: 2064px;
+            top: 378px;
+            width: 566px;
+            height: 757px;
+            overflow: visible;
+        }
+        .deco-flower-r img { width: 100%; height: 100%; }
+
+        /* ── Header: ФИО (left) | Апрель 2026 (right) ── */
+        .header {
+            position: absolute;
+            left: 160px;
+            top: 223px;
+            width: 2160px;
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            font-size: 48px;
+            color: #000000;
+            line-height: normal;
+        }
+        .header-name {
+            font-family: 'Montserrat', Arial, sans-serif;
+            font-weight: 400;
+            white-space: nowrap;
+        }
+        .header-date {
+            font-family: 'Montserrat Alternates', Arial, sans-serif;
+            font-weight: 400;
+            font-style: normal;
+            text-align: right;
+            width: 710px;
+        }
+
+        /* ── Gratitude message title ── */
+        .gratitude {
+            position: absolute;
+            left: 166px;
+            top: 480px;
+            width: 2154px;
+            color: #c22034;
+            display: flex;
+            flex-direction: column;
+            gap: 23px;
+            line-height: 1.075;
+        }
+        .gratitude-subtitle {
+            font-family: 'Montserrat', Arial, sans-serif;
+            font-weight: 600;
+            font-size: 64px;
+        }
+        .gratitude-title {
+            font-family: 'Marvin Visions', Arial, sans-serif;
+            font-weight: 700;
+            font-size: 128px;
+            font-style: normal;
+        }
+
+        /* ── Body: salutation + paragraphs ── */
+        .body {
+            position: absolute;
+            left: 160px;
+            top: 947px;
+            width: 1938px;
+            font-family: 'Montserrat', Arial, sans-serif;
+            font-weight: 400;
+            font-size: 48px;
+            color: #000000;
+            display: flex;
+            flex-direction: column;
+            gap: 79px;
+        }
+        .salutation {
+            line-height: normal;
+        }
+        .body-text {
+            line-height: normal;
+        }
+        .body-text p {
+            margin-bottom: 48px;
+        }
+        .body-text p:last-child {
+            margin-bottom: 0;
+        }
+
+        /* ── Signature container ── */
+        .signature {
+            position: absolute;
+            left: 160px;
+            top: 2486px;
+            width: 2160px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            font-size: 48px;
+            color: #000000;
+            line-height: normal;
+        }
+        .signature-role {
+            font-family: 'Montserrat', Arial, sans-serif;
+            font-weight: 400;
+            width: 880px;
+        }
+        .signature-image {
+            width: 339px;
+            height: 323px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transform: rotate(90deg);
+        }
+        .signature-image img {
+            width: 323px;
+            height: 339px;
+        }
+        .signature-name {
+            font-family: 'Montserrat', Arial, sans-serif;
+            font-weight: 600;
+            text-align: right;
+            white-space: nowrap;
+        }
+
+        /* ── Footer ── */
+        .footer {
+            position: absolute;
+            left: 160px;
+            top: 3251px;
+            display: flex;
+            align-items: center;
+            gap: 634px;
+        }
+        .footer-rosmol {
+            width: 372px;
+            height: 79px;
+            flex-shrink: 0;
+        }
+        .footer-rosmol img {
+            width: 100%;
+            height: 100%;
+            object-fit: contain;
+        }
+        .footer-kbc-logo {
+            position: relative;
+            width: 243px;
+            height: 106px;
+            flex-shrink: 0;
+        }
+        .footer-kbc-logo img.circle {
+            position: absolute;
+            left: 0; top: 0;
+            width: 85px;
+            height: 103px;
+        }
+        .footer-kbc-logo img.text {
+            position: absolute;
+            left: 0; top: 0;
+            width: 243px;
+            height: 106px;
+        }
+        .footer-kbc-mark {
+            width: 277px;
+            height: 88px;
+            flex-shrink: 0;
+        }
+        .footer-kbc-mark img {
+            width: 100%;
+            height: 100%;
+            object-fit: contain;
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Bottom-left star decoration -->
+    <div class="deco-star-bl">
+        <img src="participant_assets/deco_star.svg" alt="" />
+    </div>
+
+    <!-- Right flower decoration -->
+    <div class="deco-flower-r">
+        <img src="participant_assets/deco_flower.svg" alt="" />
+    </div>
+
+    <!-- Header -->
+    <div class="header">
+        <span class="header-name">ИМЯ ФАМИЛИЯ</span>
+        <span class="header-date">Апрель 2026</span>
+    </div>
+
+    <!-- Gratitude title -->
+    <div class="gratitude">
+        <p class="gratitude-subtitle">О выражении благодарности за участие</p>
+        <p class="gratitude-title">во Всероссийском студенческом форуме «Китай Бизнес Культура»</p>
+    </div>
+
+    <!-- Body -->
+    <div class="body">
+        <p class="salutation">Уважаемая ИО_PLACEHOLDER!</p>
+        <div class="body-text">
+            <p>Всероссийский студенческий форум «Китай Бизнес Культура» выражает Вам благодарность за участие в форуме, состоявшемся 11 апреля 2026 года на площадке Высшей школы менеджмента СПбГУ (кампус «Михайловская дача», г. Санкт-Петербург).</p>
+            <p>Форум «Китай Бизнес Культура» — федеральная очная и онлайн-площадка, объединяющая студентов и молодых специалистов из более чем 80 регионов Российской Федерации. Программа формируется совместно с ведущими университетами и индустриальными партнёрами и включает панельные дискуссии, экспертные сессии и практико-ориентированные форматы по обмену опытом и профессиональными знаниями в контексте российско-китайского сотрудничества.</p>
+            <p>В рамках форума Вы приняли участие в работе трека «ТРЕК_PLACEHOLDER», став частью профессионального диалога студентов, молодых специалистов и экспертов, заинтересованных в развитии российско-китайского взаимодействия.</p>
+            <p>Благодарим Вас за проявленный интерес и вовлечённость. Уверены, что полученный опыт, знания и контакты станут основой для Вашего дальнейшего профессионального и личностного развития.</p>
+            <p>Желаем Вам успехов и новых достижений.</p>
+        </div>
+    </div>
+
+    <!-- Signature -->
+    <div class="signature">
+        <p class="signature-role">Руководитель Всероссийского проекта «Китай Бизнес Культура»</p>
+        <div class="signature-image">
+            <img src="participant_assets/signature.png" alt="" />
+        </div>
+        <p class="signature-name">Артём Васильевич Кириенков</p>
+    </div>
+
+    <!-- Footer -->
+    <div class="footer">
+        <div class="footer-rosmol">
+            <img src="participant_assets/rosmol_logo.png" alt="Росмолодёжь гранты" />
+        </div>
+        <div class="footer-kbc-logo">
+            <img class="circle" src="participant_assets/kbc_logo_circle.svg" alt="" />
+            <img class="text" src="participant_assets/kbc_logo_text.svg" alt="ВШМ СПбГУ" />
+        </div>
+        <div class="footer-kbc-mark">
+            <img src="participant_assets/kbc_mark.svg" alt="КБК" />
+        </div>
+    </div>
+
+</body>
+</html>
