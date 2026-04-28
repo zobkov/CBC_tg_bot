@@ -135,11 +135,20 @@ async def get_is_admin(
 
     is_vol_part2_user = event_from_user.id in _VOL_GENERAL_PASSED_IDS
 
+    in_csv = is_cert_eligible(event_from_user.id)
+    in_db = False
+    if not in_csv and db:
+        try:
+            reg = await db.forum_registrations.get_by_user_id(user_id=event_from_user.id)
+            in_db = reg is not None
+        except Exception as exc:  # noqa: BLE001
+            LOGGER.error("get_is_admin: DB error checking forum reg for user %d: %s", event_from_user.id, exc)
+
     return {
         "is_admin": is_admin,
         "show_casting": (is_admin or is_fair_user) and not already_done,
         "show_vol_part2": is_admin or is_vol_part2_user,
-        "show_participant_cert": is_admin or is_cert_eligible(event_from_user.id),
+        "show_participant_cert": is_admin or in_csv or in_db,
     }
 
 

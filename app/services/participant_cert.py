@@ -135,6 +135,44 @@ def _name_patronymic(full_name: str) -> str:
     return full_name
 
 
+def generate_cert_for_db_user(
+    user_id: int,
+    full_name: str,
+    gender: str,
+    track: str,
+) -> Path:
+    """Generate (or return cached) a cert for a user found in DB but not in CSV.
+
+    Args:
+        user_id: Telegram user ID (used only for debug logging).
+        full_name: Full name string as stored in bot_forum_registrations.name.
+        gender: ``"M"`` or ``"F"``.
+        track: Track slug as stored in DB (mapped to Russian via ``_TRACK_NAMES_RU``).
+
+    Returns the ``Path`` to the generated PDF.
+    Raises ``CertificateGenerationError`` on render failures.
+    """
+    track_ru = _TRACK_NAMES_RU.get(track, track) if track else "Форум КБК'26"
+    filename = _build_cert_filename(full_name)
+    cert_path = _OUTPUT_DIR / filename
+
+    if cert_path.exists():
+        LOGGER.debug("Returning cached cert for user %d: %s", user_id, cert_path)
+        return cert_path
+
+    gen = _get_gen_m() if gender.upper() == "M" else _get_gen_f()
+    io_name = _name_patronymic(full_name)
+
+    return gen.generate(
+        full_name,
+        output_filename=filename,
+        substitutions={
+            "ИО_PLACEHOLDER": io_name,
+            "ТРЕК_PLACEHOLDER": track_ru,
+        },
+    )
+
+
 def generate_cert(user_id: int) -> Path:
     """Generate (or return cached) a participation certificate for *user_id*.
 

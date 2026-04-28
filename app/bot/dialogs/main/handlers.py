@@ -10,13 +10,18 @@ from aiogram_dialog.widgets.kbd import Button
 from sqlalchemy.exc import SQLAlchemyError
 
 from app.infrastructure.database.database.db import DB
-from app.services.participant_cert import generate_cert, get_participant_info
+from app.services.participant_cert import (
+    generate_cert,
+    generate_cert_for_db_user,
+    get_participant_info,
+)
 from app.utils.certificate_gen.generator import CertificateGenerationError
 from app.utils.deadline_checker import (
     get_task_submission_status_message,
     is_task_submission_closed,
 )
 from app.bot.dialogs.grants.states import GrantsSG
+from app.bot.dialogs.main.states import MainMenuSG
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -112,30 +117,97 @@ async def on_grants_clicked(
 async def on_participant_cert_clicked(
     callback: CallbackQuery,
     _button: Button,
-    _dialog_manager: DialogManager,
+    dialog_manager: DialogManager,
 ) -> None:
-    """Generate (or return cached) the participant certificate and send it."""
+    """Generate (or return cached) the participant certificate and send it.
+
+    Fast path: user is in the CSV → generate immediately.
+    Fallback: user is in bot_forum_registrations DB → ask gender first.
+    """
     user_id = callback.from_user.id
 
+    # Fast path: user is in CSV with known gender
     info = get_participant_info(user_id)
-    if info is None:
+    if info is not None:
+        await callback.answer("Генерирую сертификат…")
+        try:
+            cert_path = generate_cert(user_id)
+        except CertificateGenerationError as exc:
+            _LOGGER.error("Certificate generation failed for user %d: %s", user_id, exc)
+            await callback.message.answer(
+                "Не удалось сгенерировать сертификат. Пожалуйста, обратитесь к @cbc_assistant."
+            )
+            return
+        await callback.message.answer_document(
+            FSInputFile(cert_path),
+            caption="🎓 Твой сертификат участника форума КБК'26",
+        )
+        return
+
+    # DB fallback: user is registered in bot_forum_registrations but not in CSV
+    db: DB | None = dialog_manager.middleware_data.get("db")
+    reg = None
+    if db:
+        try:
+            reg = await db.forum_registrations.get_by_user_id(user_id=user_id)
+        except Exception as exc:  # noqa: BLE001
+            _LOGGER.error("on_participant_cert_clicked: DB error for user %d: %s", user_id, exc)
+
+    if reg is None:
         await callback.answer(
             "Вы не найдены в списке участников форума.", show_alert=True
         )
         return
 
-    await callback.answer("Генерирую сертификат…")
+    dialog_manager.dialog_data["db_reg"] = dict(reg)
+    await dialog_manager.switch_to(MainMenuSG.GENDER_SELECT)
 
+
+async def _send_cert_for_db_user(
+    callback: CallbackQuery,
+    dialog_manager: DialogManager,
+    gender: str,
+) -> None:
+    """Generate and send a cert for a DB-sourced user with the given gender."""
+    user_id = callback.from_user.id
+    reg = dialog_manager.dialog_data.get("db_reg") or {}
+    full_name = (reg.get("name") or "").strip() or callback.from_user.full_name or "Участник"
+    track = reg.get("track") or ""
+
+    await callback.answer("Генерирую сертификат…")
     try:
-        cert_path = generate_cert(user_id)
+        cert_path = generate_cert_for_db_user(
+            user_id=user_id,
+            full_name=full_name,
+            gender=gender,
+            track=track,
+        )
     except CertificateGenerationError as exc:
         _LOGGER.error("Certificate generation failed for user %d: %s", user_id, exc)
         await callback.message.answer(
             "Не удалось сгенерировать сертификат. Пожалуйста, обратитесь к @cbc_assistant."
         )
+        await dialog_manager.switch_to(MainMenuSG.MAIN)
         return
 
     await callback.message.answer_document(
         FSInputFile(cert_path),
         caption="🎓 Твой сертификат участника форума КБК'26",
     )
+    await dialog_manager.switch_to(MainMenuSG.MAIN)
+
+
+async def on_gender_m_clicked(
+    callback: CallbackQuery,
+    _button: Button,
+    dialog_manager: DialogManager,
+) -> None:
+    await _send_cert_for_db_user(callback, dialog_manager, gender="M")
+
+
+async def on_gender_f_clicked(
+    callback: CallbackQuery,
+    _button: Button,
+    dialog_manager: DialogManager,
+) -> None:
+    await _send_cert_for_db_user(callback, dialog_manager, gender="F")

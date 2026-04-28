@@ -6,7 +6,12 @@ from aiogram_dialog.widgets.media import DynamicMedia
 from aiogram_dialog.widgets.text import Const, Format
 
 from app.bot.dialogs.main import getters as main_getters
-from app.bot.dialogs.main.handlers import on_grants_clicked, on_participant_cert_clicked
+from app.bot.dialogs.main.handlers import (
+    on_gender_f_clicked,
+    on_gender_m_clicked,
+    on_grants_clicked,
+    on_participant_cert_clicked,
+)
 from app.bot.dialogs.main.quiz_dod.states import QuizDodSG
 from app.bot.dialogs.online.states import OnlineSG
 from app.bot.dialogs.main.states import MainMenuSG
@@ -100,5 +105,13 @@ main_dialog = Dialog(
             main_getters.get_is_admin,
             main_getters.get_forum_registration_badge,
         ],
+    ),
+    Window(
+        Const("Укажи свой пол для оформления сертификата:"),
+        Row(
+            Button(Const("Мужской"), id="gender_m", on_click=on_gender_m_clicked),
+            Button(Const("Женский"), id="gender_f", on_click=on_gender_f_clicked),
+        ),
+        state=MainMenuSG.GENDER_SELECT,
     ),
 )
