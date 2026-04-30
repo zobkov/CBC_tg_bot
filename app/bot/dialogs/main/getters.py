@@ -120,11 +120,11 @@ async def get_is_admin(
     is_admin = event_from_user.id in config.admin_ids
     is_fair_user = event_from_user.id in _FAIR_USER_IDS
 
+    db: DB | None = dialog_manager.middleware_data.get("db")
+
     # Hide casting button if user already completed part 2
     already_done = False
     if is_fair_user or is_admin:
-        from app.infrastructure.database.database.db import DB
-        db: DB | None = dialog_manager.middleware_data.get("db")
         if db:
             app = await db.creative_applications.get_application(user_id=event_from_user.id)
             if app is not None:
