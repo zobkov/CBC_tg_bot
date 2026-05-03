@@ -18,7 +18,7 @@ class _ForumRegistrationsDB:
         """Return bot_forum_registrations row for the given Telegram user, or None."""
         result = await self.session.execute(
             text(
-                "SELECT id, user_id, unique_id, name, status, track "
+                "SELECT id, user_id, unique_id, name, status, track, occupation_status "
                 "FROM bot_forum_registrations "
                 "WHERE user_id = :user_id "
                 "LIMIT 1"

@@ -140,7 +140,7 @@ async def get_is_admin(
     if not in_csv and db:
         try:
             reg = await db.forum_registrations.get_by_user_id(user_id=event_from_user.id)
-            in_db = reg is not None
+            in_db = reg is not None and reg.get("occupation_status") == "participant"
         except Exception as exc:  # noqa: BLE001
             LOGGER.error("get_is_admin: DB error checking forum reg for user %d: %s", event_from_user.id, exc)
 
