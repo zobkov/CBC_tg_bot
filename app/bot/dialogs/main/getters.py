@@ -136,19 +136,37 @@ async def get_is_admin(
     is_vol_part2_user = event_from_user.id in _VOL_GENERAL_PASSED_IDS
 
     in_csv = is_cert_eligible(event_from_user.id)
-    in_db = False
-    if not in_csv and db:
+    is_db_participant = False
+    if db:
         try:
             reg = await db.forum_registrations.get_by_user_id(user_id=event_from_user.id)
-            in_db = reg is not None and reg.get("occupation_status") == "participant"
+            LOGGER.debug(
+                "cert check user_id=%d: in_csv=%s, reg=%s, status=%r",
+                event_from_user.id,
+                in_csv,
+                reg,
+                reg.get("status") if reg else None,
+            )
+            is_db_participant = reg is not None and reg.get("status") == "participant"
         except Exception as exc:  # noqa: BLE001
             LOGGER.error("get_is_admin: DB error checking forum reg for user %d: %s", event_from_user.id, exc)
+    else:
+        LOGGER.warning("cert check user_id=%d: db is None, skipping DB check", event_from_user.id)
+
+    LOGGER.debug(
+        "cert visibility user_id=%d: is_admin=%s, in_csv=%s, is_db_participant=%s → show=%s",
+        event_from_user.id,
+        is_admin,
+        in_csv,
+        is_db_participant,
+        is_admin or is_db_participant,
+    )
 
     return {
         "is_admin": is_admin,
         "show_casting": (is_admin or is_fair_user) and not already_done,
         "show_vol_part2": is_admin or is_vol_part2_user,
-        "show_participant_cert": is_admin or in_csv or in_db,
+        "show_participant_cert": is_db_participant,
     }
 
 
